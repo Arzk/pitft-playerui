@@ -598,7 +598,7 @@ class PitftPlayerui:
 			if not self.updateAll or not self.updateTrackInfo:
 				surface.blit(self.image["background"], (0,242), (0,242, 427,20)) # reset background
 				surface.blit(self.image["position_bg"], (55, 245))
-			surface.blit(self.image["position_fg"], (54, 244),(0,0,int(370*self.timeElapsedPercentage),10))
+			surface.blit(self.image["position_fg"], (54, 245),(0,0,int(370*self.timeElapsedPercentage),10))
 			text = self.font["elapsed"].render(self.timeElapsed, 1,(230,228,227))
 			surface.blit(text, (10, 238)) # Elapsed
 
