@@ -9,7 +9,7 @@ import re
 import pylast
 import lastfm_login
 from mpd import MPDClient
-from math import ceil
+from math import ceil, floor
 import const
 import datetime
 from datetime import timedelta
@@ -96,6 +96,14 @@ class PitftDaemon(Daemon):
 			logger.exception(e)
 			raise
 
+		# Mouse positions for scrolling
+		self.scroll_threshold = 10
+		self.scroll_step      = 20
+		self.start_x          = 0
+		self.start_y          = 0
+		self.mouse_scroll     = False
+		self.button_down      = False
+
 	# Connect to MPD server
 	def connectToMPD(self):
 		logger.info("Trying to connect MPD server")
@@ -116,7 +124,7 @@ class PitftDaemon(Daemon):
 		# Screen is off and its touched
 		if self.sm.get_backlight_status() == 0 and 0 <= click_pos[0] <= 480 and 0 <= click_pos[1] <= 320:
 			logger.debug("Screen off, Screen touch")
-			self.button(9)
+			self.button(2)
 
 		# Screen is on. Check which button is touched 
 		else:
@@ -146,48 +154,52 @@ class PitftDaemon(Daemon):
 			# Playlists are shown - hide on empty space click
 			elif self.sm.get_playlists_status() or self.sm.get_playlist_status():
 				if not 4 <= click_pos[0] <= 416 or not 12 <= click_pos[1] <= 232:
-					logger.debug("Hiding playlists view")
+					logger.debug("Hiding lists view")
 					self.button(13)
-				elif 4 <= click_pos[0] <= 416 and 12 <= click_pos[1] <= 42:
+				elif 4 <= click_pos[0] <= 416 and 4 <= click_pos[1] <= 33:
 					logger.debug("Selecting list item 0")
 					self.sm.item_selector(0)
-				elif 4 <= click_pos[0] <= 416 and 42 <= click_pos[1] <= 72:
+				elif 4 <= click_pos[0] <= 416 and 34 <= click_pos[1] <= 63:
 					logger.debug("Selecting list item 1")
 					self.sm.item_selector(1)
-				elif 4 <= click_pos[0] <= 416 and 72 <= click_pos[1] <= 112:
+				elif 4 <= click_pos[0] <= 416 and 64 <= click_pos[1] <= 93:
 					logger.debug("Selecting list item 2")
 					self.sm.item_selector(2)
-				elif 4 <= click_pos[0] <= 416 and 112 <= click_pos[1] <= 142:
+				elif 4 <= click_pos[0] <= 416 and 94 <= click_pos[1] <= 123:
 					logger.debug("Selecting list item 3")
 					self.sm.item_selector(3)
-				elif 4 <= click_pos[0] <= 416 and 142 <= click_pos[1] <= 172:
+				elif 4 <= click_pos[0] <= 416 and 124 <= click_pos[1] <= 153:
 					logger.debug("Selecting list item 4")
 					self.sm.item_selector(4)
-				elif 4 <= click_pos[0] <= 416 and 172 <= click_pos[1] <= 202:
+				elif 4 <= click_pos[0] <= 416 and 154 <= click_pos[1] <= 183:
 					logger.debug("Selecting list item 5")
 					self.sm.item_selector(5)
-				elif 4 <= click_pos[0] <= 416 and 202 <= click_pos[1] <= 232:
+				elif 4 <= click_pos[0] <= 416 and 184 <= click_pos[1] <= 213:
 					logger.debug("Selecting list item 6")
 					self.sm.item_selector(6)
 
 			# Toggles
 			elif 420 <= click_pos[0] <= 480 and 260 <= click_pos[1] <=320:
 				logger.debug("Screen off")
-				self.button(9)
+				self.button(2)
 			elif 315 <= click_pos[0] <= 377 and 56 <= click_pos[1] <=81:
 				logger.debug("Toggle repeat") 
 				self.button(0)
 			elif 315 <= click_pos[0] <= 377 and 88 <= click_pos[1] <=113:
 				logger.debug("Toggle random")
-				self.button(1)	
+				self.button(1)
+			elif 258 <= click_pos[0] <= 298 and 180 <= click_pos[1] <=238:
+				if self.sm.get_active_player() == "mpd":
+					logger.debug("Toggle playlist")
+					self.button(9)
 			# Controls
-			elif 242 <= click_pos[0] <= 298 and 132 <= click_pos[1] <=180:
+			elif 258 <= click_pos[0] <= 294 and 132 <= click_pos[1] <=180:
 				logger.debug("Prev")
 				self.button(6)
-			elif 300 <= click_pos[0] <= 356 and 132 <= click_pos[1] <=180:
+			elif 296 <= click_pos[0] <= 352 and 132 <= click_pos[1] <=180:
 				logger.debug("Toggle play/pause")
 				self.button(7)
-			elif 358 <= click_pos[0] <= 414 and 132 <= click_pos[1] <=180:
+			elif 354 <= click_pos[0] <= 410 and 132 <= click_pos[1] <=180:
 				logger.debug("Next")
 				self.button(8) 
 
@@ -199,6 +211,9 @@ class PitftDaemon(Daemon):
 
 		elif number == 1:
 			self.sm.toggle_random()
+
+		elif number == 2:
+			self.sm.toggle_backlight()
 
 		elif number == 5:
 			self.sm.control_player("stop")
@@ -212,8 +227,9 @@ class PitftDaemon(Daemon):
 		elif number == 8:
 			self.sm.control_player("next")
 
+
 		elif number == 9:
-			self.sm.toggle_backlight()
+			self.sm.toggle_playlist()
 
 		elif number == 10:
 			self.sm.toggle_playlists()
@@ -250,13 +266,45 @@ class PitftDaemon(Daemon):
 			while 1:
 				for event in pygame.event.get():
 					if event.type == pygame.MOUSEBUTTONDOWN:
+						# Save mouse position for deermining if user has scrolled
+						self.start_x,self.start_y=pygame.mouse.get_pos()
+						self.mouse_scroll = False
+						self.button_down = True
+
 						#logger.debug("screen pressed") #for debugging purposes
 						#pos = (pygame.mouse.get_pos() [0], pygame.mouse.get_pos() [1])
 						#pygame.draw.circle(self.screen, (255,255,255), pos, 2, 0) #for debugging purposes - adds a small dot where the screen is pressed
-						self.on_click()
-						
 
-				# Update screen, fps=10
+#					if event.type == pygame.MOUSEBUTTONUP:
+					if event.type == pygame.MOUSEMOTION and self.button_down:
+						end_x,end_y=pygame.mouse.get_pos()
+						direction = end_y - self.start_y
+
+						# A movement of 15 pixels scrolls one line
+						if abs(direction) >= self.scroll_threshold or abs(end_x - self.start_x) >= self.scroll_threshold:
+							self.mouse_scroll = True
+							if direction < 0:
+								self.sm.inc_offset(int(floor(direction/self.scroll_step)))
+							else:
+								self.sm.inc_offset(int(ceil(direction/self.scroll_step)))
+	
+						# Save new position
+						self.start_x,self.start_y=pygame.mouse.get_pos()
+
+					if event.type == pygame.MOUSEBUTTONUP:
+						# No movement - click
+						if not self.mouse_scroll:
+							self.on_click()
+
+						# Clear variables
+						self.start_x = 0;
+						end_x = 0;
+						self.start_y = 0;
+						end_y = 0;
+						self.mouse_scroll = False
+						self.button_down = False
+
+				# Update screen, fps=50
 				if drawtime < datetime.datetime.now():
 					drawtime = datetime.datetime.now() + timedelta(milliseconds=20)
 					self.sm.refresh_players()

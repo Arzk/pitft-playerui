@@ -36,11 +36,8 @@ class PitftPlayerui:
 		# Images
 		self.image = {}
 		self.image["background"]		=pygame.image.load(self.path + "pics/" + "background.png")
-		self.image["background_list"]		=pygame.image.load(self.path + "pics/" + "background-list.png")
 		self.image["coverart_place"]		=pygame.image.load(self.path + "pics/" + "coverart-placer.png")
 		self.image["details"]			=pygame.image.load(self.path + "pics/" + "details.png")
-#		self.image["indicator_blue"]		=pygame.image.load(self.path + "pics/" + "indicator-blue.png")
-#		self.image["indicator_red"]		=pygame.image.load(self.path + "pics/" + "indicator-red.png")
 		self.image["position_bg"]		=pygame.image.load(self.path + "pics/" + "position-background.png")
 		self.image["position_fg"]		=pygame.image.load(self.path + "pics/" + "position-foreground.png")
 		self.image["icon_randomandrepeat"]	=pygame.image.load(self.path + "pics/" + "randomandrepeat.png")
@@ -54,12 +51,12 @@ class PitftPlayerui:
 		self.image["button_prev"]		=pygame.image.load(self.path + "pics/" + "button-prev.png")
 		self.image["button_toggle_off"]		=pygame.image.load(self.path + "pics/" + "toggle-off.png")
 		self.image["button_toggle_on"]		=pygame.image.load(self.path + "pics/" + "toggle-on.png")
-#		self.image["nocover"]			=pygame.image.load(self.path + "pics/" + "no-cover.png")
 		self.image["button_spotify"]		=pygame.image.load(self.path + "pics/" + "button-spotify.png")
 		self.image["button_mpd"]		=pygame.image.load(self.path + "pics/" + "button-mpd.png")
 		self.image["button_radio"]		=pygame.image.load(self.path + "pics/" + "button-radio.png")
 		self.image["button_cd"]			=pygame.image.load(self.path + "pics/" + "button-cd.png")
 		self.image["button_playlists"]		=pygame.image.load(self.path + "pics/" + "button-playlists.png")
+		self.image["button_playlist"]		=pygame.image.load(self.path + "pics/" + "button-list.png")
 		# Threads
 		self.coverartThread = None
 		self.oldCoverartThreadRunning = False
@@ -115,6 +112,9 @@ class PitftPlayerui:
 
 		# Active player. Determine later
 		self.active_player 	= ""
+
+		# Offset for list scrolling
+		self.offset 		= 0
 
 		# Print data
 		self.logger.info("MPD server version: %s" % self.mpdc.mpd_version)
@@ -549,6 +549,8 @@ class PitftPlayerui:
 			surface.blit(self.image["button_prev"], (258, 132))
 			surface.blit(self.image["button_next"], (354, 132))
 			surface.blit(self.image["icon_screenoff"], (460, 304))
+			if self.active_player == "mpd":
+				surface.blit(self.image["button_playlist"], (258, 180))
 
 			if self.active_player == "spotify":
 				surface.blit(self.image["button_spotify"], (418, 8))
@@ -557,6 +559,7 @@ class PitftPlayerui:
 			surface.blit(self.image["button_playlists"], (418, 66))
 			surface.blit(self.image["button_cd"], (418, 124))
 			surface.blit(self.image["button_radio"], (418, 182))
+
 
 		if self.updateAlbum or self.coverFetched:
 			if self.cover:
@@ -587,11 +590,11 @@ class PitftPlayerui:
 			else:
 				text = self.font["details"].render(self.title, 1,(230,228,227))
 			surface.blit(text, (60, 298)) # Title
-			if not self.active_player == "spotify":
+			if self.active_player == "mpd":
 				text = self.font["elapsed"].render(self.timeTotal, 1,(230,228,227))
 				surface.blit(text, (429, 238)) # Track length
 
-		if self.updateElapsed and not self.active_player == "spotify":
+		if self.updateElapsed and self.active_player == "mpd":
 			if not self.updateAll or not self.updateTrackInfo:
 				surface.blit(self.image["background"], (0,242), (0,242, 427,20)) # reset background
 				surface.blit(self.image["position_bg"], (55, 245))
@@ -630,29 +633,32 @@ class PitftPlayerui:
 			if self.playlist:
 #				self.logger.debug(self.playlist)
 
-				for dict in self.playlist:
-#					self.logger.debug(dict["file"])
-					if "title" in dict:
-						playlistitem = dict["title"]
-					if "file" in dict:
-						playlistitem = dict["file"].split("/")[-1]
-					else:
-						playlistitem = " "
+				for i in range(0,8):
+					try:
+						playlistitem = self.playlist[i+self.offset]
+						if "title" in playlistitem:
+							if "artist" in playlistitem:
+								playlistitem = playlistitem["artist"] + " - " + playlistitem["title"]
+							else:
+								playlistitem = playlistitem["title"]
+						if "file" in playlistitem:
+							playlistitem = playlistitem["file"].split("/")[-1]
+					except:
+						playlistitem = ""
 					text = self.font["playlist"].render(playlistitem, 1,(230,228,227))
-					surface.blit(text, (12, 12 + 30*int(dict["pos"])))
+					surface.blit(text, (12, 4 + 30*int(i)))
 		if self.showPlaylists:
 			surface.blit(self.image["background"], (4,4), (4,4, 412,230)) # reset background
 			if self.playlists:
-#				self.logger.debug(self.playlists)
-				i = 0
-				for dict in self.playlists:
-					if "playlist" in dict:
-						listitem = dict["playlist"]
-					else:
-						listitem = " "
+				for i in range(0,8):
+					try:
+						listitem = self.playlists[i+self.offset]["playlist"]
+					except:
+						listitem = ""
 					text = self.font["playlist"].render(listitem, 1,(230,228,227))
-					surface.blit(text, (12, 12 + 30*i))
-					i = i+1
+					surface.blit(text, (12, 4 + 30*i))
+
+
 
 		# Reset updates
 		self.resetUpdates()
@@ -729,32 +735,52 @@ class PitftPlayerui:
 					self.mpdc.play()
 	
 	def control_player(self, command, player="active"):
-		if (player == "active" and self.active_player == "spotify") or player == "spotify":
+		if command == "repeat":
+			self.toggle_repeat()
+		elif command == "random":
+			self.toggle_random()
+		elif command == "cd":
+			self.play_cd()
+		elif command == "radio":
+			self.load_playlist("Radio")
+			self.mpdc.play()
+		elif command == "mpd":
+			self.switch_active_player("mpd")
+		elif command == "spotify":
+			self.switch_active_player("spotify")
+
+		elif (player == "active" and self.active_player == "spotify") or player == "spotify":
+			# Translate commands
 			if command == "stop":
 				command = "pause"
 			if command == "previous":
 				command = "prev"
-			self.spotify_control("playback", command)
-		elif (player == "active" and not self.active_player == "spotify") or player == "mpd":
+			# Prevent commands not implemented in api
+			if command != "ff" or command != "rwd": 
+				self.spotify_control("playback", command)
+		elif (player == "active" and self.active_player == "mpd") or player == "mpd":
 			if command == "next":
 				self.mpdc.next()
 			elif command == "previous":
 				self.mpdc.previous()
 			elif command == "pause":
 				self.mpdc.pause()
+			elif command == "play":
+				self.mpdc.play()
 			elif command == "stop":
 				self.mpdc.stop()
+			elif command == "rwd":
+				self.mpdc.seekcur("-10")
+			elif command == "ff":
+				self.mpdc.stop("+10")
 			else:
 				pass
 		else:
 			self.logger.debug("No player specified for control")
 
 	def load_playlist(self, command):
-		if command == "Radio":
-			self.mpdc.clear()
-			self.mpdc.load(command)
-		else:
-			pass
+		self.mpdc.clear()
+		self.mpdc.load(command)
 
 	def toggle_backlight(self):
 		bl = (self.backlight + 1) % 2
@@ -825,21 +851,23 @@ class PitftPlayerui:
 	def update_all(self):
 		self.updateAll = True
 
-	def item_selector(self, number, offset = 0):
+	def item_selector(self, number):
 		if self.showPlaylist and not self.showPlaylists:
-			if number + offset < len(self.playlist): 
-				self.mpdc.play(number + offset)
+			if number + self.offset < len(self.playlist): 
+				self.mpdc.play(number + self.offset)
 			self.showPlaylist = False
 			self.updateAll = True
 		elif self.showPlaylists and not self.showPlaylist:
-			if number + offset < len(self.playlists):
+			if number + self.offset < len(self.playlists):
 				self.mpdc.clear()
-				self.mpdc.load(self.playlists[number + offset]["playlist"])
+				self.mpdc.load(self.playlists[number + self.offset]["playlist"])
 				self.mpdc.play()
 			self.showPlaylists = False
 			self.switch_active_player("mpd")
 			self.updateAll = True
 
+		# Clear offset
+		self.offset = 0
 	def play_cd(self):
 		self.logger.info("Playing CD")
 		try:
@@ -888,3 +916,15 @@ class PitftPlayerui:
 
 	def get_active_player(self):
 		return self.active_player
+
+	def inc_offset(self, number):
+		self.offset = self.offset - number
+		
+		# Limits for offset
+		if self.offset < 0:
+			self.offset = 0
+		if (self.showPlaylists) and len(self.playlists) - 8 < self.offset:
+			self.offset = len(self.playlists) - 8
+		if (self.showPlaylist) and len(self.playlist) - 8 < self.offset:
+			self.offset = len(self.playlist) - 8
+		self.logger.debug("Offset: %s" % self.offset)

@@ -40,7 +40,7 @@ Things you need:
 
 Known issues:
 ==============
-- The maximum length of lists (playlists, radio playlist) is 7. Overlapping if exceeded
+- Long playlist items overlap buttons
 - Doesn't check if a CD drive is connected
 
 Installing:
