@@ -26,8 +26,8 @@ os.environ["SDL_MOUSEDRV"] = "TSLIB"
 
 # Logging configs
 logger = logging.getLogger("PiTFT-Playerui logger")
-logger.setLevel(logging.DEBUG)
-#logger.setLevel(logging.INFO)
+#logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 handler = TimedRotatingFileHandler('/var/log/pitft-playerui/pitft-playerui.log',when="midnight",interval=1,backupCount=14)
 formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
@@ -129,24 +129,20 @@ class PitftDaemon(Daemon):
 		# Screen is on. Check which button is touched 
 		else:
 			# There is no multi touch so if one button is pressed another one can't be pressed at the same time
-			# Selectors
 
-			# Spotify button
+			# Selectors
 			if 418 <= click_pos[0] <= 476 and 8 <= click_pos[1] <= 64:
 				if self.sm.get_active_player() == "spotify":
 					logger.debug("Switching to MPD")
 				else:
 					logger.debug("Switching to Spotify")
 				self.button(14)
-			# Playlists button
 			if 418 <= click_pos[0] <= 476 and 66 <= click_pos[1] <= 122:
 				logger.debug("Playlists")
 				self.button(10)
-			# CD button
 			elif 418 <= click_pos[0] <= 476 and 124 <= click_pos[1] <= 180:
 				logger.debug("CD")
 				self.button(11)
-			# Radio button
 			elif 418 <= click_pos[0] <= 476 and 182 <= click_pos[1] <= 238:
 				logger.debug("Radio")
 				self.button(12)
@@ -206,7 +202,7 @@ class PitftDaemon(Daemon):
 	#define action on pressing buttons
 	def button(self, number):
 		logger.debug("You pressed button %s" % number)
-		if number == 0:    #specific script when exiting
+		if number == 0:  
 			self.sm.toggle_repeat()
 
 		elif number == 1:
