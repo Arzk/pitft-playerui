@@ -107,10 +107,9 @@ Some specific things:
 
 TODO:
 =========
-- Gestures
-- Scrollable lists
 - Sleep timer
 - Cover art from Spotify
+- API for LIRC control of both players
 - Got other ideas? Post an issue and tell me about it
 
 Author notes:
