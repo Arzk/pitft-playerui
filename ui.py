@@ -171,7 +171,7 @@ class PitftDaemon(Daemon):
 					self.sm.item_selector(6)
 
 			# Toggles
-			elif 440 <= click_pos[0] <= 480 and 280 <= click_pos[1] <=320:
+			elif 420 <= click_pos[0] <= 480 and 260 <= click_pos[1] <=320:
 				logger.debug("Screen off")
 				self.button(9)
 			elif 315 <= click_pos[0] <= 557 and 56 <= click_pos[1] <=81:
