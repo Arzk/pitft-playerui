@@ -1,0 +1,4 @@
+*.pyc
+*.ttf
+*_old
+lastfm_login.py

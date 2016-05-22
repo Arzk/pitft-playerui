@@ -1,133 +1,133 @@
-PMB-PiTFT (Pi MusicBox PiTFT) is small Python program/script/whatever that uses mopidy's mpd-api to show controlling ui on Raspberry Pi's screen.
+PiTFT-PlayerUI is a fork of PMB-PiTFT (Pi MusicBox PiTFT) that is a small Python script that uses mopidy's mpd-api to show controlling ui on Raspberry Pi's screen.
 
+![My image](arzk.github.com/pitft-playerui/pics/screenshot.png)
+
+Forking reasons:
+===========
+- Support for 3.5" PiTFT+
+- Audio CD tag fetching from FreeDB
+- Spotify-connect-web support (https://github.com/Fornoth/spotify-connect-web)
+- Alternative UI with cleanup (sleep time and volume control disabled) 
+- My first python project
+ 
 Features:
 ===========
 Shows following details of currently playing track:
 - Cover art (From Last.FM)
 - Artist, Album and Track title
 - Track time total and elapsed
+- Fetches audio CD information from freeDB
 
-Shows and let user control:
+Shows and lets user control:
 - Repeat
 - Random
-- Volume
 - Playback status
+- Playlists
+- CD playback
+- Radio playback
 
-Let user control:
+Lets user control:
 - Screen backlight
-
-Also haves sleep function to turn screen of and stop music after certain time.
 
 Things you need:
 =================
-- Raspberry pi (I am using model B rev.1)
-- Adafruit PiTFT with Resistive Touchscreen ( http://www.adafruit.com/product/1601 )(Bought mine from ModMyPi: https://www.modmypi.com/pi-tft-raspberry-pi-touchscreen )
+- Raspberry pi (I am using model 3B)
+- Adafruit PiTFT+ 3.5" with Resistive Touchscreen ( https://www.adafruit.com/product/2441 )
 - Internet connection for Pi
-- [Optional] PiBow TFT Raspberry Pi Case ( http://shop.pimoroni.com/products/pitft-pibow ) (Bought mine from ModMyPi: https://www.modmypi.com/pimoroni-pitft-case )
+- Raspbian running on the Pi
+- MPD configured
 - [Optional] Helvetica Neue Bold-font. You can use normal Helvetica Bold as well or some other font.
 
 Known issues:
 ==============
-- PiTFT touchscreen is not working with Pi2, yet.
-- Capacitive PiTFT does not work with Pi1 B rev1. (Model B rev 1 have an older layout for the I2C pins and won't be able to use the touch screen.)
+- The maximum length of lists (playlists, radio playlist) is 7. Overlapping if exceeded
+- Doesn't check if a CD drive is connected
 
 Installing:
 ===========
-Current installing guide is tested and working with: Resistive PiTFT + Raspberry Pi 1 Model B rev1 + Pi MusicBox v.0.53 . Resistive PiTFT should work fine with all Pi1 B models. I haven't had time and equipment to test capacitive PiTFT yet, but it should work also, except that you need to do small changes to make backlight work (https://github.com/ISO-B/pmb-pitft/issues/1). 
+Current installation guide is tested and working with: Resistive PiTFT+ 3.5" + Raspberry Pi 3 Raspbian Jessie.
 
-First you need to install and configure Pi MusicBox(PMB). Instructions and everything else you need for this can be found on their website http://www.pimusicbox.com/ 
-Make sure you enable ssh and set root password.
+Install Raspbian and MPD and Configure PiTFT+ using the guide by Adafruit: https://learn.adafruit.com/adafruit-pitft-3-dot-5-touch-screen-for-raspberry-pi/ 
+Detailed install and calibration recommended
 
-After installing and configuring PMB its time to take ssh connection to you PMB using ssh and root account. Use your favorite ssh program. I am using putty.
-After logging in enter following commands:
-<pre>
-apt-get install rpi-update
-echo insecure >> ~/.curlrc
-REPO_URI=https://github.com/notro/rpi-firmware rpi-update 4815829b3f98e1b9c2648d9643dfe993054923ce
-reboot
-</pre>
-
-Wait until your PMB is booted and log back in using ssh. Next you will need your favorite file-editor on pi. I use nano.
-
-<pre>Open file: /etc/modprobe.d/raspi-blacklist.conf
-Change line: blacklist spi-bcm2708
-	 To: #blacklist spi-bcm2708
-and save the file</pre>
-
-<pre>Open file: /etc/modules
-add following lines end of file and save it.
-spi-bcm2708
-fbtft_device
-stmpe_device
-gpio_backlight_device</pre>
-
-<pre>Make file: /etc/modprobe.d/pitft.conf
-add following lines to that file and save it.
-options fbtft_device name=pitft rotate=270 frequency=32000000
-options stmpe_device cs=1 chip=stmpe610 blocks=gpio,ts irq-pullup irq-gpio=24 irq-base=330 sample-time=4 mod-12b=1 ref-sel=0 adc-freq=2 ave-ctrl=3 touch-det-delay=4 settling=2 fraction-z=7 i-drive=0
-options gpio_backlight_device gpio=252</pre>
-
-After that editing and creating files its time to give some commands to pi.
+Install dependencies:
 <pre>apt-get update
-apt-get install fbi
 apt-get install python-pygame
 pip install python-mpd2
 apt-get install evtest tslib libts-bin</pre>
 
-We need to make symlink for touchscreen.
-<pre>Open file: /etc/udev/rules.d/95-stmpe.rules
-and add following line there and save it.
-SUBSYSTEM=="input", ATTRS{name}=="stmpe-ts", ENV{DEVNAME}=="*event*", SYMLINK+="input/touchscreen" </pre>
+For CD support also install cddb-py module:
+http://cddb-py.sourceforge.net/
 
-Time to reboot pi one more time. Give command: <code>reboot</code>
-
-Once pi is booted again log back in.
-Lets verify that your screen is working.
-Enter following commands and you should see image on your pi's screen. If so everything is ok.
-<pre>wget http://adafruit-download.s3.amazonaws.com/adapiluv320x240.jpg
-fbi -T 2 -d /dev/fb1 -noverbose -a adapiluv320x240.jpg</pre>
-
-Calibrate touch screen using adafruits tutorial: https://learn.adafruit.com/adafruit-pitft-28-inch-resistive-touchscreen-display-raspberry-pi/touchscreen-install-and-calibrate#manual-calibration
-
-Download pmb-pitft files from github.
+Download PiTFT-playerui files from github.
 To be sure to start in the home directory do
 
 <code>cd ~</code>
 
-Then download the following for cloning the git:
+Then install git:
 
 <code>apt-get install git-core</code>
 
-After installing clone the git:
+After installing clone the git repository:
 
-<code>git clone https://github.com/ISO-B/pmb-pitft.git</code>
+<code>git clone https://github.com/Arzk/pitft-playerui.git</code>
 
-From pitft-ui.py you need to change font if you are using something else than Helvetica Neue Bold and check that path is correct.
+From pitft-ui.py you need to change the font if you are using something else than Helvetica Neue Bold and check that path is correct.
 
-To change font edit /root/pmb-pitft/pmb-pitft/pitft_ui.py file line 26 and replace "helvetica-neue-bold.ttf" with your own font name. example "OpenSans-Bold.ttf". You can download Open Sans from www.fontsquirrel.com/fonts/open-sans. Transfer ttf file to /root/pmb-pitft/pmb-pitft/ folder.
+To change the font edit /root/pitft-playerui/pitft-playerui/pitft_ui.py file line 29 and replace "helvetica-neue-bold.ttf" with your own font name. example "OpenSans-Bold.ttf". You can download Open Sans from www.fontsquirrel.com/fonts/open-sans. Transfer ttf file to /home/pi/pitft-playerui/ folder.
 
-This is now daemon and it has three commands: start, restart and stop
-Use following command to start ui:
+You also have to set the LastFM api key and login information in lastfm_login.py file.
 
-<code>sudo python /root/pmb-pitft/pmb-pitft/ui.py start</code>
+Create the log folder in /var/log/pitft-playerui:
+<pre>sudo mkdir /var/log/pitft-playerui
+sudo chown pi:pi /var/log/pitft-playerui # If not run by root</pre>
 
+For display backlight control write these lines to /etc/rc.local:
+<pre>echo 508 > /sys/class/gpio/export
+echo 'out' > /sys/class/gpio/gpio508/direction</pre>
 
+This is now daemon and it has three commands: start, restart and stop.
 
-TO-DO:
+Use the following command to start ui:
+
+<code>sudo python /home/pi/pitft-playerui/pitft-playerui/ui.py start</code>
+
+To run the script as a service, copy the systemd service file to /etc/systemd/system:
+<code>sudo cp systemd/pitft-playerui.service /etc/systemd/system/</code>
+
+Note that using the framebuffer requires root access. The script can also be run in X window, for example via X forwarding in PuTTY, without sudo.
+
+Some specific things:
 =========
-- Easy option to switch between capasitive and resistive PiTFTs
+- The radio UI button expects to find a playlist named "Radio". The Radio playlist is hidden from the playlists view
+- The active player view is decided between MPD and Spotify so that:
+	- MPD is always shown on start
+	- If Spotify is playing and MPD starts playing, pause Spotify and switch to MPD
+	- And vice versa if Spotify starts playing
+
+TODO:
+=========
 - Gestures
-- Playlist selector
-- Got other ideas? Post issue and tell me about it
+- Scrollable lists
+- Sleep timer
+- Cover art from Spotify
+- Got other ideas? Post an issue and tell me about it
 
 Author notes:
 =============
-There is probably better way doing somethings that I have done. It would have been awesome to have this as mopidy extension, but I couldn't find way to pull that out. Since pygame screen things need root account/access. This took lot of trial and error. I have installed pi musicbox again and again counteless time before I managed to audio work with screen.
 
-There might be some bugs left, but don't worry we can fix those, hopefully. Feel free to give any improvement ideas.
+There might be some bugs left. Feel free to give any improvement ideas.
 
 Thanks:
 ===========
+<pre>ISO-B
+For the pmb-pitft
+https://github.com/ISO-B/pmb-pitft</pre>
+
+<pre>Ben Gertzfield
+For the CDDB module
+http://cddb-py.sourceforge.net/</pre>
+
 <pre>Pi MusicBox Team
 For making this great audio system
 http://www.pimusicbox.com/</pre>
