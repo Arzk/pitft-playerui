@@ -174,10 +174,10 @@ class PitftDaemon(Daemon):
 			elif 420 <= click_pos[0] <= 480 and 260 <= click_pos[1] <=320:
 				logger.debug("Screen off")
 				self.button(9)
-			elif 315 <= click_pos[0] <= 557 and 56 <= click_pos[1] <=81:
+			elif 315 <= click_pos[0] <= 377 and 56 <= click_pos[1] <=81:
 				logger.debug("Toggle repeat") 
 				self.button(0)
-			elif 315 <= click_pos[0] <= 557 and 88 <= click_pos[1] <=113:
+			elif 315 <= click_pos[0] <= 377 and 88 <= click_pos[1] <=113:
 				logger.debug("Toggle random")
 				self.button(1)	
 			# Controls
