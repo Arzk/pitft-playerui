@@ -148,7 +148,7 @@ class PitftDaemon(Daemon):
 
 			# Playlists are shown - hide on empty space click
 			elif self.sm.get_playlists_status() or self.sm.get_playlist_status():
-				if not 4 <= click_pos[0] <= 416 or not 12 <= click_pos[1] <= 232:
+				if not 4 <= click_pos[0] <= 416 or not 4 <= click_pos[1] <= 232:
 					logger.debug("Hiding lists view")
 					self.button(13)
 				elif 4 <= click_pos[0] <= 416 and 4 <= click_pos[1] <= 33:
