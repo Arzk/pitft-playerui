@@ -925,8 +925,13 @@ class PitftPlayerui:
 		# Limits for offset
 		if self.offset < 0:
 			self.offset = 0
-		if (self.showPlaylists) and len(self.playlists) - 8 < self.offset:
+		if (self.showPlaylists) and len(self.playlists) <= 8:
+			self.offset = 0
+		elif (self.showPlaylists) and len(self.playlists) - 8 < self.offset:
 			self.offset = len(self.playlists) - 8
-		if (self.showPlaylist) and len(self.playlist) - 8 < self.offset:
+		
+		if (self.showPlaylist) and len(self.playlist) <= 8:
+			self.offset = 0
+		elif (self.showPlaylist) and len(self.playlist) - 8 < self.offset:
 			self.offset = len(self.playlist) - 8
 		self.logger.debug("Offset: %s" % self.offset)
