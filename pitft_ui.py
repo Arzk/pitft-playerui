@@ -598,7 +598,7 @@ class PitftPlayerui:
 			if not self.updateAll or not self.updateTrackInfo:
 				surface.blit(self.image["background"], (0,242), (0,242, 427,20)) # reset background
 				surface.blit(self.image["position_bg"], (55, 245))
-			surface.blit(self.image["position_fg"], (54, 245),(0,0,int(370*self.timeElapsedPercentage),10))
+			surface.blit(self.image["position_fg"], (55, 245),(0,0,int(370*self.timeElapsedPercentage),10))
 			text = self.font["elapsed"].render(self.timeElapsed, 1,(230,228,227))
 			surface.blit(text, (10, 238)) # Elapsed
 
@@ -629,7 +629,7 @@ class PitftPlayerui:
 				surface.blit(self.image["button_play"], (306, 132))
 
 		if self.showPlaylist:
-			surface.blit(self.image["background"], (4,4), (4,4, 412,234)) # reset background
+			surface.blit(self.image["background"], (4,4), (4,4, 416,234)) # reset background
 			if self.playlist:
 #				self.logger.debug(self.playlist)
 
@@ -646,9 +646,9 @@ class PitftPlayerui:
 					except:
 						playlistitem = ""
 					text = self.font["playlist"].render(playlistitem, 1,(230,228,227))
-					surface.blit(text, (12, 4 + 30*int(i)))
+					surface.blit(text, (12, 4 + 30*int(i)),(0,0, 408,30))
 		if self.showPlaylists:
-			surface.blit(self.image["background"], (4,4), (4,4, 412,234)) # reset background
+			surface.blit(self.image["background"], (4,4), (4,4, 416,234)) # reset background
 			if self.playlists:
 				for i in range(0,8):
 					try:
@@ -656,7 +656,7 @@ class PitftPlayerui:
 					except:
 						listitem = ""
 					text = self.font["playlist"].render(listitem, 1,(230,228,227))
-					surface.blit(text, (12, 4 + 30*i))
+					surface.blit(text, (12, 4 + 30*int(i)),(0,0, 408,30))
 
 
 
