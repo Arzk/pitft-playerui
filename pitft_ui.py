@@ -12,7 +12,6 @@ import httplib
 from math import ceil
 from threading import Thread
 from mpd import MPDClient
-import const
 import datetime
 from datetime import timedelta
 
@@ -695,7 +694,6 @@ class PitftPlayerui:
 					self.logger.debug("caT sp end")
 					coverart=pygame.image.load("/tmp/" + "cover.png")
 					self.logger.debug("caT c loaded")
-#					self.image["cover"] = pygame.transform.scale(coverart, (const.coverartSize[0], const.coverartSize[1]))
 					self.image["cover"] = pygame.transform.scale(coverart, (212, 212))
 					self.logger.debug("caT c placed")
 					self.processingCover = False

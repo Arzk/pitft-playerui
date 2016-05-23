@@ -10,7 +10,6 @@ import pylast
 import lastfm_login
 from mpd import MPDClient
 from math import ceil, floor
-import const
 import datetime
 from datetime import timedelta
 import pitft_ui
