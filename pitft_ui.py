@@ -36,6 +36,7 @@ class PitftPlayerui:
 		self.image = {}
 		self.image["background"]		=pygame.image.load(self.path + "pics/" + "background.png")
 		self.image["coverart_place"]		=pygame.image.load(self.path + "pics/" + "coverart-placer.png")
+		self.image["coverart_border"]		=pygame.image.load(self.path + "pics/" + "coverart-border.png")
 		self.image["details"]			=pygame.image.load(self.path + "pics/" + "details.png")
 		self.image["position_bg"]		=pygame.image.load(self.path + "pics/" + "position-background.png")
 		self.image["position_fg"]		=pygame.image.load(self.path + "pics/" + "position-foreground.png")
@@ -542,6 +543,7 @@ class PitftPlayerui:
 			self.updateState	 = True
 			
 			surface.blit(self.image["background"], (0,0))	
+			surface.blit(self.image["coverart_place"],(4,4))
 			surface.blit(self.image["details"], (6, 263))
 			surface.blit(self.image["icon_randomandrepeat"], (285, 60))
 			surface.blit(self.image["position_bg"], (55, 245))
@@ -562,11 +564,13 @@ class PitftPlayerui:
 
 		if self.updateAlbum or self.coverFetched:
 			if self.cover:
-				surface.blit(self.image["coverart_place"],(4,4))
-				surface.blit(self.image["cover"], (12,12))
+				surface.blit(self.image["cover"], (4,4))
+				surface.blit(self.image["coverart_border"],(4,4))
 				self.coverFetched = False
-#			else:
-#				surface.blit(self.image["nocover"], (12,12))
+			else:
+				# Reset background
+#				surface.blit(self.image["background"], (2,2), (2,2, 232,232)) # reset background
+				surface.blit(self.image["coverart_place"],(4,4))
 			
 		if self.updateTrackInfo:
 			if not self.updateAll:
@@ -694,7 +698,7 @@ class PitftPlayerui:
 					self.logger.debug("caT sp end")
 					coverart=pygame.image.load("/tmp/" + "cover.png")
 					self.logger.debug("caT c loaded")
-					self.image["cover"] = pygame.transform.scale(coverart, (212, 212))
+					self.image["cover"] = pygame.transform.scale(coverart, (228, 228))
 					self.logger.debug("caT c placed")
 					self.processingCover = False
 					self.coverFetched = True
