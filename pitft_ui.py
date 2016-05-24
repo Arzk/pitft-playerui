@@ -637,9 +637,8 @@ class PitftPlayerui:
 
 		if self.showPlaylist:
 			surface.blit(self.image["background"], (4,4), (4,4, 416,234)) # reset background
-			if self.playlist:
-#				self.logger.debug(self.playlist)
 
+			if self.playlist:
 				for i in range(0,8):
 					try:
 						playlistitem = self.playlist[i+self.offset]
@@ -656,6 +655,7 @@ class PitftPlayerui:
 					surface.blit(text, (12, 4 + 30*int(i)),(0,0, 408,30))
 		if self.showPlaylists:
 			surface.blit(self.image["background"], (4,4), (4,4, 416,234)) # reset background
+
 			if self.playlists:
 				for i in range(0,8):
 					try:
@@ -834,6 +834,9 @@ class PitftPlayerui:
 			self.showPlaylists = True
 		elif state == "False":
 			self.showPlaylists = False
+
+		# Clear scroll offset
+		self.offset = 0
 
 		# Ensure that both are not active at the same time
 		if self.showPlaylists:
