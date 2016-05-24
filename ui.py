@@ -134,8 +134,9 @@ class PitftDaemon(Daemon):
 
 			# Selectors
 			if 418 <= click_pos[0] <= 476 and 8 <= click_pos[1] <= 64:
+				logger.debug("Switching player")
 				self.button(14, button)
-			if 418 <= click_pos[0] <= 476 and 66 <= click_pos[1] <= 122:
+			elif 418 <= click_pos[0] <= 476 and 66 <= click_pos[1] <= 122:
 				logger.debug("Playlists")
 				self.button(10, button)
 			elif 418 <= click_pos[0] <= 476 and 124 <= click_pos[1] <= 180:
@@ -226,7 +227,11 @@ class PitftDaemon(Daemon):
 				self.sm.play_cd()
 
 			elif number == 12:
-				self.sm.toggle_playlist("True")
+				if not self.sm.get_playlist_status():
+					self.sm.load_playlist("Radio")
+					self.sm.toggle_playlist("True")
+				else:
+					self.sm.toggle_playlist("False")
 	
 			elif number == 13:
 				self.sm.toggle_playlists("False")
