@@ -95,13 +95,16 @@ class PitftDaemon(Daemon):
 			logger.exception(e)
 			raise
 
-		# Mouse positions for scrolling
-		self.scroll_threshold = 10
+		# Mouse variables
+		self.longpress_time   =  timedelta(milliseconds=500)
+		self.scroll_threshold = 20
+		self.flip_threshold   = 80
 		self.scroll_step      = 20
 		self.start_x          = 0
 		self.start_y          = 0
 		self.mouse_scroll     = False
 		self.button_down      = False
+		self.longpress        = False
 
 	# Connect to MPD server
 	def connectToMPD(self):
@@ -131,10 +134,6 @@ class PitftDaemon(Daemon):
 
 			# Selectors
 			if 418 <= click_pos[0] <= 476 and 8 <= click_pos[1] <= 64:
-				if self.sm.get_active_player() == "spotify":
-					logger.debug("Switching to MPD")
-				else:
-					logger.debug("Switching to Spotify")
 				self.button(14, button)
 			if 418 <= click_pos[0] <= 476 and 66 <= click_pos[1] <= 122:
 				logger.debug("Playlists")
@@ -149,45 +148,56 @@ class PitftDaemon(Daemon):
 			# Playlists are shown - hide on empty space click
 			elif self.sm.get_playlists_status() or self.sm.get_playlist_status():
 				if not 4 <= click_pos[0] <= 416 or not 4 <= click_pos[1] <= 243:
-					logger.debug("Hiding lists view")
+					logger.debug("Hiding lists")
 					self.button(13, button)
 
 				# List item clicked
 				# List item to select: 4 - 33: 0, 34-63 = 1 etc
 				elif 4 <= click_pos[0] <= 416 and 4 <= click_pos[1] <= 243:
 					list_item = int(floor((click_pos[1] - 4)/30))
-					logger.debug("Selecting list item %s" % list_item)
-					self.sm.item_selector(list_item)
+					if button == 1:
+						logger.debug("Selecting list item %s" % list_item)
+						self.sm.item_selector(list_item)
+					elif button == 2:
+						logger.debug("Second-clicked list item %s" % list_item)
 
 			# Toggles
-			elif 420 <= click_pos[0] <= 480 and 260 <= click_pos[1] <=320:
+			elif 420 <= click_pos[0] <= 480 and 260 <= click_pos[1] <= 320:
 				logger.debug("Screen off")
 				self.button(2, button)
-			elif 315 <= click_pos[0] <= 377 and 56 <= click_pos[1] <=81:
+			elif 315 <= click_pos[0] <= 377 and 56 <= click_pos[1] <= 81:
 				logger.debug("Toggle repeat") 
 				self.button(0, button)
-			elif 315 <= click_pos[0] <= 377 and 88 <= click_pos[1] <=113:
+			elif 315 <= click_pos[0] <= 377 and 88 <= click_pos[1] <= 113:
 				logger.debug("Toggle random")
 				self.button(1, button)
-			elif 258 <= click_pos[0] <= 298 and 180 <= click_pos[1] <=238:
+
+			# Controls
+			elif 258 <= click_pos[0] <= 294 and 132 <= click_pos[1] <= 180:
+				logger.debug("Prev")
+				self.button(6, button)
+			elif 296 <= click_pos[0] <= 352 and 132 <= click_pos[1] <= 180:
+				logger.debug("Toggle play/pause")
+				self.button(7, button)
+			elif 354 <= click_pos[0] <= 410 and 132 <= click_pos[1] <= 180:
+				logger.debug("Next")
+				self.button(8, button) 
+
+			# Open playlist when longpressing on bottom
+			elif 244 <= click_pos[1] <= 320 and button == 2:
 				if self.sm.get_active_player() == "mpd":
 					logger.debug("Toggle playlist")
 					self.button(9, button)
-			# Controls
-			elif 258 <= click_pos[0] <= 294 and 132 <= click_pos[1] <=180:
-				logger.debug("Prev")
-				self.button(6, button)
-			elif 296 <= click_pos[0] <= 352 and 132 <= click_pos[1] <=180:
-				logger.debug("Toggle play/pause")
-				self.button(7, button)
-			elif 354 <= click_pos[0] <= 410 and 132 <= click_pos[1] <=180:
-				logger.debug("Next")
-				self.button(8, button) 
+#			elif 258 <= click_pos[0] <= 298 and 180 <= click_pos[1] <=238:
+#				if self.sm.get_active_player() == "mpd":
+#					logger.debug("Toggle playlist")
+#					self.button(9, button)
 
 	#define action on pressing buttons
 	def button(self, number, button):
 		if button == 1:
 			logger.debug("You pressed button %s" % number)
+
 			if number == 0:  
 				self.sm.toggle_repeat()
 
@@ -209,10 +219,6 @@ class PitftDaemon(Daemon):
 			elif number == 8:
 				self.sm.control_player("next")
 
-
-			elif number == 9:
-				self.sm.toggle_playlist()
-
 			elif number == 10:
 				self.sm.toggle_playlists()
 
@@ -228,8 +234,22 @@ class PitftDaemon(Daemon):
 
 			elif number == 14:
 				self.sm.switch_active_player("toggle")
+		elif button == 2:
+			logger.debug("You longpressed button %s" % button)
+
+			if number == 9:
+				self.sm.toggle_playlist()
+
+#			elif number == 6:
+#				self.sm.control_player("rwd")
+
+#			elif number == 8:
+#				self.sm.control_player("ff")
+
+
 		else:
-			logger.debug("You second-clicked button %s" % button)
+			logger.debug("Button %s not supported" % button)
+
 
 	def shutdown(self):
 		# Close MPD connection
@@ -256,39 +276,55 @@ class PitftDaemon(Daemon):
 						#pos = (pygame.mouse.get_pos() [0], pygame.mouse.get_pos() [1])
 						#pygame.draw.circle(self.screen, (255,255,255), pos, 2, 0) #for debugging purposes - adds a small dot where the screen is pressed
 
-					if event.type == pygame.MOUSEMOTION and self.button_down:
-						end_x,end_y = pygame.mouse.get_pos()
-						direction = end_y - self.start_y
+					if event.type == pygame.MOUSEMOTION and self.button_down and not self.longpress:
+						end_x, end_y = pygame.mouse.get_pos()
+						direction_x = end_x - self.start_x
+						direction_y = end_y - self.start_y
+#						end_x,end_y = pygame.mouse.get_pos()
+#						direction = end_y - self.start_y
 
-						# A movement of 15 pixels scrolls one line
-						if abs(direction) >= self.scroll_threshold or abs(end_x - self.start_x) >= self.scroll_threshold:
+						if abs(direction_x) >= self.flip_threshold or abs(direction_y) >= self.scroll_threshold:
 							self.mouse_scroll = True
-							if direction < 0:
-								self.sm.inc_offset(int(floor(direction/self.scroll_step)))
+							# Assume that the bigger amount of scroll (x vs y) was the intention
+							if abs(direction_y) > abs(direction_x):
+								# A vertical movement of 20 pixels scrolls one line
+								if direction_y < 0:
+									self.sm.inc_offset(int(floor(direction_y/self.scroll_step)))
+								elif direction_y > 0:
+									self.sm.inc_offset(int(ceil(direction_y/self.scroll_step)))
 							else:
-								self.sm.inc_offset(int(ceil(direction/self.scroll_step)))
+								# A horizontal flip switches next/prev
+								if direction_x > 0:
+									self.button(6, 1)
+								elif direction_x < 1:
+									self.button(8, 1)
+								# don't repeat
+								self.button_down = False
 	
 						# Save new position
 						self.start_x,self.start_y=pygame.mouse.get_pos()
 
 					if event.type == pygame.MOUSEBUTTONUP:
-						# Long click - second button
-						# TODO: Does nothing else but prints now
-						if datetime.datetime.now() - clicktime > timedelta(milliseconds=500):
-							self.on_click(2)
-						# No movement - click
-						elif not self.mouse_scroll:
+						# Not a long click or scroll
+#						if datetime.datetime.now() - clicktime < timedelta(milliseconds=500) and not self.mouse_scroll:
+						if not self.longpress and not self.mouse_scroll:
 							self.on_click(1)
-
 							
 						# Clear variables
-						self.start_x = 0;
 						end_x = 0;
-						self.start_y = 0;
 						end_y = 0;
+						self.start_x = 0;
+						self.start_y = 0;
 						self.mouse_scroll = False
 						self.button_down = False
+						self.longpress = False
 
+					# Long press - register second click
+					elif self.button_down and datetime.datetime.now() - clicktime > self.longpress_time and not self.mouse_scroll:
+						self.on_click(2)
+						clicktime = datetime.datetime.now()
+#						self.button_down = False
+						self.longpress = True
 
 				# Update screen, fps=20
 				if drawtime < datetime.datetime.now():

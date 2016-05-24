@@ -56,7 +56,7 @@ class PitftPlayerui:
 		self.image["button_radio"]		=pygame.image.load(self.path + "pics/" + "button-radio.png")
 		self.image["button_cd"]			=pygame.image.load(self.path + "pics/" + "button-cd.png")
 		self.image["button_playlists"]		=pygame.image.load(self.path + "pics/" + "button-playlists.png")
-		self.image["button_playlist"]		=pygame.image.load(self.path + "pics/" + "button-list.png")
+#		self.image["button_playlist"]		=pygame.image.load(self.path + "pics/" + "button-list.png")
 		# Threads
 		self.coverartThread = None
 		self.oldCoverartThreadRunning = False
@@ -554,8 +554,8 @@ class PitftPlayerui:
 			surface.blit(self.image["button_prev"], (258, 132))
 			surface.blit(self.image["button_next"], (354, 132))
 			surface.blit(self.image["icon_screenoff"], (460, 304))
-			if self.active_player == "mpd":
-				surface.blit(self.image["button_playlist"], (258, 180))
+#			if self.active_player == "mpd":
+#				surface.blit(self.image["button_playlist"], (258, 180))
 
 			if self.active_player == "spotify":
 				surface.blit(self.image["button_spotify"], (418, 8))
