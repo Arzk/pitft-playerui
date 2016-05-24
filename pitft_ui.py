@@ -79,6 +79,7 @@ class PitftPlayerui:
 		self.date = ""
 		self.track = ""
 		self.title = ""
+		self.file = ""
 		self.timeElapsed = "00:00"
 		self.timeTotal = "00:00"
 		self.timeElapsedPercentage = 0
@@ -282,12 +283,12 @@ class PitftPlayerui:
 	def query_cddb(self):
 		# File has changed?
 		try:
-			trackfile = self.mpd_song["file"].decode('utf-8')
+			file = self.mpd_song["file"].decode('utf-8')
 		except:
-			trackfile = "";
+			file = "";
 
-		if self.trackfile != trackfile:
-			self.trackfile = trackfile
+		if self.file != file:
+			self.file = file
 			try:
 				cdrom = DiscID.open()
 				disc_id = DiscID.disc_id(cdrom)
@@ -353,9 +354,9 @@ class PitftPlayerui:
 			self.mpd_song["date"] = ""
 		# Track Number
 		try:
-			self.mpd_song["track"] = trackfile.split("cdda:///")[-1].split()[0]
+			self.mpd_song["track"] = file.split("cdda:///")[-1].split()[0]
 		except:
-			self.mpd_song["track"] = trackfile.split("cdda:///")[-1].split()[0]
+			self.mpd_song["track"] = file.split("cdda:///")[-1].split()[0]
 		# Title
 		try:
 			number=int(self.mpd_song["track"]) - 1
@@ -401,7 +402,10 @@ class PitftPlayerui:
 			track = ""
 		# Track Title
 		try:
-			title = self.song["title"].decode('utf-8')
+			if self.song["title"]:
+				title = self.song["title"].decode('utf-8')
+			else:
+				title = self.song["file"].decode('utf-8')
 		except:
 			title = ""
 	
