@@ -632,6 +632,8 @@ class PitftPlayerui:
 			surface.blit(self.image["background"], (4,4), (4,4, 412,230)) # reset background
 			if self.playlist:
 #				self.logger.debug(self.playlist)
+				# Clear scroll offset
+				self.offset 		= 0
 
 				for i in range(0,8):
 					try:
@@ -650,6 +652,9 @@ class PitftPlayerui:
 		if self.showPlaylists:
 			surface.blit(self.image["background"], (4,4), (4,4, 412,230)) # reset background
 			if self.playlists:
+				# Clear scroll offset
+				self.offset 		= 0
+
 				for i in range(0,8):
 					try:
 						listitem = self.playlists[i+self.offset]["playlist"]
