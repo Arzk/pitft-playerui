@@ -184,11 +184,11 @@ class PitftPlayerui:
 
 		# Refresh players
 		self.refresh_mpd()
-		if config.spotify_path:
+		if config.spotify_host:
 			self.refresh_spotify()
 
 		# Determine active player based on playback status
-		if config.spotify_path:
+		if config.spotify_host:
 			self.determine_active_player(old_spotify_status, old_mpd_status)
 		else: self.active_player = "mpd"
 
@@ -281,7 +281,7 @@ class PitftPlayerui:
 		noConnection = True
 		while noConnection:
 			try:
-				client.connect("config.mpd_path", config.mpd_port)
+				client.connect("config.mpd_host", config.mpd_port)
 				noConnection=False
 			except Exception, e:
 				self.logger.info(e)
@@ -580,7 +580,7 @@ class PitftPlayerui:
 				surface.blit(self.image["button_volumeplus"], (354, 190))
 			surface.blit(self.image["icon_screenoff"], (460, 304))
 
-			if config.spotify_path:
+			if config.spotify_host:
 				if self.active_player == "spotify":
 					surface.blit(self.image["button_spotify"], (418, 8))
 				else:
@@ -764,9 +764,9 @@ class PitftPlayerui:
 					self.logger.debug("No local coverart file found, switching to Last.FM")				
 
 		# Check Spotify coverart
-		elif "cover_uri" in self.song and self.active_player == "spotify" and config.spotify_path:
+		elif "cover_uri" in self.song and self.active_player == "spotify" and config.spotify_host:
 			try:
-				coverart_url = config.spotify_path + ":" + config.spotify_port + "/api/info/image_url/" + self.song["cover_uri"]
+				coverart_url = config.spotify_host + ":" + config.spotify_port + "/api/info/image_url/" + self.song["cover_uri"]
 				#coverart_url = "localhost:4000/api/info/image_url/" + self.song["cover_uri"]
 				self.logger.debug("Spotify coverart url: %s" % coverart_url)
 				if coverart_url:
@@ -1022,7 +1022,7 @@ class PitftPlayerui:
 	# Valid playback commands: play, pause, prev, next, shuffle, repeat, volume
 	def spotify_control(self, method, command):
 		#c = httplib.HTTPConnection('localhost', 4000)
-		c = httplib.HTTPConnection(config.spotify_path, config.spotify_port)
+		c = httplib.HTTPConnection(config.spotify_host, config.spotify_port)
 		c.request('GET', '/api/'+method+'/'+command, '{}')
 		doc = c.getresponse().read()
 		return doc

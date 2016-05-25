@@ -119,7 +119,7 @@ class PitftDaemon(Daemon):
 		noConnection = True
 		while noConnection:
 			try:
-				self.client.connect(config.mpd_path, config.mpd_port)
+				self.client.connect(config.mpd_host, config.mpd_port)
 				noConnection=False
 			except Exception, e:
 				logger.info(e)
@@ -142,7 +142,7 @@ class PitftDaemon(Daemon):
 
 			# Selectors
 			if 418 <= click_pos[0] <= 476 and 8 <= click_pos[1] <= 64:
-				if config.spotify_path:
+				if config.spotify_host:
 					logger.debug("Switching player")
 					self.button(14, mousebutton)
 			elif 418 <= click_pos[0] <= 476 and 66 <= click_pos[1] <= 122:
