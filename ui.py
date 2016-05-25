@@ -24,6 +24,9 @@ os.environ["SDL_MOUSEDEV"] = "/dev/input/touchscreen"
 os.environ["SDL_MOUSEDRV"] = "TSLIB"
 
 # Logging configs
+if not os.path.isdir ('/var/log/pitft-playerui'):
+	os.mkdir('/var/log/pitft-playerui')
+
 logger = logging.getLogger("PiTFT-Playerui logger")
 try: 
 	if config.loglevel == "DEBUG":
@@ -33,6 +36,8 @@ try:
 		logger.setLevel(logging.INFO)
 except:
 	logger.setLevel(logging.INFO)
+	
+
 
 handler = TimedRotatingFileHandler('/var/log/pitft-playerui/pitft-playerui.log',when="midnight",interval=1,backupCount=14)
 formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")

@@ -7,15 +7,15 @@ Improvements:
 - Support for 3.5" PiTFT+
 - Audio CD tag fetching from FreeDB
 - Spotify-connect-web support (https://github.com/Fornoth/spotify-connect-web)
-- Alternative UI
+- Darker UI
 - Gesture support
  
 Features:
 ===========
-Shows following details of currently playing track:
-- Cover art (From local folder.* file, Spotify or Last.FM as fallback)
+Shows following details of currently playing track in MPD and Spotify:
+- Cover art from local folder.jpg etc file, Spotify or Last.FM
 - Artist, Album and Track title
-- Track time total and elapsed
+- Track time total and elapsed (Only in MPD)
 - Fetches audio CD information from freeDB
 
 Shows and lets user control:
@@ -25,9 +25,10 @@ Shows and lets user control:
 - Playlists
 - CD playback
 - Radio playback
+- Volume
 
 Lets user control:
-- Screen backlight
+- Screen backlight either manually or by setting a screen timeout
 
 Gestures:
 - Vertical scroll
@@ -38,7 +39,7 @@ Gestures:
 
 Things you need:
 =================
-- Raspberry pi (I am using model 3B)
+- Raspberry pi (I am using model 3)
 - Adafruit PiTFT+ 3.5" with Resistive Touchscreen ( https://www.adafruit.com/product/2441 )
 - Internet connection for Pi
 - Raspbian running on the Pi
@@ -47,7 +48,6 @@ Things you need:
 
 Known issues:
 ==============
-- Doesn't check if a CD drive is connected
 
 Installing:
 ===========
@@ -62,8 +62,11 @@ apt-get install python-pygame
 pip install python-mpd2
 apt-get install evtest tslib libts-bin</pre>
 
-For CD support also install cddb-py module:
+For CD support install the cddb-py module:
 http://cddb-py.sourceforge.net/
+
+For Spotify support install spotify-connect-web:
+https://github.com/Fornoth/spotify-connect-web
 
 Download PiTFT-playerui files from github.
 To be sure to start in the home directory do
@@ -78,21 +81,19 @@ After installing clone the git repository:
 
 <code>git clone https://github.com/Arzk/pitft-playerui.git</code>
 
-From pitft-ui.py you need to change the font if you are using something else than Helvetica Neue Bold and check that path is correct.
+From config.py you need to change the font if you are using something else than Helvetica Neue Bold and check that path is correct.
 
-To change the font edit /root/pitft-playerui/pitft-playerui/pitft_ui.py file line 29 and replace "helvetica-neue-bold.ttf" with your own font name. example "OpenSans-Bold.ttf". You can download Open Sans from www.fontsquirrel.com/fonts/open-sans. Transfer ttf file to /home/pi/pitft-playerui/ folder.
+You can download for example Open Sans "OpenSans-Bold.ttf" from www.fontsquirrel.com/fonts/open-sans. Transfer ttf file to /home/pi/pitft-playerui/ folder.
 
-You also have to edit the config.py file. Set the LastFM api key and login information. For local coverart set the path of the mpd library. For Spotify set the path and port of Spotify-connect-web
-
-Create the log folder in /var/log/pitft-playerui:
-<pre>sudo mkdir /var/log/pitft-playerui
-sudo chown pi:pi /var/log/pitft-playerui # If not run by root</pre>
+Set the other settings in config.py file. You need to at least set the LastFM api key and login information for remote cover art fetching. For local coverart set the path of the mpd library. For Spotify set the path and port of Spotify-connect-web
 
 For display backlight control write these lines to /etc/rc.local:
 <pre>echo 508 > /sys/class/gpio/export
-echo 'out' > /sys/class/gpio/gpio508/direction</pre>
+echo 'out' > /sys/class/gpio/gpio508/direction
+sudo sh -c "echo '1' > /sys/class/gpio/gpio508/value"
+</pre>
 
-This is now daemon and it has three commands: start, restart and stop.
+This is a daemon and it has three commands: start, restart and stop.
 
 Use the following command to start ui:
 
@@ -101,7 +102,7 @@ Use the following command to start ui:
 To run the script as a service, copy the systemd service file to /etc/systemd/system:
 <code>sudo cp systemd/pitft-playerui.service /etc/systemd/system/</code>
 
-Note that using the framebuffer requires root access. The script can also be run in X window, for example via X forwarding in PuTTY, without sudo.
+Note that using the framebuffer requires root access. The script can also be run in X window, for example via X forwarding in PuTTY, without sudo (but give your user write permission to the logs).
 
 Some specific things:
 =========
@@ -113,14 +114,15 @@ Some specific things:
 
 TODO:
 =========
-- Sleep timer
+- Sleep timer and other configs in a menu
 - API for LIRC control of both players
+- Radio stream icons set in the config.py file
 - Got other ideas? Post an issue and tell me about it
 
 Author notes:
 =============
 
-There might be some bugs left. Feel free to give any improvement ideas.
+There might be some bugs left, so let me hear about them. Feel free to give any improvement ideas.
 
 Thanks:
 ===========
@@ -128,13 +130,13 @@ Thanks:
 For the pmb-pitft
 https://github.com/ISO-B/pmb-pitft</pre>
 
+<pre>Fornoth
+For the Spotify Connect Web
+https://github.com/Fornoth/spotify-connect-web</pre>
+
 <pre>Ben Gertzfield
 For the CDDB module
 http://cddb-py.sourceforge.net/</pre>
-
-<pre>Pi MusicBox Team
-For making this great audio system
-http://www.pimusicbox.com/</pre>
 
 <pre>Notro and other people on project FBTFT
 For making drivers for screen
@@ -149,7 +151,7 @@ For their MPD-client Python library
 https://github.com/Mic92/python-mpd2</pre>
 
 <pre>Matt Gentile @ Icon Deposit
-For his awesome Black UI Kit
+For his awesome Black UI Kit that these icons are based on
 http://www.icondeposit.com/design:108</pre>
 
 <pre>Biga
