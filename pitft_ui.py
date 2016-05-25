@@ -306,8 +306,7 @@ class PitftPlayerui:
 					self.cdda_query_status = {}
 					self.cdda_query_info = {}
 				self.logger.debug("CDDB Query status: %s" % self.cdda_query_status)
-#				self.logger.debug("CDDB Query Info: %s" % self.cdda_query_info)
-					
+						
 				# Exact match found
 				try:
 					if self.cdda_query_status == 200:
@@ -317,7 +316,6 @@ class PitftPlayerui:
 					elif self.cdda_query_status == 210 or self.cdda_query_status == 211:
 						(self.cdda_read_status, self.cdda_read_info) = CDDB.read(self.cdda_query_info[0]["category"], self.cdda_query_info[0]["disc_id"])
 						self.logger.debug("CDDB Read Status: %s" % self.cdda_read_status)
-#						self.logger.debug("CDDB Read Info: %s" % self.cdda_read_info)
 					# No match found
 					else:
 						self.logger.info("CD query failed, status: %s " % self.cdda_query_status)
@@ -331,7 +329,6 @@ class PitftPlayerui:
 						self.artist_album = self.cdda_read_info["DTITLE"].split(" / ")
 					except:
 						self.artist_album = {};
-#					self.logger.debug(self.artist_album)
 				else:
 					self.logger.info("CDDB read failed, status: %s" % self.cdda_read_status)
 
@@ -366,10 +363,12 @@ class PitftPlayerui:
 		# Time
 		try:
 			if int(self.mpd_song["track"]) == int(self.disc_id[1]):
-				# The final track has to be count with the number of seconds on the disc - start frame
+				# The final track has to be count with 
+				# CD length in seconds - start frame of final track
+				# 75 frames = 1 second
 				self.mpd_song["time"] = self.disc_id[int(self.mpd_song["track"]) + 2] - self.disc_id[int(self.mpd_song["track"]) + 1] / 75
 			else:
-				# For other tracks count from start frame of track and next track
+				# For other tracks count from start frame of track and next track.
 				self.mpd_song["time"] = (self.disc_id[int(self.mpd_song["track"]) + 2] - self.disc_id[int(self.mpd_song["track"]) + 1]) / 75
 		except:
 			self.mpd_song["time"] = 0
@@ -470,6 +469,7 @@ class PitftPlayerui:
 			self.cover = False
 			# Find cover art on different thread
 			# Todo: Fetch from spotify
+			
 			try:
 				if self.coverartThread:
 					self.logger.debug("if caT")
@@ -536,7 +536,6 @@ class PitftPlayerui:
 			self.random = random
 			self.updateRandom = True
 
-
 	def render(self, surface):
 		if self.updateAll:
 			self.updateTrackInfo = True
@@ -554,8 +553,6 @@ class PitftPlayerui:
 			surface.blit(self.image["button_prev"], (258, 132))
 			surface.blit(self.image["button_next"], (354, 132))
 			surface.blit(self.image["icon_screenoff"], (460, 304))
-#			if self.active_player == "mpd":
-#				surface.blit(self.image["button_playlist"], (258, 180))
 
 			if self.active_player == "spotify":
 				surface.blit(self.image["button_spotify"], (418, 8))
@@ -573,15 +570,12 @@ class PitftPlayerui:
 				self.coverFetched = False
 			else:
 				# Reset background
-#				surface.blit(self.image["background"], (2,2), (2,2, 232,232)) # reset background
 				surface.blit(self.image["coverart_place"],(4,4))
 			
 		if self.updateTrackInfo:
 			if not self.updateAll:
 				surface.blit(self.image["background"], (0,231), (0,231, 480,89)) # reset background
 				surface.blit(self.image["details"], (6, 263))
-				# Spotify-connect-web api doesn't deliver elapsed information
-	#			if not self.active_player == "spotify":
 				surface.blit(self.image["position_bg"], (55, 245))
 				surface.blit(self.image["icon_screenoff"], (460, 304))	# redraw screenoff icon
 
@@ -601,6 +595,7 @@ class PitftPlayerui:
 				text = self.font["elapsed"].render(self.timeTotal, 1,(230,228,227))
 				surface.blit(text, (429, 238)) # Track length
 
+		# Spotify-connect-web api doesn't deliver elapsed information
 		if self.updateElapsed and self.active_player == "mpd":
 			if not self.updateAll or not self.updateTrackInfo:
 				surface.blit(self.image["background"], (0,242), (0,242, 427,20)) # reset background
@@ -654,11 +649,7 @@ class PitftPlayerui:
 					surface.blit(text, (12, 4 + 30*int(i)),(0,0, 408,30))
 		if self.showPlaylists:
 			surface.blit(self.image["background"], (4,4), (4,4, 416,234)) # reset background
-
 			if self.playlists:
-				# Clear scroll offset
-				self.offset 		= 0
-
 				for i in range(0,8):
 					try:
 						listitem = self.playlists[i+self.offset]["playlist"]
@@ -686,32 +677,53 @@ class PitftPlayerui:
 		self.processingCover = True
 		self.coverFetched = False
 		self.cover = False
-		try:
-			lastfm_album = self.lfm.get_album(self.artist, self.album)
-			self.logger.debug("caT album: %s" % lastfm_album)
-		except Exception, e:
-			self.logger.exception(e)
-			raise
 
-		if lastfm_album:
+		# Spotify coverart exists
+		if "cover_uri" in self.song:
+			self.logger.debug("Spotify coverart exists: %s" % self.song["cover_uri"])
+			# Spotify-connect-web main.js:
+			# albumCover.attr('src', '/api/info/image_url/' + metadata.cover_uri)
+
+		# Local coverart exists
+		elif "file" in self.song:
+#			self.logger.debug("Filename: %s" % self.song["file"])
+			folder = os.path.dirname(self.song["file"])
+
+			self.logger.debug("Trying to find coverart: %s" % folder + "/folder.jpg")
+			if os.path.isfile(folder + "/folder.jpg") or os.path.isfile(folder + "/folder.png") or os.path.isfile(folder + "/folder.gif"):
+#			coverartfile = glob(folder + "/folder.*")
+				self.logger.debug("Found coverart: %s" % folder)
+
+
+		# No existing coverart, try to fetch from LastFM
+		else:
+
 			try:
-				coverart_url = lastfm_album.get_cover_image(2)
-				self.logger.debug("caT curl: %s" % coverart_url)
-				if coverart_url:
-					self.logger.debug("caT sp start")
-#					subprocess.check_output("wget -q --limit-rate=40k %s -O %s/cover.png" % (coverart_url, "/tmp/"), shell=True )
-					subprocess.check_output("wget -q %s -O %s/cover.png" % (coverart_url, "/tmp/"), shell=True )
-					self.logger.debug("caT sp end")
-					coverart=pygame.image.load("/tmp/" + "cover.png")
-					self.logger.debug("caT c loaded")
-					self.image["cover"] = pygame.transform.scale(coverart, (228, 228))
-					self.logger.debug("caT c placed")
-					self.processingCover = False
-					self.coverFetched = True
-					self.cover = True
+				lastfm_album = self.lfm.get_album(self.artist, self.album)
+				self.logger.debug("caT album: %s" % lastfm_album)
 			except Exception, e:
 				self.logger.exception(e)
-				pass
+				raise
+
+			if lastfm_album:
+				try:
+					coverart_url = lastfm_album.get_cover_image(2)
+					self.logger.debug("caT curl: %s" % coverart_url)
+					if coverart_url:
+						self.logger.debug("caT sp start")
+						subprocess.check_output("wget -q %s -O %s/cover.png" % (coverart_url, "/tmp/"), shell=True )
+						self.logger.debug("caT sp end")
+						coverart=pygame.image.load("/tmp/" + "cover.png")
+						self.logger.debug("caT c loaded")
+						self.image["cover"] = pygame.transform.scale(coverart, (228, 228))
+						self.logger.debug("caT c placed")
+						self.processingCover = False
+						self.coverFetched = True
+						self.cover = True
+				except Exception, e:
+					self.logger.exception(e)
+					pass
+		# Processing finished
 		self.processingCover = False
 		self.logger.debug("caT end")
 

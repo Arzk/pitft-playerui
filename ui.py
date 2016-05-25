@@ -7,7 +7,7 @@ import os
 import glob
 import re
 import pylast
-import lastfm_login
+import config
 from mpd import MPDClient
 from math import ceil, floor
 import datetime
@@ -83,9 +83,9 @@ class PitftDaemon(Daemon):
 
 		# Pylast ####################################################################  
 		logger.info("Setting Pylast")
-		username = lastfm_login.username
-		password_hash = lastfm_login.password_hash
-		self.network = pylast.LastFMNetwork(api_key = lastfm_login.API_KEY, api_secret = lastfm_login.API_SECRET)
+		username = config.username
+		password_hash = config.password_hash
+		self.network = pylast.LastFMNetwork(api_key = config.API_KEY, api_secret = config.API_SECRET)
 
 		# Screen manager ###############
 		logger.info("Setting screen manager")
