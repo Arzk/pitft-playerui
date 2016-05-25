@@ -99,6 +99,7 @@ Use the following command to start ui:
 <code>sudo python /home/pi/pitft-playerui/pitft-playerui/ui.py start</code>
 
 To run the script as a service, copy the systemd service file to /etc/systemd/system:
+
 <code>sudo cp systemd/pitft-playerui.service /etc/systemd/system/</code>
 
 Note that using the framebuffer requires root access. The script can also be run in X window, for example via X forwarding in PuTTY, without sudo (but give your user write permission to the logs).
