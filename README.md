@@ -71,22 +71,16 @@ https://github.com/Fornoth/spotify-connect-web
 
 Download PiTFT-playerui files from github.
 To be sure to start in the home directory do
-
 <code>cd ~</code>
 
 Then install git:
-
 <code>apt-get install git-core</code>
 
 After installing clone the git repository:
-
 <code>git clone https://github.com/Arzk/pitft-playerui.git</code>
 
 From config.py you need to change the font if you are using something else than Helvetica Neue Bold and check that path is correct.
-
-You can download for example Open Sans "OpenSans-Bold.ttf" from www.fontsquirrel.com/fonts/open-sans. 
-
-Transfer ttf file to /home/pi/pitft-playerui/ folder.
+You can download for example Open Sans "OpenSans-Bold.ttf" from www.fontsquirrel.com/fonts/open-sans. Transfer ttf file to /home/pi/pitft-playerui/ folder.
 
 Set the other settings in config.py file:
 - Set the LastFM api key and login information for remote cover art fetching
@@ -96,11 +90,10 @@ Set the other settings in config.py file:
 For display backlight control write these lines to /etc/rc.local:
 <pre>echo 508 > /sys/class/gpio/export
 echo 'out' > /sys/class/gpio/gpio508/direction
-sudo sh -c "echo '1' > /sys/class/gpio/gpio508/value"
+echo '1' > /sys/class/gpio/gpio508/value
 </pre>
 
 This is a daemon and it has three commands: start, restart and stop.
-
 Use the following command to start ui:
 
 <code>sudo python /home/pi/pitft-playerui/pitft-playerui/ui.py start</code>
