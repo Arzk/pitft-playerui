@@ -60,7 +60,8 @@ Install dependencies:
 <pre>apt-get update
 apt-get install python-pygame
 pip install python-mpd2
-apt-get install evtest tslib libts-bin</pre>
+apt-get install evtest tslib libts-bin
+</pre>
 
 For CD support install the cddb-py module:
 http://cddb-py.sourceforge.net/
