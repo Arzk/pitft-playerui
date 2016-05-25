@@ -12,7 +12,6 @@ import httplib
 from math import ceil
 from threading import Thread
 from mpd import MPDClient
-import const
 import datetime
 from datetime import timedelta
 
@@ -37,6 +36,7 @@ class PitftPlayerui:
 		self.image = {}
 		self.image["background"]		=pygame.image.load(self.path + "pics/" + "background.png")
 		self.image["coverart_place"]		=pygame.image.load(self.path + "pics/" + "coverart-placer.png")
+		self.image["coverart_border"]		=pygame.image.load(self.path + "pics/" + "coverart-border.png")
 		self.image["details"]			=pygame.image.load(self.path + "pics/" + "details.png")
 		self.image["position_bg"]		=pygame.image.load(self.path + "pics/" + "position-background.png")
 		self.image["position_fg"]		=pygame.image.load(self.path + "pics/" + "position-foreground.png")
@@ -56,7 +56,7 @@ class PitftPlayerui:
 		self.image["button_radio"]		=pygame.image.load(self.path + "pics/" + "button-radio.png")
 		self.image["button_cd"]			=pygame.image.load(self.path + "pics/" + "button-cd.png")
 		self.image["button_playlists"]		=pygame.image.load(self.path + "pics/" + "button-playlists.png")
-		self.image["button_playlist"]		=pygame.image.load(self.path + "pics/" + "button-list.png")
+#		self.image["button_playlist"]		=pygame.image.load(self.path + "pics/" + "button-list.png")
 		# Threads
 		self.coverartThread = None
 		self.oldCoverartThreadRunning = False
@@ -79,6 +79,7 @@ class PitftPlayerui:
 		self.date = ""
 		self.track = ""
 		self.title = ""
+		self.file = ""
 		self.timeElapsed = "00:00"
 		self.timeTotal = "00:00"
 		self.timeElapsedPercentage = 0
@@ -282,12 +283,12 @@ class PitftPlayerui:
 	def query_cddb(self):
 		# File has changed?
 		try:
-			trackfile = self.mpd_song["file"].decode('utf-8')
+			file = self.mpd_song["file"].decode('utf-8')
 		except:
-			trackfile = "";
+			file = "";
 
-		if self.trackfile != trackfile:
-			self.trackfile = trackfile
+		if self.file != file:
+			self.file = file
 			try:
 				cdrom = DiscID.open()
 				disc_id = DiscID.disc_id(cdrom)
@@ -353,9 +354,9 @@ class PitftPlayerui:
 			self.mpd_song["date"] = ""
 		# Track Number
 		try:
-			self.mpd_song["track"] = trackfile.split("cdda:///")[-1].split()[0]
+			self.mpd_song["track"] = file.split("cdda:///")[-1].split()[0]
 		except:
-			self.mpd_song["track"] = trackfile.split("cdda:///")[-1].split()[0]
+			self.mpd_song["track"] = file.split("cdda:///")[-1].split()[0]
 		# Title
 		try:
 			number=int(self.mpd_song["track"]) - 1
@@ -401,7 +402,10 @@ class PitftPlayerui:
 			track = ""
 		# Track Title
 		try:
-			title = self.song["title"].decode('utf-8')
+			if self.song["title"]:
+				title = self.song["title"].decode('utf-8')
+			else:
+				title = self.song["file"].decode('utf-8')
 		except:
 			title = ""
 	
@@ -543,14 +547,15 @@ class PitftPlayerui:
 			self.updateState	 = True
 			
 			surface.blit(self.image["background"], (0,0))	
+			surface.blit(self.image["coverart_place"],(4,4))
 			surface.blit(self.image["details"], (6, 263))
 			surface.blit(self.image["icon_randomandrepeat"], (285, 60))
 			surface.blit(self.image["position_bg"], (55, 245))
 			surface.blit(self.image["button_prev"], (258, 132))
 			surface.blit(self.image["button_next"], (354, 132))
 			surface.blit(self.image["icon_screenoff"], (460, 304))
-			if self.active_player == "mpd":
-				surface.blit(self.image["button_playlist"], (258, 180))
+#			if self.active_player == "mpd":
+#				surface.blit(self.image["button_playlist"], (258, 180))
 
 			if self.active_player == "spotify":
 				surface.blit(self.image["button_spotify"], (418, 8))
@@ -563,11 +568,13 @@ class PitftPlayerui:
 
 		if self.updateAlbum or self.coverFetched:
 			if self.cover:
-				surface.blit(self.image["coverart_place"],(4,4))
-				surface.blit(self.image["cover"], (12,12))
+				surface.blit(self.image["cover"], (4,4))
+				surface.blit(self.image["coverart_border"],(4,4))
 				self.coverFetched = False
-#			else:
-#				surface.blit(self.image["nocover"], (12,12))
+			else:
+				# Reset background
+#				surface.blit(self.image["background"], (2,2), (2,2, 232,232)) # reset background
+				surface.blit(self.image["coverart_place"],(4,4))
 			
 		if self.updateTrackInfo:
 			if not self.updateAll:
@@ -598,7 +605,7 @@ class PitftPlayerui:
 			if not self.updateAll or not self.updateTrackInfo:
 				surface.blit(self.image["background"], (0,242), (0,242, 427,20)) # reset background
 				surface.blit(self.image["position_bg"], (55, 245))
-			surface.blit(self.image["position_fg"], (54, 245),(0,0,int(370*self.timeElapsedPercentage),10))
+			surface.blit(self.image["position_fg"], (55, 245),(0,0,int(370*self.timeElapsedPercentage),10))
 			text = self.font["elapsed"].render(self.timeElapsed, 1,(230,228,227))
 			surface.blit(text, (10, 238)) # Elapsed
 
@@ -629,12 +636,8 @@ class PitftPlayerui:
 				surface.blit(self.image["button_play"], (306, 132))
 
 		if self.showPlaylist:
-			surface.blit(self.image["background"], (4,4), (4,4, 412,230)) # reset background
+			surface.blit(self.image["background"], (4,4), (4,4, 416,234)) # reset background
 			if self.playlist:
-#				self.logger.debug(self.playlist)
-				# Clear scroll offset
-				self.offset 		= 0
-
 				for i in range(0,8):
 					try:
 						playlistitem = self.playlist[i+self.offset]
@@ -648,9 +651,10 @@ class PitftPlayerui:
 					except:
 						playlistitem = ""
 					text = self.font["playlist"].render(playlistitem, 1,(230,228,227))
-					surface.blit(text, (12, 4 + 30*int(i)))
+					surface.blit(text, (12, 4 + 30*int(i)),(0,0, 408,30))
 		if self.showPlaylists:
-			surface.blit(self.image["background"], (4,4), (4,4, 412,230)) # reset background
+			surface.blit(self.image["background"], (4,4), (4,4, 416,234)) # reset background
+
 			if self.playlists:
 				# Clear scroll offset
 				self.offset 		= 0
@@ -661,7 +665,7 @@ class PitftPlayerui:
 					except:
 						listitem = ""
 					text = self.font["playlist"].render(listitem, 1,(230,228,227))
-					surface.blit(text, (12, 4 + 30*i))
+					surface.blit(text, (12, 4 + 30*int(i)),(0,0, 408,30))
 
 
 
@@ -700,8 +704,7 @@ class PitftPlayerui:
 					self.logger.debug("caT sp end")
 					coverart=pygame.image.load("/tmp/" + "cover.png")
 					self.logger.debug("caT c loaded")
-#					self.image["cover"] = pygame.transform.scale(coverart, (const.coverartSize[0], const.coverartSize[1]))
-					self.image["cover"] = pygame.transform.scale(coverart, (212, 212))
+					self.image["cover"] = pygame.transform.scale(coverart, (228, 228))
 					self.logger.debug("caT c placed")
 					self.processingCover = False
 					self.coverFetched = True
@@ -834,6 +837,9 @@ class PitftPlayerui:
 		elif state == "False":
 			self.showPlaylists = False
 
+		# Clear scroll offset
+		self.offset = 0
+
 		# Ensure that both are not active at the same time
 		if self.showPlaylists:
 			self.showPlaylist = False
@@ -928,8 +934,13 @@ class PitftPlayerui:
 		# Limits for offset
 		if self.offset < 0:
 			self.offset = 0
-		if (self.showPlaylists) and len(self.playlists) - 8 < self.offset:
+		if (self.showPlaylists) and len(self.playlists) <= 8:
+			self.offset = 0
+		elif (self.showPlaylists) and len(self.playlists) - 8 < self.offset:
 			self.offset = len(self.playlists) - 8
-		if (self.showPlaylist) and len(self.playlist) - 8 < self.offset:
+		
+		if (self.showPlaylist) and len(self.playlist) <= 8:
+			self.offset = 0
+		elif (self.showPlaylist) and len(self.playlist) - 8 < self.offset:
 			self.offset = len(self.playlist) - 8
 		self.logger.debug("Offset: %s" % self.offset)

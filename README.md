@@ -2,13 +2,13 @@ PiTFT-PlayerUI is a fork of PMB-PiTFT (Pi MusicBox PiTFT) that is a small Python
 
 ![Screenshot](https://dl.dropboxusercontent.com/u/15996443/github/pitft-playerui.png)
 
-Forking reasons:
+Improvements:
 ===========
 - Support for 3.5" PiTFT+
 - Audio CD tag fetching from FreeDB
 - Spotify-connect-web support (https://github.com/Fornoth/spotify-connect-web)
 - Alternative UI with cleanup (sleep time and volume control disabled) 
-- My first python project
+- Gesture support
  
 Features:
 ===========
@@ -29,6 +29,11 @@ Shows and lets user control:
 Lets user control:
 - Screen backlight
 
+Gestures:
+- Vertical scroll
+- Horizontal flip: next/previous
+- long press on song info: show playlist
+
 Things you need:
 =================
 - Raspberry pi (I am using model 3B)
@@ -40,7 +45,6 @@ Things you need:
 
 Known issues:
 ==============
-- Long playlist items overlap buttons
 - Doesn't check if a CD drive is connected
 
 Installing:
@@ -108,7 +112,7 @@ Some specific things:
 TODO:
 =========
 - Sleep timer
-- Cover art from Spotify
+- Cover art from Spotify or album.jpg file
 - API for LIRC control of both players
 - Got other ideas? Post an issue and tell me about it
 

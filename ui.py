@@ -10,7 +10,6 @@ import pylast
 import lastfm_login
 from mpd import MPDClient
 from math import ceil, floor
-import const
 import datetime
 from datetime import timedelta
 import pitft_ui
@@ -26,8 +25,8 @@ os.environ["SDL_MOUSEDRV"] = "TSLIB"
 
 # Logging configs
 logger = logging.getLogger("PiTFT-Playerui logger")
-#logger.setLevel(logging.DEBUG)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
+#logger.setLevel(logging.INFO)
 
 handler = TimedRotatingFileHandler('/var/log/pitft-playerui/pitft-playerui.log',when="midnight",interval=1,backupCount=14)
 formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
@@ -96,13 +95,16 @@ class PitftDaemon(Daemon):
 			logger.exception(e)
 			raise
 
-		# Mouse positions for scrolling
-		self.scroll_threshold = 10
+		# Mouse variables
+		self.longpress_time   =  timedelta(milliseconds=500)
+		self.scroll_threshold = 20
+		self.flip_threshold   = 80
 		self.scroll_step      = 20
 		self.start_x          = 0
 		self.start_y          = 0
 		self.mouse_scroll     = False
 		self.button_down      = False
+		self.longpress        = False
 
 	# Connect to MPD server
 	def connectToMPD(self):
@@ -118,13 +120,13 @@ class PitftDaemon(Daemon):
 		logger.info("Connection to MPD server established.")
 
 	# Click handler
-	def on_click(self):
+	def on_click(self, button):
 		click_pos = (pygame.mouse.get_pos() [0], pygame.mouse.get_pos() [1])
 
 		# Screen is off and its touched
 		if self.sm.get_backlight_status() == 0 and 0 <= click_pos[0] <= 480 and 0 <= click_pos[1] <= 320:
 			logger.debug("Screen off, Screen touch")
-			self.button(2)
+			self.button(2, button)
 
 		# Screen is on. Check which button is touched 
 		else:
@@ -132,120 +134,127 @@ class PitftDaemon(Daemon):
 
 			# Selectors
 			if 418 <= click_pos[0] <= 476 and 8 <= click_pos[1] <= 64:
-				if self.sm.get_active_player() == "spotify":
-					logger.debug("Switching to MPD")
-				else:
-					logger.debug("Switching to Spotify")
-				self.button(14)
-			if 418 <= click_pos[0] <= 476 and 66 <= click_pos[1] <= 122:
+				logger.debug("Switching player")
+				self.button(14, button)
+			elif 418 <= click_pos[0] <= 476 and 66 <= click_pos[1] <= 122:
 				logger.debug("Playlists")
-				self.button(10)
+				self.button(10, button)
 			elif 418 <= click_pos[0] <= 476 and 124 <= click_pos[1] <= 180:
 				logger.debug("CD")
-				self.button(11)
+				self.button(11, button)
 			elif 418 <= click_pos[0] <= 476 and 182 <= click_pos[1] <= 238:
 				logger.debug("Radio")
-				self.button(12)
+				self.button(12, button)
 
 			# Playlists are shown - hide on empty space click
 			elif self.sm.get_playlists_status() or self.sm.get_playlist_status():
-				if not 4 <= click_pos[0] <= 416 or not 12 <= click_pos[1] <= 232:
-					logger.debug("Hiding lists view")
-					self.button(13)
-				elif 4 <= click_pos[0] <= 416 and 4 <= click_pos[1] <= 33:
-					logger.debug("Selecting list item 0")
-					self.sm.item_selector(0)
-				elif 4 <= click_pos[0] <= 416 and 34 <= click_pos[1] <= 63:
-					logger.debug("Selecting list item 1")
-					self.sm.item_selector(1)
-				elif 4 <= click_pos[0] <= 416 and 64 <= click_pos[1] <= 93:
-					logger.debug("Selecting list item 2")
-					self.sm.item_selector(2)
-				elif 4 <= click_pos[0] <= 416 and 94 <= click_pos[1] <= 123:
-					logger.debug("Selecting list item 3")
-					self.sm.item_selector(3)
-				elif 4 <= click_pos[0] <= 416 and 124 <= click_pos[1] <= 153:
-					logger.debug("Selecting list item 4")
-					self.sm.item_selector(4)
-				elif 4 <= click_pos[0] <= 416 and 154 <= click_pos[1] <= 183:
-					logger.debug("Selecting list item 5")
-					self.sm.item_selector(5)
-				elif 4 <= click_pos[0] <= 416 and 184 <= click_pos[1] <= 213:
-					logger.debug("Selecting list item 6")
-					self.sm.item_selector(6)
+				if not 4 <= click_pos[0] <= 416 or not 4 <= click_pos[1] <= 243:
+					logger.debug("Hiding lists")
+					self.button(13, button)
+
+				# List item clicked
+				# List item to select: 4 - 33: 0, 34-63 = 1 etc
+				elif 4 <= click_pos[0] <= 416 and 4 <= click_pos[1] <= 243:
+					list_item = int(floor((click_pos[1] - 4)/30))
+					if button == 1:
+						logger.debug("Selecting list item %s" % list_item)
+						self.sm.item_selector(list_item)
+					elif button == 2:
+						logger.debug("Second-clicked list item %s" % list_item)
 
 			# Toggles
-			elif 420 <= click_pos[0] <= 480 and 260 <= click_pos[1] <=320:
+			elif 420 <= click_pos[0] <= 480 and 260 <= click_pos[1] <= 320:
 				logger.debug("Screen off")
-				self.button(2)
-			elif 315 <= click_pos[0] <= 377 and 56 <= click_pos[1] <=81:
+				self.button(2, button)
+			elif 315 <= click_pos[0] <= 377 and 56 <= click_pos[1] <= 81:
 				logger.debug("Toggle repeat") 
-				self.button(0)
-			elif 315 <= click_pos[0] <= 377 and 88 <= click_pos[1] <=113:
+				self.button(0, button)
+			elif 315 <= click_pos[0] <= 377 and 88 <= click_pos[1] <= 113:
 				logger.debug("Toggle random")
-				self.button(1)
-			elif 258 <= click_pos[0] <= 298 and 180 <= click_pos[1] <=238:
+				self.button(1, button)
+
+			# Controls
+			elif 258 <= click_pos[0] <= 294 and 132 <= click_pos[1] <= 180:
+				logger.debug("Prev")
+				self.button(6, button)
+			elif 296 <= click_pos[0] <= 352 and 132 <= click_pos[1] <= 180:
+				logger.debug("Toggle play/pause")
+				self.button(7, button)
+			elif 354 <= click_pos[0] <= 410 and 132 <= click_pos[1] <= 180:
+				logger.debug("Next")
+				self.button(8, button) 
+
+			# Open playlist when longpressing on bottom
+			elif 244 <= click_pos[1] <= 320 and button == 2:
 				if self.sm.get_active_player() == "mpd":
 					logger.debug("Toggle playlist")
-					self.button(9)
-			# Controls
-			elif 258 <= click_pos[0] <= 294 and 132 <= click_pos[1] <=180:
-				logger.debug("Prev")
-				self.button(6)
-			elif 296 <= click_pos[0] <= 352 and 132 <= click_pos[1] <=180:
-				logger.debug("Toggle play/pause")
-				self.button(7)
-			elif 354 <= click_pos[0] <= 410 and 132 <= click_pos[1] <=180:
-				logger.debug("Next")
-				self.button(8) 
+					self.button(9, button)
+#			elif 258 <= click_pos[0] <= 298 and 180 <= click_pos[1] <=238:
+#				if self.sm.get_active_player() == "mpd":
+#					logger.debug("Toggle playlist")
+#					self.button(9, button)
 
 	#define action on pressing buttons
-	def button(self, number):
-		logger.debug("You pressed button %s" % number)
-		if number == 0:  
-			self.sm.toggle_repeat()
+	def button(self, number, button):
+		if button == 1:
+			logger.debug("You pressed button %s" % number)
 
-		elif number == 1:
-			self.sm.toggle_random()
+			if number == 0:  
+				self.sm.toggle_repeat()
 
-		elif number == 2:
-			self.sm.toggle_backlight()
+			elif number == 1:
+				self.sm.toggle_random()
 
-		elif number == 5:
-			self.sm.control_player("stop")
+			elif number == 2:
+				self.sm.toggle_backlight()
 
-		elif number == 6:
-			self.sm.control_player("previous")
+			elif number == 5:
+				self.sm.control_player("stop")
 
-		elif number == 7:
-			self.sm.toggle_playback()
+			elif number == 6:
+				self.sm.control_player("previous")
 
-		elif number == 8:
-			self.sm.control_player("next")
+			elif number == 7:
+				self.sm.toggle_playback()
 
+			elif number == 8:
+				self.sm.control_player("next")
 
-		elif number == 9:
-			self.sm.toggle_playlist()
+			elif number == 10:
+				self.sm.toggle_playlists()
 
-		elif number == 10:
-			self.sm.toggle_playlists()
+			elif number == 11:
+				self.sm.play_cd()
 
-		elif number == 11:
-			self.sm.play_cd()
-
-		elif number == 12:
-			if not self.sm.get_playlist_status():
-				self.sm.load_playlist("Radio")
-				self.sm.toggle_playlist("True")
-			else:
-				self.sm.toggle_playlist("False")
+			elif number == 12:
+				if not self.sm.get_playlist_status():
+					self.sm.load_playlist("Radio")
+					self.sm.toggle_playlist("True")
+				else:
+					self.sm.toggle_playlist("False")
 	
-		elif number == 13:
-			self.sm.toggle_playlists("False")
-			self.sm.toggle_playlist("False")
+			elif number == 13:
+				self.sm.toggle_playlists("False")
+				self.sm.toggle_playlist("False")
 
-		elif number == 14:
-			self.sm.switch_active_player("toggle")
+			elif number == 14:
+				self.sm.switch_active_player("toggle")
+		elif button == 2:
+			logger.debug("You longpressed button %s" % button)
+
+			if number == 9:
+				self.sm.toggle_playlist()
+
+#			elif number == 6:
+#				self.sm.control_player("rwd")
+
+#			elif number == 8:
+#				self.sm.control_player("ff")
+
+
+		else:
+			logger.debug("Button %s not supported" % button)
+
 
 	def shutdown(self):
 		# Close MPD connection
@@ -262,47 +271,69 @@ class PitftDaemon(Daemon):
 			while 1:
 				for event in pygame.event.get():
 					if event.type == pygame.MOUSEBUTTONDOWN:
-						# Save mouse position for deermining if user has scrolled
-						self.start_x,self.start_y=pygame.mouse.get_pos()
+						# Save mouse position for determining if user has scrolled
+						self.start_x,self.start_y = pygame.mouse.get_pos()
 						self.mouse_scroll = False
+						clicktime = datetime.datetime.now()
 						self.button_down = True
 
 						#logger.debug("screen pressed") #for debugging purposes
 						#pos = (pygame.mouse.get_pos() [0], pygame.mouse.get_pos() [1])
 						#pygame.draw.circle(self.screen, (255,255,255), pos, 2, 0) #for debugging purposes - adds a small dot where the screen is pressed
 
-#					if event.type == pygame.MOUSEBUTTONUP:
-					if event.type == pygame.MOUSEMOTION and self.button_down:
-						end_x,end_y=pygame.mouse.get_pos()
-						direction = end_y - self.start_y
+					if event.type == pygame.MOUSEMOTION and self.button_down and not self.longpress:
+						end_x, end_y = pygame.mouse.get_pos()
+						direction_x = end_x - self.start_x
+						direction_y = end_y - self.start_y
+#						end_x,end_y = pygame.mouse.get_pos()
+#						direction = end_y - self.start_y
 
-						# A movement of 15 pixels scrolls one line
-						if abs(direction) >= self.scroll_threshold or abs(end_x - self.start_x) >= self.scroll_threshold:
+						if abs(direction_x) >= self.flip_threshold or abs(direction_y) >= self.scroll_threshold:
 							self.mouse_scroll = True
-							if direction < 0:
-								self.sm.inc_offset(int(floor(direction/self.scroll_step)))
+							# Assume that the bigger amount of scroll (x vs y) was the intention
+							if abs(direction_y) > abs(direction_x):
+								# A vertical movement of 20 pixels scrolls one line
+								if direction_y < 0:
+									self.sm.inc_offset(int(floor(direction_y/self.scroll_step)))
+								elif direction_y > 0:
+									self.sm.inc_offset(int(ceil(direction_y/self.scroll_step)))
 							else:
-								self.sm.inc_offset(int(ceil(direction/self.scroll_step)))
+								# A horizontal flip switches next/prev
+								if direction_x > 0:
+									self.button(6, 1)
+								elif direction_x < 1:
+									self.button(8, 1)
+								# don't repeat
+								self.button_down = False
 	
 						# Save new position
 						self.start_x,self.start_y=pygame.mouse.get_pos()
 
 					if event.type == pygame.MOUSEBUTTONUP:
-						# No movement - click
-						if not self.mouse_scroll:
-							self.on_click()
-
+						# Not a long click or scroll
+#						if datetime.datetime.now() - clicktime < timedelta(milliseconds=500) and not self.mouse_scroll:
+						if not self.longpress and not self.mouse_scroll:
+							self.on_click(1)
+							
 						# Clear variables
-						self.start_x = 0;
 						end_x = 0;
-						self.start_y = 0;
 						end_y = 0;
+						self.start_x = 0;
+						self.start_y = 0;
 						self.mouse_scroll = False
 						self.button_down = False
+						self.longpress = False
 
-				# Update screen, fps=50
+					# Long press - register second click
+					elif self.button_down and datetime.datetime.now() - clicktime > self.longpress_time and not self.mouse_scroll:
+						self.on_click(2)
+						clicktime = datetime.datetime.now()
+#						self.button_down = False
+						self.longpress = True
+
+				# Update screen, fps=20
 				if drawtime < datetime.datetime.now():
-					drawtime = datetime.datetime.now() + timedelta(milliseconds=20)
+					drawtime = datetime.datetime.now() + timedelta(milliseconds=50)
 					self.sm.refresh_players()
 					self.sm.parse_song()
 					self.sm.render(self.screen)
