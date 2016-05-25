@@ -32,7 +32,7 @@ class PitftPlayerui:
 		self.font['details']	= pygame.font.Font(self.fontfile, 16)
 		self.font['elapsed']	= pygame.font.Font(self.fontfile, 16)
 		self.font['playlist']	= pygame.font.Font(self.fontfile, 20)
-		self.font['field']		= pygame.font.Font(self.fontfile, 24)
+		self.font['field']		= pygame.font.Font(self.fontfile, 20)
 
 		# Images
 		self.image = {}
@@ -663,7 +663,7 @@ class PitftPlayerui:
 				text = self.font["field"].render(str(self.volume), 1,(230,228,227))
 
 				pos = 304 + (48 - text.get_width())/2
-				surface.blit(text, (pos, 197)) # Volume
+				surface.blit(text, (pos, 199)) # Volume
 				
 		if self.updateState:
 			if not self.updateAll:
