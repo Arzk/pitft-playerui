@@ -80,7 +80,7 @@ From pitft-ui.py you need to change the font if you are using something else tha
 
 To change the font edit /root/pitft-playerui/pitft-playerui/pitft_ui.py file line 29 and replace "helvetica-neue-bold.ttf" with your own font name. example "OpenSans-Bold.ttf". You can download Open Sans from www.fontsquirrel.com/fonts/open-sans. Transfer ttf file to /home/pi/pitft-playerui/ folder.
 
-You also have to set the LastFM api key and login information in lastfm_login.py file.
+You also have to edit the config.py file. Set the LastFM api key and login information. For local coverart set the path of the mpd library.
 
 Create the log folder in /var/log/pitft-playerui:
 <pre>sudo mkdir /var/log/pitft-playerui

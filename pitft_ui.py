@@ -688,13 +688,15 @@ class PitftPlayerui:
 		elif "file" in self.song:
 #			self.logger.debug("Filename: %s" % self.song["file"])
 			folder = os.path.dirname(self.song["file"])
+			# Get library locations from MPD
+			self.logger.debug(self.mpdc.listmounts())
+			
 
 			self.logger.debug("Trying to find coverart: %s" % folder + "/folder.jpg")
 			if os.path.isfile(folder + "/folder.jpg") or os.path.isfile(folder + "/folder.png") or os.path.isfile(folder + "/folder.gif"):
 #			coverartfile = glob(folder + "/folder.*")
 				self.logger.debug("Found coverart: %s" % folder)
-
-
+			
 		# No existing coverart, try to fetch from LastFM
 		else:
 
