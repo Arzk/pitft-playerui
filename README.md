@@ -13,7 +13,7 @@ Improvements:
 Features:
 ===========
 Shows following details of currently playing track:
-- Cover art (From Last.FM)
+- Cover art (From local folder.* file, Spotify or Last.FM as fallback)
 - Artist, Album and Track title
 - Track time total and elapsed
 - Fetches audio CD information from freeDB
@@ -80,7 +80,7 @@ From pitft-ui.py you need to change the font if you are using something else tha
 
 To change the font edit /root/pitft-playerui/pitft-playerui/pitft_ui.py file line 29 and replace "helvetica-neue-bold.ttf" with your own font name. example "OpenSans-Bold.ttf". You can download Open Sans from www.fontsquirrel.com/fonts/open-sans. Transfer ttf file to /home/pi/pitft-playerui/ folder.
 
-You also have to edit the config.py file. Set the LastFM api key and login information. For local coverart set the path of the mpd library.
+You also have to edit the config.py file. Set the LastFM api key and login information. For local coverart set the path of the mpd library. For Spotify set the path and port of Spotify-connect-web
 
 Create the log folder in /var/log/pitft-playerui:
 <pre>sudo mkdir /var/log/pitft-playerui
@@ -105,14 +105,13 @@ Some specific things:
 =========
 - The radio UI button expects to find a playlist named "Radio". The Radio playlist is hidden from the playlists view
 - The active player view is decided between MPD and Spotify so that:
-	- MPD is always shown on start
+	- On start the playing player is active. Pause Spotify if both are playing
 	- If Spotify is playing and MPD starts playing, pause Spotify and switch to MPD
-	- And vice versa if Spotify starts playing
+	- Vice versa if Spotify starts playing
 
 TODO:
 =========
 - Sleep timer
-- Cover art from Spotify or album.jpg file
 - API for LIRC control of both players
 - Got other ideas? Post an issue and tell me about it
 

@@ -84,7 +84,7 @@ class PitftDaemon(Daemon):
 		# Pylast ####################################################################  
 		logger.info("Setting Pylast")
 		username = config.username
-		password_hash = config.password_hash
+		password_hash = pylast.md5(config.password_hash)
 		self.network = pylast.LastFMNetwork(api_key = config.API_KEY, api_secret = config.API_SECRET)
 
 		# Screen manager ###############
@@ -112,7 +112,7 @@ class PitftDaemon(Daemon):
 		noConnection = True
 		while noConnection:
 			try:
-				self.client.connect("localhost", 6600)
+				self.client.connect(config.mpd_path, config.mpd_port)
 				noConnection=False
 			except Exception, e:
 				logger.info(e)

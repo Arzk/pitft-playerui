@@ -9,6 +9,7 @@ import re
 import CDDB
 import DiscID
 import httplib
+import config
 from math import ceil
 from threading import Thread
 from mpd import MPDClient
@@ -271,7 +272,7 @@ class PitftPlayerui:
 		noConnection = True
 		while noConnection:
 			try:
-				client.connect("localhost", 6600)
+				client.connect("config.mpd_path", config.mpd_port)
 				noConnection=False
 			except Exception, e:
 				self.logger.info(e)
@@ -377,7 +378,7 @@ class PitftPlayerui:
 		# -------------
 		# |  PARSE    |
 		# -------------
-
+		
 		# Artist
 		try:
 			artist = self.song["artist"].decode('utf-8')
@@ -458,6 +459,7 @@ class PitftPlayerui:
 
 		# Artist
 		if self.artist != artist:
+			self.logger.debug("Artist if")
 			self.artist = artist
 			self.updateTrackInfo = True
 
@@ -539,7 +541,7 @@ class PitftPlayerui:
 	def render(self, surface):
 		if self.updateAll:
 			self.updateTrackInfo = True
-			self.updateAlbum	 = True	
+			self.updateAlbum	 = True
 			self.updateElapsed	 = True
 			self.updateRandom	 = True
 			self.updateRepeat	 = True
@@ -664,7 +666,7 @@ class PitftPlayerui:
 		self.resetUpdates()
 
 	def resetUpdates(self):
-		self.updateTrackInfo 	 = False
+		self.updateTrackInfo = False
 		self.updateAlbum	 = False
 		self.updateElapsed	 = False
 		self.updateRandom	 = False
@@ -678,27 +680,62 @@ class PitftPlayerui:
 		self.coverFetched = False
 		self.cover = False
 
-		# Spotify coverart exists
-		if "cover_uri" in self.song:
-			self.logger.debug("Spotify coverart exists: %s" % self.song["cover_uri"])
-			# Spotify-connect-web main.js:
-			# albumCover.attr('src', '/api/info/image_url/' + metadata.cover_uri)
-
-		# Local coverart exists
-		elif "file" in self.song:
-#			self.logger.debug("Filename: %s" % self.song["file"])
-			folder = os.path.dirname(self.song["file"])
-			# Get library locations from MPD
-			self.logger.debug(self.mpdc.listmounts())
+		# Search for local coverart
+		if "file" in self.song and self.active_player == "mpd" and config.library_path:
+		
+			folder = os.path.dirname(config.library_path + "/" + self.song["file"])
+			coverartfile = ""
 			
+			# Get all folder.* files from album folder
+			coverartfiles = glob.glob(folder + '/folder.*')
 
-			self.logger.debug("Trying to find coverart: %s" % folder + "/folder.jpg")
-			if os.path.isfile(folder + "/folder.jpg") or os.path.isfile(folder + "/folder.png") or os.path.isfile(folder + "/folder.gif"):
-#			coverartfile = glob(folder + "/folder.*")
-				self.logger.debug("Found coverart: %s" % folder)
-			
+			if coverartfiles:
+				self.logger.debug("Found coverart files: %s" % coverartfiles)
+				# If multiple found, select one of them
+				for file in coverartfiles:
+					# Check file extension, png, jpg and gif accepted
+					if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+						if not coverartfile:
+							coverartfile = file
+							self.logger.debug("Set first candidate for coverart: %s" % coverartfile)
+						else:
+							# Found multiple files. Assume that the largest one has the best quality
+							if os.path.getsize(coverartfile) < os.path.getsize(file):
+								coverartfile = file
+								self.logger.debug("Better candidate found: %s" % coverartfile)
+				if coverartfile:
+					# Image found, load it
+					self.logger.debug("Using coverart: %s" % coverartfile)
+					coverart=pygame.image.load(coverartfile)
+					self.image["cover"] = pygame.transform.scale(coverart, (228, 228))
+					self.processingCover = False
+					self.coverFetched = True
+					self.cover = True
+				else:
+					self.logger.debug("No local coverart file found, switching to Last.FM")				
+
+		# Check Spotify coverart
+		elif "cover_uri" in self.song and self.active_player == "spotify":
+			try:
+				coverart_url = config.spotify_path + ":" + config.spotify_port + "/api/info/image_url/" + self.song["cover_uri"]
+				#coverart_url = "localhost:4000/api/info/image_url/" + self.song["cover_uri"]
+				self.logger.debug("Spotify coverart url: %s" % coverart_url)
+				if coverart_url:
+					subprocess.check_output("wget -q %s -O %s/cover.png" % (coverart_url, "/tmp/"), shell=True )
+					self.logger.debug("Spotify coverart downloaded")
+					coverart=pygame.image.load("/tmp/" + "cover.png")
+					self.logger.debug("Spotify coverart loaded")
+					self.image["cover"] = pygame.transform.scale(coverart, (228, 228))
+					self.logger.debug("Spotify coverart placed")
+					self.processingCover = False
+					self.coverFetched = True
+					self.cover = True
+			except:
+				self.logger.exception(e)
+				pass
+
 		# No existing coverart, try to fetch from LastFM
-		else:
+		if not self.cover:
 
 			try:
 				lastfm_album = self.lfm.get_album(self.artist, self.album)
@@ -725,6 +762,7 @@ class PitftPlayerui:
 				except Exception, e:
 					self.logger.exception(e)
 					pass
+					
 		# Processing finished
 		self.processingCover = False
 		self.logger.debug("caT end")
@@ -919,11 +957,9 @@ class PitftPlayerui:
 	# Valid info commands: metadata, status, image_url/<image_url>, display_name
 	# Valid playback commands: play, pause, prev, next, shuffle, repeat, volume
 	def spotify_control(self, method, command):
-		c = httplib.HTTPConnection('localhost', 4000)
-		if command == "coverart":
-			c.request('GET', '/api/'+method+'/image_url'+self.song["cover_uri"], '{}')		
-		else:
-			c.request('GET', '/api/'+method+'/'+command, '{}')
+		#c = httplib.HTTPConnection('localhost', 4000)
+		c = httplib.HTTPConnection(config.spotify_path, config.spotify_port)
+		c.request('GET', '/api/'+method+'/'+command, '{}')
 		doc = c.getresponse().read()
 		return doc
 
