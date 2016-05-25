@@ -25,8 +25,14 @@ os.environ["SDL_MOUSEDRV"] = "TSLIB"
 
 # Logging configs
 logger = logging.getLogger("PiTFT-Playerui logger")
-logger.setLevel(logging.DEBUG)
-#logger.setLevel(logging.INFO)
+try: 
+	if config.loglevel == "DEBUG":
+		loglevel = logging.DEBUG
+		logger.setLevel(loglevel)
+	else:
+		logger.setLevel(logging.INFO)
+except:
+	logger.setLevel(logging.INFO)
 
 handler = TimedRotatingFileHandler('/var/log/pitft-playerui/pitft-playerui.log',when="midnight",interval=1,backupCount=14)
 formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
@@ -54,6 +60,7 @@ class PitftDaemon(Daemon):
 	# Setup Python game, MPD, Last.fm and Screen manager
 	def setup(self):
 		logger.info("Starting setup")
+		
 		signal(SIGTERM, signal_term_handler)
 		# Python game ######################
 		logger.info("Setting pygame")
@@ -103,7 +110,7 @@ class PitftDaemon(Daemon):
 		self.start_x          = 0
 		self.start_y          = 0
 		self.mouse_scroll     = False
-		self.button_down      = False
+		self.mousebutton_down      = False
 		self.longpress        = False
 
 	# Connect to MPD server
@@ -117,16 +124,17 @@ class PitftDaemon(Daemon):
 			except Exception, e:
 				logger.info(e)
 				noConnection=True
+				time.sleep(15)
 		logger.info("Connection to MPD server established.")
 
 	# Click handler
-	def on_click(self, button):
+	def on_click(self, mousebutton):
 		click_pos = (pygame.mouse.get_pos() [0], pygame.mouse.get_pos() [1])
 
 		# Screen is off and its touched
 		if self.sm.get_backlight_status() == 0 and 0 <= click_pos[0] <= 480 and 0 <= click_pos[1] <= 320:
 			logger.debug("Screen off, Screen touch")
-			self.button(2, button)
+			self.button(2, mousebutton)
 
 		# Screen is on. Check which button is touched 
 		else:
@@ -134,69 +142,82 @@ class PitftDaemon(Daemon):
 
 			# Selectors
 			if 418 <= click_pos[0] <= 476 and 8 <= click_pos[1] <= 64:
-				logger.debug("Switching player")
-				self.button(14, button)
+				if config.spotify_path:
+					logger.debug("Switching player")
+					self.button(14, mousebutton)
 			elif 418 <= click_pos[0] <= 476 and 66 <= click_pos[1] <= 122:
 				logger.debug("Playlists")
-				self.button(10, button)
+				self.button(10, mousebutton)
 			elif 418 <= click_pos[0] <= 476 and 124 <= click_pos[1] <= 180:
-				logger.debug("CD")
-				self.button(11, button)
+				if config.cdda_enabled:
+					logger.debug("CD")
+					self.button(11, mousebutton)
 			elif 418 <= click_pos[0] <= 476 and 182 <= click_pos[1] <= 238:
-				logger.debug("Radio")
-				self.button(12, button)
+				if config.radio_playlist:
+					logger.debug("Radio")
+					self.button(12, mousebutton)
 
 			# Playlists are shown - hide on empty space click
 			elif self.sm.get_playlists_status() or self.sm.get_playlist_status():
 				if not 4 <= click_pos[0] <= 416 or not 4 <= click_pos[1] <= 243:
 					logger.debug("Hiding lists")
-					self.button(13, button)
+					self.button(13, mousebutton)
 
 				# List item clicked
 				# List item to select: 4 - 33: 0, 34-63 = 1 etc
 				elif 4 <= click_pos[0] <= 416 and 4 <= click_pos[1] <= 243:
 					list_item = int(floor((click_pos[1] - 4)/30))
-					if button == 1:
+					if mousebutton == 1:
 						logger.debug("Selecting list item %s" % list_item)
 						self.sm.item_selector(list_item)
-					elif button == 2:
+					elif mousebutton == 2:
 						logger.debug("Second-clicked list item %s" % list_item)
 
 			# Toggles
 			elif 420 <= click_pos[0] <= 480 and 260 <= click_pos[1] <= 320:
 				logger.debug("Screen off")
-				self.button(2, button)
+				self.button(2, mousebutton)
 			elif 315 <= click_pos[0] <= 377 and 56 <= click_pos[1] <= 81:
 				logger.debug("Toggle repeat") 
-				self.button(0, button)
+				self.button(0, mousebutton)
 			elif 315 <= click_pos[0] <= 377 and 88 <= click_pos[1] <= 113:
 				logger.debug("Toggle random")
-				self.button(1, button)
+				self.button(1, mousebutton)
+
+			# Volume
+			elif 258 <= click_pos[0] <= 316 and 190 <= click_pos[1] <= 248:
+					if config.volume_enabled:
+						logger.debug("Volume-")
+						self.button(3, mousebutton)
+			elif 354 <= click_pos[0] <= 412 and 190 <= click_pos[1] <=248:
+					if config.volume_enabled:
+						logger.debug("Volume+")
+						self.button(4, mousebutton)
 
 			# Controls
 			elif 258 <= click_pos[0] <= 294 and 132 <= click_pos[1] <= 180:
 				logger.debug("Prev")
-				self.button(6, button)
+				self.button(6, mousebutton)
 			elif 296 <= click_pos[0] <= 352 and 132 <= click_pos[1] <= 180:
 				logger.debug("Toggle play/pause")
-				self.button(7, button)
+				self.button(7, mousebutton)
 			elif 354 <= click_pos[0] <= 410 and 132 <= click_pos[1] <= 180:
 				logger.debug("Next")
-				self.button(8, button) 
+				self.button(8, mousebutton) 
 
 			# Open playlist when longpressing on bottom
-			elif 244 <= click_pos[1] <= 320 and button == 2:
+			elif 244 <= click_pos[1] <= 320 and mousebutton == 2:
 				if self.sm.get_active_player() == "mpd":
 					logger.debug("Toggle playlist")
-					self.button(9, button)
+					self.button(9, mousebutton)
 #			elif 258 <= click_pos[0] <= 298 and 180 <= click_pos[1] <=238:
 #				if self.sm.get_active_player() == "mpd":
 #					logger.debug("Toggle playlist")
-#					self.button(9, button)
+#					self.button(9, mousebutton)
 
 	#define action on pressing buttons
-	def button(self, number, button):
-		if button == 1:
+	def button(self, number, mousebutton):
+		if mousebutton == 1:
 			logger.debug("You pressed button %s" % number)
 
 			if number == 0:  
@@ -207,6 +228,12 @@ class PitftDaemon(Daemon):
 
 			elif number == 2:
 				self.sm.toggle_backlight()
+
+			elif number == 3:
+				self.sm.set_volume(1, "-")
+
+			elif number == 4:
+				self.sm.set_volume(1, "+")
 
 			elif number == 5:
 				self.sm.control_player("stop")
@@ -228,7 +255,7 @@ class PitftDaemon(Daemon):
 
 			elif number == 12:
 				if not self.sm.get_playlist_status():
-					self.sm.load_playlist("Radio")
+					self.sm.load_playlist(config.radio_playlist)
 					self.sm.toggle_playlist("True")
 				else:
 					self.sm.toggle_playlist("False")
@@ -239,21 +266,26 @@ class PitftDaemon(Daemon):
 
 			elif number == 14:
 				self.sm.switch_active_player("toggle")
-		elif button == 2:
-			logger.debug("You longpressed button %s" % button)
+		elif mousebutton == 2:
+			logger.debug("You longpressed button %s" % number)
 
-			if number == 9:
+			if number == 3:
+				self.sm.set_volume(10, "-")
+
+			elif number == 4:
+				self.sm.set_volume(10, "+")
+
+			elif number == 6:
+				self.sm.control_player("rwd")
+
+			elif number == 8:
+				self.sm.control_player("ff")
+
+			elif number == 9:
 				self.sm.toggle_playlist()
 
-#			elif number == 6:
-#				self.sm.control_player("rwd")
-
-#			elif number == 8:
-#				self.sm.control_player("ff")
-
-
 		else:
-			logger.debug("Button %s not supported" % button)
+			logger.debug("mouse button %s not supported" % mousebutton)
 
 
 	def shutdown(self):
@@ -271,17 +303,23 @@ class PitftDaemon(Daemon):
 			while 1:
 				for event in pygame.event.get():
 					if event.type == pygame.MOUSEBUTTONDOWN:
-						# Save mouse position for determining if user has scrolled
-						self.start_x,self.start_y = pygame.mouse.get_pos()
-						self.mouse_scroll = False
-						clicktime = datetime.datetime.now()
-						self.button_down = True
+					
+						# Instant click when backlight is off to turn it back on
+						if self.sm.get_backlight_status() == 0:
+							self.on_click(1)
 
-						#logger.debug("screen pressed") #for debugging purposes
-						#pos = (pygame.mouse.get_pos() [0], pygame.mouse.get_pos() [1])
-						#pygame.draw.circle(self.screen, (255,255,255), pos, 2, 0) #for debugging purposes - adds a small dot where the screen is pressed
+						else:
+							# Save mouse position for determining if user has scrolled
+							self.start_x,self.start_y = pygame.mouse.get_pos()
+							self.mouse_scroll = False
+							clicktime = datetime.datetime.now()
+							self.mousebutton_down = True
 
-					if event.type == pygame.MOUSEMOTION and self.button_down and not self.longpress:
+							#logger.debug("screen pressed") #for debugging purposes
+							#pos = (pygame.mouse.get_pos() [0], pygame.mouse.get_pos() [1])
+							#pygame.draw.circle(self.screen, (255,255,255), pos, 2, 0) #for debugging purposes - adds a small dot where the screen is pressed
+
+					if event.type == pygame.MOUSEMOTION and self.mousebutton_down and not self.longpress:
 						end_x, end_y = pygame.mouse.get_pos()
 						direction_x = end_x - self.start_x
 						direction_y = end_y - self.start_y
@@ -304,12 +342,12 @@ class PitftDaemon(Daemon):
 								elif direction_x < 1:
 									self.button(8, 1)
 								# don't repeat
-								self.button_down = False
+								self.mousebutton_down = False
 	
 						# Save new position
 						self.start_x,self.start_y=pygame.mouse.get_pos()
 
-					if event.type == pygame.MOUSEBUTTONUP:
+					if event.type == pygame.MOUSEBUTTONUP and self.mousebutton_down:
 						# Not a long click or scroll
 #						if datetime.datetime.now() - clicktime < timedelta(milliseconds=500) and not self.mouse_scroll:
 						if not self.longpress and not self.mouse_scroll:
@@ -321,15 +359,23 @@ class PitftDaemon(Daemon):
 						self.start_x = 0;
 						self.start_y = 0;
 						self.mouse_scroll = False
-						self.button_down = False
+						self.mousebutton_down = False
 						self.longpress = False
 
 					# Long press - register second click
-					elif self.button_down and datetime.datetime.now() - clicktime > self.longpress_time and not self.mouse_scroll:
+					elif self.mousebutton_down and datetime.datetime.now() - clicktime > self.longpress_time and not self.mouse_scroll and not self.longpress:
 						self.on_click(2)
 						clicktime = datetime.datetime.now()
-#						self.button_down = False
 						self.longpress = True
+
+					# Speed up the long press, if continued
+					elif self.mousebutton_down and datetime.datetime.now() - clicktime > self.longpress_time/2 and not self.mouse_scroll and self.longpress:
+						self.on_click(2)
+						clicktime = datetime.datetime.now()
+					
+					# Update screen timeout if there's any mouse activity
+					if config.screen_timeout > 0:
+						self.sm.updateScreenTimeout()
 
 				# Update screen, fps=20
 				if drawtime < datetime.datetime.now():

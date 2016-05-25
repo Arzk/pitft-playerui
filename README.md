@@ -7,7 +7,7 @@ Improvements:
 - Support for 3.5" PiTFT+
 - Audio CD tag fetching from FreeDB
 - Spotify-connect-web support (https://github.com/Fornoth/spotify-connect-web)
-- Alternative UI with cleanup (sleep time and volume control disabled) 
+- Alternative UI
 - Gesture support
  
 Features:
@@ -32,7 +32,9 @@ Lets user control:
 Gestures:
 - Vertical scroll
 - Horizontal flip: next/previous
-- long press on song info: show playlist
+- Long press on song info: show playlist
+- Long press on volume: increase step
+- Long press on next / prev: fast forward / rewind
 
 Things you need:
 =================

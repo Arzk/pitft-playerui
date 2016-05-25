@@ -32,37 +32,42 @@ class PitftPlayerui:
 		self.font['details']	= pygame.font.Font(self.fontfile, 16)
 		self.font['elapsed']	= pygame.font.Font(self.fontfile, 16)
 		self.font['playlist']	= pygame.font.Font(self.fontfile, 20)
+		self.font['field']		= pygame.font.Font(self.fontfile, 24)
 
 		# Images
 		self.image = {}
-		self.image["background"]		=pygame.image.load(self.path + "pics/" + "background.png")
+		self.image["background"]			=pygame.image.load(self.path + "pics/" + "background.png")
 		self.image["coverart_place"]		=pygame.image.load(self.path + "pics/" + "coverart-placer.png")
 		self.image["coverart_border"]		=pygame.image.load(self.path + "pics/" + "coverart-border.png")
-		self.image["details"]			=pygame.image.load(self.path + "pics/" + "details.png")
-		self.image["position_bg"]		=pygame.image.load(self.path + "pics/" + "position-background.png")
-		self.image["position_fg"]		=pygame.image.load(self.path + "pics/" + "position-foreground.png")
+		self.image["details"]				=pygame.image.load(self.path + "pics/" + "details.png")
+		self.image["field"]					=pygame.image.load(self.path + "pics/" + "field-value.png")
+		self.image["position_bg"]			=pygame.image.load(self.path + "pics/" + "position-background.png")
+		self.image["position_fg"]			=pygame.image.load(self.path + "pics/" + "position-foreground.png")
 		self.image["icon_randomandrepeat"]	=pygame.image.load(self.path + "pics/" + "randomandrepeat.png")
 		self.image["icon_screenoff"]		=pygame.image.load(self.path + "pics/" + "screen-off.png")
 	
 		## Buttons
-		self.image["button_next"]		=pygame.image.load(self.path + "pics/" + "button-next.png")
-		self.image["button_pause"]		=pygame.image.load(self.path + "pics/" + "button-pause.png")
-		self.image["button_play"]		=pygame.image.load(self.path + "pics/" + "button-play.png")
-		self.image["button_stop"]		=pygame.image.load(self.path + "pics/" + "button-stop.png")
-		self.image["button_prev"]		=pygame.image.load(self.path + "pics/" + "button-prev.png")
+		self.image["button_next"]			=pygame.image.load(self.path + "pics/" + "button-next.png")
+		self.image["button_pause"]			=pygame.image.load(self.path + "pics/" + "button-pause.png")
+		self.image["button_play"]			=pygame.image.load(self.path + "pics/" + "button-play.png")
+		self.image["button_stop"]			=pygame.image.load(self.path + "pics/" + "button-stop.png")
+		self.image["button_prev"]			=pygame.image.load(self.path + "pics/" + "button-prev.png")
+		self.image["button_volumeminus"]	=pygame.image.load(self.path + "pics/" + "button-volumeminus.png")
+		self.image["button_volumeplus"]		=pygame.image.load(self.path + "pics/" + "button-volumeplus.png")
 		self.image["button_toggle_off"]		=pygame.image.load(self.path + "pics/" + "toggle-off.png")
 		self.image["button_toggle_on"]		=pygame.image.load(self.path + "pics/" + "toggle-on.png")
 		self.image["button_spotify"]		=pygame.image.load(self.path + "pics/" + "button-spotify.png")
-		self.image["button_mpd"]		=pygame.image.load(self.path + "pics/" + "button-mpd.png")
-		self.image["button_radio"]		=pygame.image.load(self.path + "pics/" + "button-radio.png")
-		self.image["button_cd"]			=pygame.image.load(self.path + "pics/" + "button-cd.png")
+		self.image["button_mpd"]			=pygame.image.load(self.path + "pics/" + "button-mpd.png")
+		self.image["button_radio"]			=pygame.image.load(self.path + "pics/" + "button-radio.png")
+		self.image["button_cd"]				=pygame.image.load(self.path + "pics/" + "button-cd.png")
 		self.image["button_playlists"]		=pygame.image.load(self.path + "pics/" + "button-playlists.png")
-#		self.image["button_playlist"]		=pygame.image.load(self.path + "pics/" + "button-list.png")
+		self.image["button_playlist"]		=pygame.image.load(self.path + "pics/" + "button-list.png")
 		# Threads
 		self.coverartThread = None
 		self.oldCoverartThreadRunning = False
 
 		# Things to remember
+		self.screen_timeout = config.screen_timeout
 		self.processingCover = False
 		self.coverFetched = False
 		self.mpd_status = {}
@@ -85,6 +90,7 @@ class PitftPlayerui:
 		self.timeTotal = "00:00"
 		self.timeElapsedPercentage = 0
 		self.playbackStatus = "stop"
+		self.volume = 0
 		self.random = 0
 		self.repeat = 0
 		self.cover = False
@@ -100,17 +106,18 @@ class PitftPlayerui:
 		self.cdda_read_info = {}
 
 		# What to update
-		self.updateTrackInfo     = False
+		self.updateTrackInfo = False
 		self.updateAlbum	 = False	
 		self.updateElapsed	 = False
 		self.updateRandom	 = False
 		self.updateRepeat	 = False
+		self.updateVolume	 = False
 		self.updateState	 = False
 		self.updateAll		 = True
 
 		# Alternative views
-		self.showPlaylist	= False
-		self.showPlaylists	= False
+		self.showPlaylist	 = False
+		self.showPlaylists	 = False
 
 		# Active player. Determine later
 		self.active_player 	= ""
@@ -177,13 +184,16 @@ class PitftPlayerui:
 
 		# Refresh players
 		self.refresh_mpd()
-		self.refresh_spotify()
+		if config.spotify_path:
+			self.refresh_spotify()
 
 		# Determine active player based on playback status
-		self.determine_active_player(old_spotify_status, old_mpd_status)
+		if config.spotify_path:
+			self.determine_active_player(old_spotify_status, old_mpd_status)
+		else: self.active_player = "mpd"
 
 		# Use active player's information
-		if self.active_player == "spotify":		
+		if self.active_player == "spotify":
 			self.status = self.spotify_status
 			self.song = self.spotify_song
 		else:
@@ -242,14 +252,13 @@ class PitftPlayerui:
 				connection = True
 
 				# Read CDDB if playing CD
-				if "file" in self.mpd_song:
+				if "file" in self.mpd_song and config.cdda_enabled:
 					if "cdda://" in self.mpd_song["file"].decode('utf-8'):
 						self.query_cddb()
 					
 
 			except Exception as e:
 				self.logger.debug(e)
-				self.logger.debug("I crashed here")
 				connection = False
 				self.mpd_status = {}
 				self.mpd_song = {}
@@ -277,6 +286,7 @@ class PitftPlayerui:
 			except Exception, e:
 				self.logger.info(e)
 				noConnection=True
+				time.sleep(15)
 		self.mpdc = client
 		self.reconnect = False
 		self.logger.info("Connection to MPD server established.")
@@ -453,6 +463,12 @@ class PitftPlayerui:
 		except:
 			random = 0
 
+		# Volume
+		try:
+			volume = int(self.status["volume"])
+		except:
+			volume = 0
+
 		# -------------
 		# |  CHANGES  |
 		# -------------
@@ -469,9 +485,8 @@ class PitftPlayerui:
 			self.album = album
 			self.updateAlbum = True
 			self.cover = False
-			# Find cover art on different thread
-			# Todo: Fetch from spotify
 			
+			# Find cover art on different thread			
 			try:
 				if self.coverartThread:
 					self.logger.debug("if caT")
@@ -538,6 +553,11 @@ class PitftPlayerui:
 			self.random = random
 			self.updateRandom = True
 
+		# Volume
+		if self.volume != volume:
+			self.volume = volume
+			self.updateVolume = True
+			
 	def render(self, surface):
 		if self.updateAll:
 			self.updateTrackInfo = True
@@ -545,6 +565,7 @@ class PitftPlayerui:
 			self.updateElapsed	 = True
 			self.updateRandom	 = True
 			self.updateRepeat	 = True
+			self.updateVolume	 = True
 			self.updateState	 = True
 			
 			surface.blit(self.image["background"], (0,0))	
@@ -554,16 +575,24 @@ class PitftPlayerui:
 			surface.blit(self.image["position_bg"], (55, 245))
 			surface.blit(self.image["button_prev"], (258, 132))
 			surface.blit(self.image["button_next"], (354, 132))
+			if config.volume_enabled:
+				surface.blit(self.image["button_volumeminus"], (258, 190))
+				surface.blit(self.image["button_volumeplus"], (354, 190))
 			surface.blit(self.image["icon_screenoff"], (460, 304))
 
-			if self.active_player == "spotify":
-				surface.blit(self.image["button_spotify"], (418, 8))
-			else:
-				surface.blit(self.image["button_mpd"], (418, 8))
+			if config.spotify_path:
+				if self.active_player == "spotify":
+					surface.blit(self.image["button_spotify"], (418, 8))
+				else:
+					surface.blit(self.image["button_mpd"], (418, 8))
+					
 			surface.blit(self.image["button_playlists"], (418, 66))
-			surface.blit(self.image["button_cd"], (418, 124))
-			surface.blit(self.image["button_radio"], (418, 182))
-
+			
+			if config.cdda_enabled:
+				surface.blit(self.image["button_cd"], (418, 124))
+			
+			if config.radio_playlist:
+				surface.blit(self.image["button_radio"], (418, 182))
 
 		if self.updateAlbum or self.coverFetched:
 			if self.cover:
@@ -624,6 +653,18 @@ class PitftPlayerui:
 			else:
 				surface.blit(self.image["button_toggle_off"], (313,88))
 
+		if self.updateVolume:
+			if config.volume_enabled:
+				if not self.updateAll:
+					surface.blit(self.image["field"], (303, 196), (2,2, 46,26)) # Reset field value area
+				else:
+					surface.blit(self.image["field"], (303, 196)) # Draw field
+			
+				text = self.font["field"].render(str(self.volume), 1,(230,228,227))
+
+				pos = 304 + (48 - text.get_width())/2
+				surface.blit(text, (pos, 197)) # Volume
+				
 		if self.updateState:
 			if not self.updateAll:
 				surface.blit(self.image["background"], (304,130), (304,130, 50,50)) # reset background
@@ -649,6 +690,7 @@ class PitftPlayerui:
 						playlistitem = ""
 					text = self.font["playlist"].render(playlistitem, 1,(230,228,227))
 					surface.blit(text, (12, 4 + 30*int(i)),(0,0, 408,30))
+
 		if self.showPlaylists:
 			surface.blit(self.image["background"], (4,4), (4,4, 416,234)) # reset background
 			if self.playlists:
@@ -660,7 +702,13 @@ class PitftPlayerui:
 					text = self.font["playlist"].render(listitem, 1,(230,228,227))
 					surface.blit(text, (12, 4 + 30*int(i)),(0,0, 408,30))
 
-
+		# Something is playing - update screen timeout
+		if config.screen_timeout > 0:
+			if self.updateElapsed: 
+				self.updateScreenTimeout()
+			# Nothing playing for 5 seconds, turn off screen if not already off
+			elif self.screen_timeout < datetime.datetime.now() and self.backlight:
+				self.turn_backlight_off()
 
 		# Reset updates
 		self.resetUpdates()
@@ -671,6 +719,7 @@ class PitftPlayerui:
 		self.updateElapsed	 = False
 		self.updateRandom	 = False
 		self.updateRepeat	 = False
+		self.updateVolume	 = False
 		self.updateState	 = False
 		self.updateAll		 = False
 		
@@ -715,7 +764,7 @@ class PitftPlayerui:
 					self.logger.debug("No local coverart file found, switching to Last.FM")				
 
 		# Check Spotify coverart
-		elif "cover_uri" in self.song and self.active_player == "spotify":
+		elif "cover_uri" in self.song and self.active_player == "spotify" and config.spotify_path:
 			try:
 				coverart_url = config.spotify_path + ":" + config.spotify_port + "/api/info/image_url/" + self.song["cover_uri"]
 				#coverart_url = "localhost:4000/api/info/image_url/" + self.song["cover_uri"]
@@ -781,6 +830,19 @@ class PitftPlayerui:
 			repeat = (self.repeat + 1) % 2
 			self.mpdc.repeat(repeat)
 
+	# Direction: +, -
+	def set_volume(self, amount, direction=""):
+		if direction == "+":
+			volume = self.volume + amount
+		elif direction == "-":
+			volume = self.volume - amount
+		else:
+			volume = amount
+
+		volume = 100 if volume > 100 else volume
+		volume = 0 if volume < 0 else volume
+		self.mpdc.setvol(volume)	
+			
 	def toggle_playback(self):
 			status = self.playbackStatus
 			if status == "play":
@@ -802,7 +864,7 @@ class PitftPlayerui:
 		elif command == "cd":
 			self.play_cd()
 		elif command == "radio":
-			self.load_playlist("Radio")
+			self.load_playlist(config.radio_playlist)
 			self.mpdc.play()
 		elif command == "mpd":
 			self.switch_active_player("mpd")
@@ -832,7 +894,7 @@ class PitftPlayerui:
 			elif command == "rwd":
 				self.mpdc.seekcur("-10")
 			elif command == "ff":
-				self.mpdc.stop("+10")
+				self.mpdc.seekcur("+10")
 			else:
 				pass
 		else:
@@ -861,6 +923,10 @@ class PitftPlayerui:
 		subprocess.call("echo '1' > /sys/class/gpio/gpio508/value", shell=True)
 		self.backlight = 1
 
+		# Update screen timeout timer
+		if config.screen_timeout > 0:
+			self.updateScreenTimeout()
+		
 	def get_backlight_status(self):
 		return self.backlight
 
@@ -876,11 +942,8 @@ class PitftPlayerui:
 		# Remove Radio from playlists
 		for i in reversed(range(len(self.playlists))):
 			if "playlist" in self.playlists[i]:
-				if self.playlists[i].get('playlist') == "Radio":
-					self.logger.debug(self.playlists[i].get('playlist'))
-#					self.logger.debug(playlists[i])
+				if self.playlists[i].get('playlist') == config.radio_playlist:
 					self.playlists.pop(i)
-#					del self.playlists[i]
 
 		if state == "Toggle":
 			self.showPlaylists = not self.showPlaylists
@@ -931,6 +994,7 @@ class PitftPlayerui:
 
 		# Clear offset
 		self.offset = 0
+		
 	def play_cd(self):
 		self.logger.info("Playing CD")
 		try:
@@ -994,3 +1058,6 @@ class PitftPlayerui:
 		elif (self.showPlaylist) and len(self.playlist) - 8 < self.offset:
 			self.offset = len(self.playlist) - 8
 		self.logger.debug("Offset: %s" % self.offset)
+
+	def updateScreenTimeout(self):
+		self.screen_timeout = datetime.datetime.now() + timedelta(seconds=config.screen_timeout)
