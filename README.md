@@ -83,9 +83,11 @@ After installing clone the git repository:
 
 From config.py you need to change the font if you are using something else than Helvetica Neue Bold and check that path is correct.
 
-You can download for example Open Sans "OpenSans-Bold.ttf" from www.fontsquirrel.com/fonts/open-sans. Transfer ttf file to /home/pi/pitft-playerui/ folder.
+You can download for example Open Sans "OpenSans-Bold.ttf" from www.fontsquirrel.com/fonts/open-sans. 
+Transfer ttf file to /home/pi/pitft-playerui/ folder.
 
-Set the other settings in config.py file. You need to at least set the LastFM api key and login information for remote cover art fetching. For local coverart set the path of the mpd library. For Spotify set the path and port of Spotify-connect-web
+Set the other settings in config.py file. Set the LastFM api key and login information for remote cover art fetching. 
+For local coverart set the path of the mpd library. For Spotify set the path and port of Spotify-connect-web
 
 For display backlight control write these lines to /etc/rc.local:
 <pre>echo 508 > /sys/class/gpio/export
