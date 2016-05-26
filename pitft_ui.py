@@ -160,6 +160,9 @@ class PitftPlayerui:
 				self.switch_active_player("spotify")
 				if self.mpd_status["state"] == "play":
 					self.control_player("pause", "mpd")
+				# Turn display on 
+				if config.screen_timeout > 0 and not self.get_backlight_status():
+					self.turn_backlight_on()
 				self.logger.debug("Spotify started, pausing mpd")
 
 			# MPD started playing - switch
@@ -167,6 +170,9 @@ class PitftPlayerui:
 				self.switch_active_player("mpd")
 				if self.spotify_status["state"] == "play":
 					self.control_player("pause", "spotify")
+				# Turn display on 
+				if config.screen_timeout > 0 and not self.get_backlight_status():
+					self.turn_backlight_on()
 				self.logger.debug("mpd started, pausing Spotify")
 		except:
 				self.switch_active_player("")
@@ -704,7 +710,7 @@ class PitftPlayerui:
 
 		# Something is playing - update screen timeout
 		if config.screen_timeout > 0:
-			if self.updateElapsed: 
+			if self.status["state"] == "play": 
 				self.updateScreenTimeout()
 			# Nothing playing for 5 seconds, turn off screen if not already off
 			elif self.screen_timeout < datetime.datetime.now() and self.backlight:
@@ -767,8 +773,6 @@ class PitftPlayerui:
 		elif "cover_uri" in self.song and self.active_player == "spotify" and config.spotify_host:
 			try:
 				coverart_url = config.spotify_host + ":" + config.spotify_port + "/api/info/image_url/" + self.song["cover_uri"]
-				#coverart_url = "localhost:4000/api/info/image_url/" + self.song["cover_uri"]
-				self.logger.debug("Spotify coverart url: %s" % coverart_url)
 				if coverart_url:
 					subprocess.check_output("wget -q %s -O %s/cover.png" % (coverart_url, "/tmp/"), shell=True )
 					self.logger.debug("Spotify coverart downloaded")
