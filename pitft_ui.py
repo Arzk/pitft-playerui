@@ -189,34 +189,51 @@ class PitftPlayerui:
 			old_mpd_status = ""
 
 		# Refresh players
-		self.refresh_mpd()
+		if config.mpd_host:
+			self.refresh_mpd()
+		
 		if config.spotify_host:
 			self.refresh_spotify()
 
 		# Determine active player based on playback status
-		if config.spotify_host:
+		if config.spotify_host and config.mpd_host:
 			self.determine_active_player(old_spotify_status, old_mpd_status)
-		else: self.active_player = "mpd"
+		elif not config.spotify_host:
+			self.active_player = "mpd"
+		elif not config.mpd_host:
+			self.active_player = "spotify"
 
 		# Use active player's information
 		if self.active_player == "spotify":
 			self.status = self.spotify_status
 			self.song = self.spotify_song
-		else:
+			
+		elif self.active_player == "mpd":
 			self.status = self.mpd_status
 			self.song = self.mpd_song
+		else:
+			self.status = {}
+			self.song = {}
 
 	def refresh_spotify(self):
 		try:
 			status = self.spotify_control("info","status")
+			self.logger.debug(status)
 			metadata = self.spotify_control("info","metadata")
 		except: 
 			status = {}
 			metadata = {}
 
+		self.spotify_status["active"] = False
 		# Extract state from strings
 		if status:
 			for line in status.split("\n"):
+				# Active device in Spotify
+				if "active" in line:
+					if "true" in line:
+						self.spotify_status["active"] = True
+					else:
+						self.spotify_status["active"] = False
 				if "playing" in line:
 					if "true" in line:
 						self.spotify_status["state"] = "play"
