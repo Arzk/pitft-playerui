@@ -396,7 +396,7 @@ class PitftDaemon(Daemon):
 
 if __name__ == "__main__":
 	daemon = PitftDaemon('/tmp/pitft-playerui-daemon.pid')
-	if len(sys.argv) == 2:
+	if len(sys.argv) > 1:
 		if 'start' == sys.argv[1]:
 			daemon.start()
 		elif 'stop' == sys.argv[1]:
@@ -404,6 +404,8 @@ if __name__ == "__main__":
 			daemon.stop()
 		elif 'restart' == sys.argv[1]:
 			daemon.restart()
+		elif 'playback' == sys.argv[1] and len(sys.argv) == 3:
+			daemon.playback(sys.argv[2])
 		else:
 			print "Unknown command"
 			sys.exit(2)

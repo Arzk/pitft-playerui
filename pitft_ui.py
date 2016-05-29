@@ -67,7 +67,7 @@ class PitftPlayerui:
 		self.oldCoverartThreadRunning = False
 
 		# Things to remember
-		self.screen_timeout = config.screen_timeout
+		self.screen_timeout_time = 0
 		self.processingCover = False
 		self.coverFetched = False
 		self.mpd_status = {}
@@ -166,7 +166,7 @@ class PitftPlayerui:
 				self.logger.debug("Spotify started, pausing mpd")
 
 			# MPD started playing - switch
-			if self.mpd_status["state"] == "play" and not old_mpd_status == "play" and old_spotify_status:
+			if self.mpd_status["state"] == "play" and not old_mpd_status == "play" and old_mpd_status:
 				self.switch_active_player("mpd")
 				if self.spotify_status["state"] == "play":
 					self.control_player("pause", "spotify")
@@ -191,17 +191,12 @@ class PitftPlayerui:
 		# Refresh players
 		if config.mpd_host:
 			self.refresh_mpd()
-		
+
 		if config.spotify_host:
 			self.refresh_spotify()
 
-		# Determine active player based on playback status
-		if config.spotify_host and config.mpd_host:
-			self.determine_active_player(old_spotify_status, old_mpd_status)
-		elif not config.spotify_host:
-			self.active_player = "mpd"
-		elif not config.mpd_host:
-			self.active_player = "spotify"
+		# Get active player	
+		self.determine_active_player(old_spotify_status, old_mpd_status)
 
 		# Use active player's information
 		if self.active_player == "spotify":
@@ -235,22 +230,22 @@ class PitftPlayerui:
 					else:
 						self.spotify_status["active"] = False
 				if "playing" in line:
-					if "true" in line:
+					if "true" in line and self.spotify_status["active"]:
 						self.spotify_status["state"] = "play"
 					else:
 						self.spotify_status["state"] = "pause"
 				if "shuffle" in line:
-					if "true" in line:
+					if "true" in line and self.spotify_status["active"]:
 						self.spotify_status["random"] = 1
 					else:
 						self.spotify_status["random"] = 0
 				if "repeat" in line:
-					if "true" in line:
+					if "true" in line and self.spotify_status["active"]:
 						self.spotify_status["repeat"] = 1
 					else:
 						self.spotify_status["repeat"] = 0
 
-		if metadata:
+		if metadata and self.spotify_status["active"]:
 			# Parse multiline string of type
 			# '  "album_name": "Album", '
 			# Split lines and remove leading '"' + ending '", '
@@ -263,6 +258,8 @@ class PitftPlayerui:
 					self.spotify_song["title"] = line.split(": ")[1][1:-3].decode('utf-8')
 				if "cover_uri" in line:
 					self.spotify_song["cover_uri"] = line.split(": ")[1][1:-3].decode('utf-8')
+		else:
+			self.spotify_song = {}
 			
 	def refresh_mpd(self):
 		if self.reconnect:
@@ -598,18 +595,22 @@ class PitftPlayerui:
 			surface.blit(self.image["position_bg"], (55, 245))
 			surface.blit(self.image["button_prev"], (258, 132))
 			surface.blit(self.image["button_next"], (354, 132))
+			
 			if config.volume_enabled:
 				surface.blit(self.image["button_volumeminus"], (258, 190))
 				surface.blit(self.image["button_volumeplus"], (354, 190))
+				
 			surface.blit(self.image["icon_screenoff"], (460, 304))
 
-			if config.spotify_host:
-				if self.active_player == "spotify":
-					surface.blit(self.image["button_spotify"], (418, 8))
-				else:
-					surface.blit(self.image["button_mpd"], (418, 8))
+			# Change player button, if more than 1 player available
+#			if config.spotify_host and config.mpd_host:
+			if self.active_player == "spotify" and config.mpd_host:
+				surface.blit(self.image["button_spotify"], (418, 8))
+			elif self.active_player == "mpd" and config.spotify_host:
+				surface.blit(self.image["button_mpd"], (418, 8))
 					
-			surface.blit(self.image["button_playlists"], (418, 66))
+			if config.mpd_host:
+				surface.blit(self.image["button_playlists"], (418, 66))
 			
 			if config.cdda_enabled:
 				surface.blit(self.image["button_cd"], (418, 124))
@@ -730,7 +731,7 @@ class PitftPlayerui:
 			if self.status["state"] == "play": 
 				self.updateScreenTimeout()
 			# Nothing playing for 5 seconds, turn off screen if not already off
-			elif self.screen_timeout < datetime.datetime.now() and self.backlight:
+			elif self.screen_timeout_time < datetime.datetime.now() and self.backlight:
 				self.turn_backlight_off()
 
 		# Reset updates
@@ -1081,4 +1082,4 @@ class PitftPlayerui:
 		self.logger.debug("Offset: %s" % self.offset)
 
 	def updateScreenTimeout(self):
-		self.screen_timeout = datetime.datetime.now() + timedelta(seconds=config.screen_timeout)
+		self.screen_timeout_time = datetime.datetime.now() + timedelta(seconds=config.screen_timeout)
