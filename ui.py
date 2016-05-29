@@ -215,10 +215,6 @@ class PitftDaemon(Daemon):
 				if self.sm.get_active_player() == "mpd":
 					logger.debug("Toggle playlist")
 					self.button(9, mousebutton)
-#			elif 258 <= click_pos[0] <= 298 and 180 <= click_pos[1] <=238:
-#				if self.sm.get_active_player() == "mpd":
-#					logger.debug("Toggle playlist")
-#					self.button(9, mousebutton)
 
 	#define action on pressing buttons
 	def button(self, number, mousebutton):
@@ -404,8 +400,8 @@ if __name__ == "__main__":
 			daemon.stop()
 		elif 'restart' == sys.argv[1]:
 			daemon.restart()
-		elif 'playback' == sys.argv[1] and len(sys.argv) == 3:
-			daemon.playback(sys.argv[2])
+		elif 'control' == sys.argv[1] and len(sys.argv) == 3:
+			daemon.control(sys.argv[2])
 		else:
 			print "Unknown command"
 			sys.exit(2)

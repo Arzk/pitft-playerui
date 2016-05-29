@@ -18,6 +18,7 @@ from datetime import timedelta
 
 class PitftPlayerui:
 	def __init__(self, client, lfm, logger):
+
 		self.mpdc = client
 		self.lfm = lfm
 		self.logger = logger
@@ -1082,4 +1083,4 @@ class PitftPlayerui:
 		self.logger.debug("Offset: %s" % self.offset)
 
 	def updateScreenTimeout(self):
-		self.screen_timeout_time = datetime.datetime.now() + timedelta(seconds=config.screen_timeout)
+		self.screen_timeout_time = datetime.datetime.now() + timedelta(seconds=config.screen_timeout)		

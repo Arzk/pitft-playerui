@@ -127,12 +127,12 @@ class Daemon:
 		self.stop()
 		self.start()
 
-	def playback(self, command):
+	def control(self, command):
 		"""
 		Control playback
 		"""
-		pass
-
+		print "Got command", command
+		
 	def run(self):
 		"""
 		You should override this method when you subclass Daemon. It will be called after the process has been
