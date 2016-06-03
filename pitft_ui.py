@@ -214,7 +214,7 @@ class PitftPlayerui:
 	def refresh_spotify(self):
 		try:
 			status = self.spotify_control("info","status")
-			self.logger.debug(status)
+			#self.logger.debug(status)
 			metadata = self.spotify_control("info","metadata")
 		except: 
 			status = {}
@@ -604,7 +604,6 @@ class PitftPlayerui:
 			surface.blit(self.image["icon_screenoff"], (460, 304))
 
 			# Change player button, if more than 1 player available
-#			if config.spotify_host and config.mpd_host:
 			if self.active_player == "spotify" and config.mpd_host:
 				surface.blit(self.image["button_spotify"], (418, 8))
 			elif self.active_player == "mpd" and config.spotify_host:

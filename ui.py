@@ -101,11 +101,17 @@ class PitftDaemon(Daemon):
 
 		# Screen manager ###############
 		logger.info("Setting screen manager")
-		try:
-			self.sm = pitft_ui.PitftPlayerui(self.client, self.network, logger)
-		except Exception, e:
-			logger.exception(e)
-			raise
+		noSM = True
+		while noSM:
+			try:
+				self.sm = pitft_ui.PitftPlayerui(self.client, self.network, logger)
+				noSM = False
+			except:
+				noSM = True
+				time.sleep(5)
+#		except Exception, e:
+#			logger.exception(e)
+#			raise
 
 		# Mouse variables
 		self.longpress_time   =  timedelta(milliseconds=500)

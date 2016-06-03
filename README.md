@@ -115,7 +115,7 @@ Some specific things:
 TODO:
 =========
 - Sleep timer and other configs in a menu
-- API for LIRC control of both players
+- CLI for LIRC control of both players
 - Radio stream icons set in the config.py file
 - Got other ideas? Post an issue and tell me about it
 
