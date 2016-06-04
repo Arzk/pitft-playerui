@@ -79,6 +79,8 @@ Then install git:
 After installing clone the git repository:
 <code>git clone https://github.com/Arzk/pitft-playerui.git</code>
 
+Copy config.py.in to config.py
+
 From config.py you need to change the font if you are using something else than Helvetica Neue Bold and check that path is correct.
 You can download for example Open Sans "OpenSans-Bold.ttf" from www.fontsquirrel.com/fonts/open-sans. Transfer ttf file to /home/pi/pitft-playerui/ folder.
 

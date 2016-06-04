@@ -96,11 +96,9 @@ class PitftPlayerui:
 		self.repeat = 0
 		self.cover = False
 		
-		self.i = 0
-
 		# CDDA variables
 		self.disc_id = {}
-		self.artist_album = {}
+		self.cdda_artist_album = {}
  		self.cdda_query_status = {}
 		self.cdda_query_info = {}
 		self.cdda_read_status = {}
@@ -275,7 +273,7 @@ class PitftPlayerui:
 				# Read CDDB if playing CD
 				if "file" in self.mpd_song and config.cdda_enabled:
 					if "cdda://" in self.mpd_song["file"].decode('utf-8'):
-						self.query_cddb()
+						self.refresh_cd()
 					
 
 			except Exception as e:
@@ -312,68 +310,65 @@ class PitftPlayerui:
 		self.reconnect = False
 		self.logger.info("Connection to MPD server established.")
 
-	def query_cddb(self):
-		# File has changed?
+	def query_cddb(self, disc_id):
+	
+		# If CD playback was started elsewhere / before we were running, read the id from CD
+		# Note: Causes hiccups in playback!
+		if not disc_id:
+			disc_id = self.load_cd()
+			self.disc_id = disc_id
+		try:
+			(self.cdda_query_status, self.cdda_query_info) = CDDB.query(disc_id)
+		except:
+			self.cdda_query_status = {}
+			self.cdda_query_info = {}
+		self.logger.debug("CDDB Query status: %s" % self.cdda_query_status)
+				
+		# Exact match found
+		try:
+			if self.cdda_query_status == 200:
+				(self.cdda_read_status, self.cdda_read_info) = CDDB.read(self.cdda_query_info["category"], self.cdda_query_info["disc_id"])
+				self.logger.debug("CDDB Read Status: %s" % self.cdda_read_status)
+			# Multiple matches found - pick first
+			elif self.cdda_query_status == 210 or self.cdda_query_status == 211:
+				(self.cdda_read_status, self.cdda_read_info) = CDDB.read(self.cdda_query_info[0]["category"], self.cdda_query_info[0]["disc_id"])
+				self.logger.debug("CDDB Read Status: %s" % self.cdda_read_status)
+			# No match found
+			else:
+				self.logger.info("CD query failed, status: %s " % self.cdda_query_status)
+		except:
+			self.cdda_read_status = 0
+			self.cdda_read_info = {}
+			
+		# Read successful - Save data
+		if self.cdda_read_status == 210:
+			try:
+				self.cdda_artist_album = self.cdda_read_info["DTITLE"].split(" / ")
+			except:
+				self.cdda_artist_album = {};
+		else:
+			self.logger.info("CDDB read failed, status: %s" % self.cdda_read_status)
+
+	def refresh_cd(self):
+		# Get filename from mpd
 		try:
 			file = self.mpd_song["file"].decode('utf-8')
 		except:
 			file = "";
-
-		if self.file != file:
-			self.file = file
-			try:
-				cdrom = DiscID.open()
-				disc_id = DiscID.disc_id(cdrom)
-			except:
-				cdrom = ""
-				disc_id = {}
-
-			# Disc has changed - query again
-			if self.disc_id != disc_id:
-				self.disc_id = disc_id
-				self.logger.debug("Disc ID: %s" % disc_id)
-				try:
-					(self.cdda_query_status, self.cdda_query_info) = CDDB.query(disc_id)
-				except:
-					self.cdda_query_status = {}
-					self.cdda_query_info = {}
-				self.logger.debug("CDDB Query status: %s" % self.cdda_query_status)
-						
-				# Exact match found
-				try:
-					if self.cdda_query_status == 200:
-						(self.cdda_read_status, self.cdda_read_info) = CDDB.read(self.cdda_query_info["category"], self.cdda_query_info["disc_id"])
-						self.logger.debug("CDDB Read Status: %s" % self.cdda_read_status)
-					# Multiple matches found - pick first
-					elif self.cdda_query_status == 210 or self.cdda_query_status == 211:
-						(self.cdda_read_status, self.cdda_read_info) = CDDB.read(self.cdda_query_info[0]["category"], self.cdda_query_info[0]["disc_id"])
-						self.logger.debug("CDDB Read Status: %s" % self.cdda_read_status)
-					# No match found
-					else:
-						self.logger.info("CD query failed, status: %s " % self.cdda_query_status)
-				except:
-					self.cdda_read_status = 0
-					self.cdda_read_info = {}
-					
-				# Read successful - Save data
-				if self.cdda_read_status == 210:
-					try:
-						self.artist_album = self.cdda_read_info["DTITLE"].split(" / ")
-					except:
-						self.artist_album = {};
-				else:
-					self.logger.info("CDDB read failed, status: %s" % self.cdda_read_status)
-
-		# Fill song information from CD
-
+		
+		# CDDB query not done - do it now
+		if not self.cdda_read_info:
+			self.query_cddb(self.disc_id)
+	
+		# Fill song information from CD	
 		# Artist
 		try:
-			self.mpd_song["artist"] = self.artist_album[0]
+			self.mpd_song["artist"] = self.cdda_artist_album[0]
 		except:
 			self.mpd_song["artist"] = ""
 		# Album
 		try:
-			self.mpd_song["album"] = self.artist_album[1]
+			self.mpd_song["album"] = self.cdda_artist_album[1]
 		except:
 			self.mpd_song["album"] = ""
 		# Date
@@ -801,7 +796,7 @@ class PitftPlayerui:
 					self.processingCover = False
 					self.coverFetched = True
 					self.cover = True
-			except:
+			except Exception, e:
 				self.logger.exception(e)
 				pass
 
@@ -1017,16 +1012,23 @@ class PitftPlayerui:
 		# Clear offset
 		self.offset = 0
 		
-	def play_cd(self):
-		self.logger.info("Playing CD")
+	def load_cd(self):
 		try:
 			cdrom = DiscID.open()
 			disc_id = DiscID.disc_id(cdrom)
 		except:
-			disc_id = ""
-		if disc_id:
+			disc_id = {}
+
+		self.logger.debug("Loaded new cd, id: %s" % disc_id)
+		self.query_cddb(disc_id)
+		return disc_id
+		
+	def play_cd(self):
+		self.logger.info("Playing CD")
+		self.disc_id = self.load_cd()
+		if self.disc_id:
 			self.mpdc.clear()
-			number_of_tracks = int(disc_id[1])
+			number_of_tracks = int(self.disc_id[1])
 			for i in range (1, number_of_tracks):
 				self.mpdc.add("cdda:///" + str(i))
 
