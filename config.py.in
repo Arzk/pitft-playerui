@@ -12,6 +12,9 @@ loglevel = "INFO"
 # 0: disabled
 screen_timeout = 0
 
+# Enable volume control. True/False
+volume_enabled = False
+
 ###############
 # MPD
 ###############
@@ -23,9 +26,6 @@ mpd_port = "6600"
 # Music library location as set in MPD
 # Leave empty to disable local coverart fetching
 library_path = ""
-
-# Enable volume control. True/False
-volume_enabled = False
 
 # Radio playlist name in MPD
 # This playlist is toggled by a specific button and hidden from the playlists
