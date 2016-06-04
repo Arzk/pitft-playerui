@@ -28,7 +28,8 @@ class PitftPlayerui:
 		os.chdir(self.path)
 		
 		# Fonts
-		self.fontfile = self.path + "helvetica-neue-bold.ttf"
+		self.fontfile = self.path + self.config.fontfile
+#		self.fontfile = self.path + "helvetica-neue-bold.ttf"
 		self.font = {}
 		self.font['details']	= pygame.font.Font(self.fontfile, 16)
 		self.font['elapsed']	= pygame.font.Font(self.fontfile, 16)

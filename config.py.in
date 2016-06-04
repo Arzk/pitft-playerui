@@ -2,6 +2,9 @@
 # Settings
 ###############
 
+# Font file. Has to be in this folder
+fontfile = "helvetica-neue-bold.ttf"
+
 # Log level, valid values INFO and DEBUG
 loglevel = "INFO"
 
@@ -27,7 +30,6 @@ volume_enabled = False
 # Radio playlist name in MPD
 # This playlist is toggled by a specific button and hidden from the playlists
 # Leave empty to disable the button
-
 radio_playlist = "Radio"
 
 # Enable audio CD support via cdio_paranoia plugin and cddb-py. True/False
