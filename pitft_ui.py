@@ -6,26 +6,28 @@ import subprocess
 import os
 import glob
 import re
-import CDDB
-import DiscID
-import httplib
-import config
-from math import ceil
+from math import ceil, floor
 from threading import Thread
-from mpd import MPDClient
 import datetime
 from datetime import timedelta
+import config
+import control
 
 class PitftPlayerui:
 	def __init__(self, client, lfm, logger):
 
-		self.mpdc = client
 		self.lfm = lfm
 		self.logger = logger
+		
+		self.pc = control.PlayerControl(client, logger)
 
 		# Paths
 		self.path = os.path.dirname(sys.argv[0]) + "/"
 		os.chdir(self.path)
+
+		# Threads
+		self.coverartThread = None
+		self.oldCoverartThreadRunning = False
 	
 		# Fonts
 		self.fontfile = self.path + config.fontfile
@@ -64,21 +66,23 @@ class PitftPlayerui:
 		self.image["button_cd"]				=pygame.image.load(self.path + "pics/" + "button-cd.png")
 		self.image["button_playlists"]		=pygame.image.load(self.path + "pics/" + "button-playlists.png")
 		self.image["button_playlist"]		=pygame.image.load(self.path + "pics/" + "button-list.png")
-		# Threads
-		self.coverartThread = None
-		self.oldCoverartThreadRunning = False
 
 		# Things to remember
 		self.screen_timeout_time = 0
 		self.processingCover = False
 		self.coverFetched = False
-		self.mpd_status = {}
-		self.mpd_song = {}
-		self.spotify_status = {}
-		self.spotify_song = {}
 		self.playlist = {}
 		self.playlists = {}
-		self.reconnect = False
+
+		# What to update
+		self.updateTrackInfo = False
+		self.updateAlbum	 = False	
+		self.updateElapsed	 = False
+		self.updateRandom	 = False
+		self.updateRepeat	 = False
+		self.updateVolume	 = False
+		self.updateState	 = False
+		self.updateAll		 = True
 
 		# Things to show
 		self.trackfile = None
@@ -96,310 +100,16 @@ class PitftPlayerui:
 		self.random = 0
 		self.repeat = 0
 		self.cover = False
-		
-		# CDDA variables
-		self.disc_id = {}
-		self.cdda_artist_album = {}
- 		self.cdda_query_status = {}
-		self.cdda_query_info = {}
-		self.cdda_read_status = {}
-		self.cdda_read_info = {}
-
-		# What to update
-		self.updateTrackInfo = False
-		self.updateAlbum	 = False	
-		self.updateElapsed	 = False
-		self.updateRandom	 = False
-		self.updateRepeat	 = False
-		self.updateVolume	 = False
-		self.updateState	 = False
-		self.updateAll		 = True
 
 		# Alternative views
 		self.showPlaylist	 = False
 		self.showPlaylists	 = False
 
-		# Active player. Determine later
-		self.active_player 	= ""
-
 		# Offset for list scrolling
 		self.offset 		= 0
 
-		# Print data
-		self.logger.info("MPD server version: %s" % self.mpdc.mpd_version)
-		
 		# Turn backlight on
 		self.turn_backlight_on()
-
-	def determine_active_player(self, old_spotify_status, old_mpd_status):
-
-		# Determine active player if not set
-		try:
-			if not self.active_player:
-
-				# Spotify playing, MPD not
-				if self.spotify_status["state"] == "play" and not self.mpd_status["state"] == "play":
-					self.switch_active_player("spotify")
-
-				# MPD playing, Spotify not
-				elif not self.spotify_status["state"] == "play" and self.mpd_status["state"] == "play":
-					self.switch_active_player("mpd")
-
-				# Neither playing - default to mpd
-				elif not self.spotify_status["state"] == "play" and not self.mpd_status["state"] == "play":
-					self.switch_active_player("mpd")
-
-				# Both playing - default to mpd and pause Spotify
-				else:
-					self.switch_active_player("mpd")
-					self.control_player("pause", "spotify")
-		
-			# Started playback - switch and pause other player
-			# Spotify started playing - switch
-			if self.spotify_status["state"] == "play" and not old_spotify_status == "play" and old_spotify_status:
-				self.switch_active_player("spotify")
-				if self.mpd_status["state"] == "play":
-					self.control_player("pause", "mpd")
-				# Turn display on 
-				if config.screen_timeout > 0 and not self.get_backlight_status():
-					self.turn_backlight_on()
-				self.logger.debug("Spotify started, pausing mpd")
-
-			# MPD started playing - switch
-			if self.mpd_status["state"] == "play" and not old_mpd_status == "play" and old_mpd_status:
-				self.switch_active_player("mpd")
-				if self.spotify_status["state"] == "play":
-					self.control_player("pause", "spotify")
-				# Turn display on 
-				if config.screen_timeout > 0 and not self.get_backlight_status():
-					self.turn_backlight_on()
-				self.logger.debug("mpd started, pausing Spotify")
-		except:
-				self.switch_active_player("")
-				self.logger.debug("Can't determine active player yet")
-
-	def refresh_players(self):
-		
-		# Save old status
-		try:
-			old_spotify_status = self.spotify_status["state"]
-			old_mpd_status = self.mpd_status["state"]
-		except:
-			old_spotify_status = ""
-			old_mpd_status = ""
-
-		# Refresh players
-		if config.mpd_host:
-			self.refresh_mpd()
-
-		if config.spotify_host:
-			self.refresh_spotify()
-
-		# Get active player	
-		self.determine_active_player(old_spotify_status, old_mpd_status)
-
-		# Use active player's information
-		if self.active_player == "spotify":
-			self.status = self.spotify_status
-			self.song = self.spotify_song
-			
-		elif self.active_player == "mpd":
-			self.status = self.mpd_status
-			self.song = self.mpd_song
-		else:
-			self.status = {}
-			self.song = {}
-
-	def refresh_spotify(self):
-		try:
-			status = self.spotify_control("info","status")
-			#self.logger.debug(status)
-			metadata = self.spotify_control("info","metadata")
-		except: 
-			status = {}
-			metadata = {}
-
-		self.spotify_status["active"] = False
-		# Extract state from strings
-		if status:
-			for line in status.split("\n"):
-				# Active device in Spotify
-				if "active" in line:
-					if "true" in line:
-						self.spotify_status["active"] = True
-					else:
-						self.spotify_status["active"] = False
-				if "playing" in line:
-					if "true" in line and self.spotify_status["active"]:
-						self.spotify_status["state"] = "play"
-					else:
-						self.spotify_status["state"] = "pause"
-				if "shuffle" in line:
-					if "true" in line and self.spotify_status["active"]:
-						self.spotify_status["random"] = 1
-					else:
-						self.spotify_status["random"] = 0
-				if "repeat" in line:
-					if "true" in line and self.spotify_status["active"]:
-						self.spotify_status["repeat"] = 1
-					else:
-						self.spotify_status["repeat"] = 0
-
-		if metadata and self.spotify_status["active"]:
-			# Parse multiline string of type
-			# '  "album_name": "Album", '
-			# Split lines and remove leading '"' + ending '", '
-			for line in metadata.split("\n"):
-				if "album_name" in line:
-					self.spotify_song["album"] = line.split(": ")[1][1:-3].decode('utf-8')
-				if "artist_name" in line:
-					self.spotify_song["artist"] = line.split(": ")[1][1:-3].decode('utf-8')
-				if "track_name" in line:
-					self.spotify_song["title"] = line.split(": ")[1][1:-3].decode('utf-8')
-				if "cover_uri" in line:
-					self.spotify_song["cover_uri"] = line.split(": ")[1][1:-3].decode('utf-8')
-		else:
-			self.spotify_song = {}
-			
-	def refresh_mpd(self):
-		if self.reconnect:
-			self.reconnect_mpd()
-		if self.reconnect == False:
-			connection = False
-			try:
-				self.mpd_status = self.mpdc.status()
-				self.mpd_song = self.mpdc.currentsong()
-				connection = True
-
-				# Read CDDB if playing CD
-				if "file" in self.mpd_song and config.cdda_enabled:
-					if "cdda://" in self.mpd_song["file"].decode('utf-8'):
-						self.refresh_cd()
-					
-
-			except Exception as e:
-				self.logger.debug(e)
-				connection = False
-				self.mpd_status = {}
-				self.mpd_song = {}
-
-			if connection == False:
-				try:
-					if e.errno == 32:
-						self.reconnect = True
-					else:
-						print "Nothing to do"
-				except Exception, e:
-					self.reconnect = True
-					self.logger.debug(e)
-
-	def reconnect_mpd(self):
-		self.logger.info("Reconnecting to MPD server")
-		client = MPDClient()
-		client.timeout = 10
-		client.idletimeout = None
-		noConnection = True
-		while noConnection:
-			try:
-				client.connect("config.mpd_host", config.mpd_port)
-				noConnection=False
-			except Exception, e:
-				self.logger.info(e)
-				noConnection=True
-				time.sleep(15)
-		self.mpdc = client
-		self.reconnect = False
-		self.logger.info("Connection to MPD server established.")
-
-	def query_cddb(self, disc_id):
-	
-		# If CD playback was started elsewhere / before we were running, read the id from CD
-		# Note: Causes hiccups in playback!
-		if not disc_id:
-			disc_id = self.load_cd()
-			self.disc_id = disc_id
-		try:
-			(self.cdda_query_status, self.cdda_query_info) = CDDB.query(disc_id)
-		except:
-			self.cdda_query_status = {}
-			self.cdda_query_info = {}
-		self.logger.debug("CDDB Query status: %s" % self.cdda_query_status)
-				
-		# Exact match found
-		try:
-			if self.cdda_query_status == 200:
-				(self.cdda_read_status, self.cdda_read_info) = CDDB.read(self.cdda_query_info["category"], self.cdda_query_info["disc_id"])
-				self.logger.debug("CDDB Read Status: %s" % self.cdda_read_status)
-			# Multiple matches found - pick first
-			elif self.cdda_query_status == 210 or self.cdda_query_status == 211:
-				(self.cdda_read_status, self.cdda_read_info) = CDDB.read(self.cdda_query_info[0]["category"], self.cdda_query_info[0]["disc_id"])
-				self.logger.debug("CDDB Read Status: %s" % self.cdda_read_status)
-			# No match found
-			else:
-				self.logger.info("CD query failed, status: %s " % self.cdda_query_status)
-		except:
-			self.cdda_read_status = 0
-			self.cdda_read_info = {}
-			
-		# Read successful - Save data
-		if self.cdda_read_status == 210:
-			try:
-				self.cdda_artist_album = self.cdda_read_info["DTITLE"].split(" / ")
-			except:
-				self.cdda_artist_album = {};
-		else:
-			self.logger.info("CDDB read failed, status: %s" % self.cdda_read_status)
-
-	def refresh_cd(self):
-		# Get filename from mpd
-		try:
-			file = self.mpd_song["file"].decode('utf-8')
-		except:
-			file = "";
-		
-		# CDDB query not done - do it now
-		if not self.cdda_read_info:
-			self.query_cddb(self.disc_id)
-	
-		# Fill song information from CD	
-		# Artist
-		try:
-			self.mpd_song["artist"] = self.cdda_artist_album[0]
-		except:
-			self.mpd_song["artist"] = ""
-		# Album
-		try:
-			self.mpd_song["album"] = self.cdda_artist_album[1]
-		except:
-			self.mpd_song["album"] = ""
-		# Date
-		try:
-			self.mpd_song["date"] = self.cdda_read_info["DYEAR"].decode('utf-8')
-		except:
-			self.mpd_song["date"] = ""
-		# Track Number
-		try:
-			self.mpd_song["track"] = file.split("cdda:///")[-1].split()[0]
-		except:
-			self.mpd_song["track"] = file.split("cdda:///")[-1].split()[0]
-		# Title
-		try:
-			number=int(self.mpd_song["track"]) - 1
-			self.mpd_song["title"] = self.cdda_read_info["TTITLE" + str(number)].decode('utf-8')
-		except:
-			self.mpd_song["title"] = ""
-		# Time
-		try:
-			if int(self.mpd_song["track"]) == int(self.disc_id[1]):
-				# The final track has to be count with 
-				# CD length in seconds - start frame of final track
-				# 75 frames = 1 second
-				self.mpd_song["time"] = self.disc_id[int(self.mpd_song["track"]) + 2] - self.disc_id[int(self.mpd_song["track"]) + 1] / 75
-			else:
-				# For other tracks count from start frame of track and next track.
-				self.mpd_song["time"] = (self.disc_id[int(self.mpd_song["track"]) + 2] - self.disc_id[int(self.mpd_song["track"]) + 1]) / 75
-		except:
-			self.mpd_song["time"] = 0
 
 	def parse_song(self):
 		# -------------
@@ -408,39 +118,39 @@ class PitftPlayerui:
 		
 		# Artist
 		try:
-			artist = self.song["artist"].decode('utf-8')
+			artist = self.pc.song["artist"].decode('utf-8')
 		except:
 			artist = ""
 
 		# Album
 		try:
-			album = self.song["album"].decode('utf-8')
+			album = self.pc.song["album"].decode('utf-8')
 		except:
 			album = ""
 		# Album Date
 		try:
-			date = self.song["date"].decode('utf-8')
+			date = self.pc.song["date"].decode('utf-8')
 		except:
 			date = ""
 		# Track Number
 		try:
-			track = self.song["track"].decode('utf-8')
+			track = self.pc.song["track"].decode('utf-8')
 		except:
 			track = ""
 		# Track Title
 		try:
-			if self.song["title"]:
-				title = self.song["title"].decode('utf-8')
+			if self.pc.song["title"]:
+				title = self.pc.song["title"].decode('utf-8')
 			else:
-				title = self.song["file"].decode('utf-8')
+				title = self.pc.song["file"].decode('utf-8')
 		except:
 			title = ""
 	
 		# Time elapsed
 		try:
-			min = int(ceil(float(self.status["elapsed"])))/60
+			min = int(ceil(float(self.pc.status["elapsed"])))/60
 			min = min if min > 9 else "0%s" % min
-			sec = int(ceil(float(self.status["elapsed"])%60))
+			sec = int(ceil(float(self.pc.status["elapsed"])%60))
 			sec = sec if sec > 9 else "0%s" % sec
 			timeElapsed = "%s:%s" % (min,sec)
 		except:
@@ -448,8 +158,8 @@ class PitftPlayerui:
 
 		# Time total
 		try:
-			min = int(ceil(float(self.song["time"])))/60
-			sec = int(ceil(float(self.song["time"])%60))
+			min = int(ceil(float(self.pc.song["time"])))/60
+			sec = int(ceil(float(self.pc.song["time"])%60))
 			min = min if min > 9 else "0%s" % min
 			sec = sec if sec > 9 else "0%s" % sec
 			timeTotal = "%s:%s" % (min,sec)
@@ -458,31 +168,31 @@ class PitftPlayerui:
 
 		# Time elapsed percentage
 		try:
-			timeElapsedPercentage = float(self.status["elapsed"])/float(self.song["time"])
+			timeElapsedPercentage = float(self.pc.status["elapsed"])/float(self.pc.song["time"])
 		except:
 			timeElapsedPercentage = 0
 
 		# Playback status
 		try:
-			playbackStatus = self.status["state"]
+			playbackStatus = self.pc.status["state"]
 		except:
 			playbackStatus = "stop"
 
 		# Repeat
 		try:
-			repeat = int(self.status["repeat"])
+			repeat = int(self.pc.status["repeat"])
 		except:
 			repeat = 0
 
 		# Random
 		try:
-			random = int(self.status["random"])
+			random = int(self.pc.status["random"])
 		except:
 			random = 0
 
 		# Volume
 		try:
-			volume = int(self.status["volume"])
+			volume = int(self.pc.status["volume"])
 		except:
 			volume = 0
 
@@ -600,9 +310,9 @@ class PitftPlayerui:
 			surface.blit(self.image["icon_screenoff"], (460, 304))
 
 			# Change player button, if more than 1 player available
-			if self.active_player == "spotify" and config.mpd_host:
+			if self.pc.get_active_player() == "spotify" and config.mpd_host:
 				surface.blit(self.image["button_spotify"], (418, 8))
-			elif self.active_player == "mpd" and config.spotify_host:
+			elif self.pc.get_active_player() == "mpd" and config.spotify_host:
 				surface.blit(self.image["button_mpd"], (418, 8))
 					
 			if config.mpd_host:
@@ -632,22 +342,22 @@ class PitftPlayerui:
 
 			text = self.font["details"].render(self.artist, 1,(230,228,227))
 			surface.blit(text, (60, 258)) # Artist
-                        if self.date:
+			if self.date:
 				text = self.font["details"].render(self.album + " (" + self.date + ")", 1,(230,228,227))
 			else:
 				text = self.font["details"].render(self.album, 1,(230,228,227))
 			surface.blit(text, (60, 278)) # Album
-                        if self.track:
+			if self.track:
 				text = self.font["details"].render(self.track.zfill(2) + " - " + self.title, 1,(230,228,227))
 			else:
 				text = self.font["details"].render(self.title, 1,(230,228,227))
 			surface.blit(text, (60, 298)) # Title
-			if self.active_player == "mpd":
+			if self.pc.get_active_player() == "mpd":
 				text = self.font["elapsed"].render(self.timeTotal, 1,(230,228,227))
 				surface.blit(text, (429, 238)) # Track length
 
 		# Spotify-connect-web api doesn't deliver elapsed information
-		if self.updateElapsed and self.active_player == "mpd":
+		if self.updateElapsed and self.pc.get_active_player() == "mpd":
 			if not self.updateAll or not self.updateTrackInfo:
 				surface.blit(self.image["background"], (0,242), (0,242, 427,20)) # reset background
 				surface.blit(self.image["position_bg"], (55, 245))
@@ -724,7 +434,7 @@ class PitftPlayerui:
 
 		# Something is playing - update screen timeout
 		if config.screen_timeout > 0:
-			if self.status["state"] == "play": 
+			if self.pc.status["state"] == "play": 
 				self.updateScreenTimeout()
 			# Nothing playing for 5 seconds, turn off screen if not already off
 			elif self.screen_timeout_time < datetime.datetime.now() and self.backlight:
@@ -733,16 +443,164 @@ class PitftPlayerui:
 		# Reset updates
 		self.resetUpdates()
 
-	def resetUpdates(self):
-		self.updateTrackInfo = False
-		self.updateAlbum	 = False
-		self.updateElapsed	 = False
-		self.updateRandom	 = False
-		self.updateRepeat	 = False
-		self.updateVolume	 = False
-		self.updateState	 = False
-		self.updateAll		 = False
-		
+	# Click handler
+	def on_click(self, mousebutton, click_pos):
+
+		# Screen is off and its touched
+		if self.get_backlight_status() == 0 and 0 <= click_pos[0] <= 480 and 0 <= click_pos[1] <= 320:
+			self.logger.debug("Screen off, Screen touch")
+			self.button(2, mousebutton)
+
+		# Screen is on. Check which button is touched 
+		else:
+			# There is no multi touch so if one button is pressed another one can't be pressed at the same time
+
+			# Selectors
+			if 418 <= click_pos[0] <= 476 and 8 <= click_pos[1] <= 64:
+				if config.spotify_host:
+					self.logger.debug("Switching player")
+					self.button(14, mousebutton)
+			elif 418 <= click_pos[0] <= 476 and 66 <= click_pos[1] <= 122:
+				self.logger.debug("Playlists")
+				self.button(10, mousebutton)
+			elif 418 <= click_pos[0] <= 476 and 124 <= click_pos[1] <= 180:
+				if config.cdda_enabled:
+					self.logger.debug("CD")
+					self.button(11, mousebutton)
+			elif 418 <= click_pos[0] <= 476 and 182 <= click_pos[1] <= 238:
+				if config.radio_playlist:
+					self.logger.debug("Radio")
+					self.button(12, mousebutton)
+
+			# Playlists are shown - hide on empty space click
+			elif self.get_playlists_status() or self.get_playlist_status():
+				if not 4 <= click_pos[0] <= 416 or not 4 <= click_pos[1] <= 243:
+					self.logger.debug("Hiding lists")
+					self.button(13, mousebutton)
+
+				# List item clicked
+				# List item to select: 4 - 33: 0, 34-63 = 1 etc
+				elif 4 <= click_pos[0] <= 416 and 4 <= click_pos[1] <= 243:
+					list_item = int(floor((click_pos[1] - 4)/30))
+					if mousebutton == 1:
+						self.logger.debug("Selecting list item %s" % list_item)
+						self.item_selector(list_item)
+					elif mousebutton == 2:
+						self.logger.debug("Second-clicked list item %s" % list_item)
+
+			# Toggles
+			elif 420 <= click_pos[0] <= 480 and 260 <= click_pos[1] <= 320:
+				self.logger.debug("Screen off")
+				self.button(2, mousebutton)
+			elif 315 <= click_pos[0] <= 377 and 56 <= click_pos[1] <= 81:
+				self.logger.debug("Toggle repeat") 
+				self.button(0, mousebutton)
+			elif 315 <= click_pos[0] <= 377 and 88 <= click_pos[1] <= 113:
+				self.logger.debug("Toggle random")
+				self.button(1, mousebutton)
+
+			# Volume
+			elif 258 <= click_pos[0] <= 316 and 190 <= click_pos[1] <= 248:
+					if config.volume_enabled:
+						self.logger.debug("Volume-")
+						self.button(3, mousebutton)
+			elif 354 <= click_pos[0] <= 412 and 190 <= click_pos[1] <=248:
+					if config.volume_enabled:
+						self.logger.debug("Volume+")
+						self.button(4, mousebutton)
+
+			# Controls
+			elif 258 <= click_pos[0] <= 294 and 132 <= click_pos[1] <= 180:
+				self.logger.debug("Prev")
+				self.button(6, mousebutton)
+			elif 296 <= click_pos[0] <= 352 and 132 <= click_pos[1] <= 180:
+				self.logger.debug("Toggle play/pause")
+				self.button(7, mousebutton)
+			elif 354 <= click_pos[0] <= 410 and 132 <= click_pos[1] <= 180:
+				self.logger.debug("Next")
+				self.button(8, mousebutton) 
+
+			# Open playlist when longpressing on bottom
+			elif 244 <= click_pos[1] <= 320 and mousebutton == 2:
+				if self.pc.get_active_player() == "mpd":
+					self.logger.debug("Toggle playlist")
+					self.button(9, mousebutton)
+
+	#define action on pressing buttons
+	def button(self, number, mousebutton):
+		if mousebutton == 1:
+			self.logger.debug("You pressed button %s" % number)
+
+			if number == 0:  
+				self.pc.control_player("repeat")
+
+			elif number == 1:
+				self.pc.control_player("random")
+
+			elif number == 2:
+				self.toggle_backlight()
+
+			elif number == 3:
+				self.pc.set_volume(1, "-")
+				
+			elif number == 4:
+				self.pc.set_volume(1, "+")
+
+			elif number == 5:
+				self.pc.control_player("stop")
+
+			elif number == 6:
+				self.pc.control_player("previous")
+
+			elif number == 7:
+				self.pc.control_player("play_pause")
+
+			elif number == 8:
+				self.pc.control_player("next")
+
+			elif number == 10:
+				self.toggle_playlists()
+
+			elif number == 11:
+				self.pc.control_player("cd")
+				self.update_all()
+
+			elif number == 12:
+				if not self.get_playlist_status():
+					self.pc.control_player("radio")
+					self.toggle_playlist("True")
+				else:
+					self.toggle_playlist("False")
+	
+			elif number == 13:
+				self.toggle_playlists("False")
+				self.toggle_playlist("False")
+
+			elif number == 14:
+				self.pc.control_player("switch_player")
+				self.update_all()
+				
+		elif mousebutton == 2:
+			self.logger.debug("You longpressed button %s" % number)
+
+			if number == 3:
+				self.pc.set_volume(10, "-")
+
+			elif number == 4:
+				self.pc.set_volume(10, "+")
+
+			elif number == 6:
+				self.pc.control_player("rwd")
+
+			elif number == 8:
+				self.pc.control_player("ff")
+
+			elif number == 9:
+				self.toggle_playlist()
+
+		else:
+			self.logger.debug("mouse button %s not supported" % mousebutton)
+
 	def fetch_coverart(self):
 		self.logger.debug("caT start")
 		self.processingCover = True
@@ -750,9 +608,9 @@ class PitftPlayerui:
 		self.cover = False
 
 		# Search for local coverart
-		if "file" in self.song and self.active_player == "mpd" and config.library_path:
+		if "file" in self.pc.song and self.pc.get_active_player() == "mpd" and config.library_path:
 		
-			folder = os.path.dirname(config.library_path + "/" + self.song["file"])
+			folder = os.path.dirname(config.library_path + "/" + self.pc.song["file"])
 			coverartfile = ""
 			
 			# Get all folder.* files from album folder
@@ -784,9 +642,9 @@ class PitftPlayerui:
 					self.logger.debug("No local coverart file found, switching to Last.FM")				
 
 		# Check Spotify coverart
-		elif "cover_uri" in self.song and self.active_player == "spotify" and config.spotify_host:
+		elif "cover_uri" in self.pc.song and self.pc.get_active_player() == "spotify" and config.spotify_host:
 			try:
-				coverart_url = config.spotify_host + ":" + config.spotify_port + "/api/info/image_url/" + self.song["cover_uri"]
+				coverart_url = config.spotify_host + ":" + config.spotify_port + "/api/info/image_url/" + self.pc.song["cover_uri"]
 				if coverart_url:
 					subprocess.check_output("wget -q %s -O %s/cover.png" % (coverart_url, "/tmp/"), shell=True )
 					self.logger.debug("Spotify coverart downloaded")
@@ -834,88 +692,19 @@ class PitftPlayerui:
 		self.processingCover = False
 		self.logger.debug("caT end")
 
-	def toggle_random(self):
-		if self.active_player == "spotify":
-			self.spotify_control("playback","shuffle")
-		else:
-			random = (self.random + 1) % 2
-			self.mpdc.random(random)
-
-	def toggle_repeat(self):
-		if self.active_player == "spotify":
-			self.spotify_control("playback","repeat")
-		else:
-			repeat = (self.repeat + 1) % 2
-			self.mpdc.repeat(repeat)
-
-	# Direction: +, -
-	def set_volume(self, amount, direction=""):
-		if direction == "+":
-			volume = self.volume + amount
-		elif direction == "-":
-			volume = self.volume - amount
-		else:
-			volume = amount
-
-		volume = 100 if volume > 100 else volume
-		volume = 0 if volume < 0 else volume
-		self.mpdc.setvol(volume)
-			
-	def toggle_playback(self):
-			status = self.playbackStatus
-			if status == "play":
-				self.control_player("pause")
-			else:
-				self.control_player("play")
-	
-	def control_player(self, command, player="active"):
-		if command == "repeat":
-			self.toggle_repeat()
-		elif command == "random":
-			self.toggle_random()
-		elif command == "cd":
-			self.play_cd()
-		elif command == "radio":
-			self.load_playlist(config.radio_playlist)
-			self.mpdc.play()
-		elif command == "mpd":
-			self.switch_active_player("mpd")
-		elif command == "spotify":
-			self.switch_active_player("spotify")
-
-		elif (player == "active" and self.active_player == "spotify") or player == "spotify":
-			# Translate commands
-			if command == "stop":
-				command = "pause"
-			if command == "previous":
-				command = "prev"
-			# Prevent commands not implemented in api
-			if command != "ff" or command != "rwd": 
-				self.spotify_control("playback", command)
-		elif (player == "active" and self.active_player == "mpd") or player == "mpd":
-			if command == "next":
-				self.mpdc.next()
-			elif command == "previous":
-				self.mpdc.previous()
-			elif command == "pause":
-				self.mpdc.pause()
-			elif command == "play":
-				self.mpdc.play()
-			elif command == "stop":
-				self.mpdc.stop()
-			elif command == "rwd":
-				self.mpdc.seekcur("-10")
-			elif command == "ff":
-				self.mpdc.seekcur("+10")
-			else:
-				pass
-		else:
-			self.logger.debug("No player specified for control")
-
-	def load_playlist(self, command):
-		self.mpdc.clear()
-		self.mpdc.load(command)
-
+	def resetUpdates(self):
+		self.updateTrackInfo = False
+		self.updateAlbum	 = False
+		self.updateElapsed	 = False
+		self.updateRandom	 = False
+		self.updateRepeat	 = False
+		self.updateVolume	 = False
+		self.updateState	 = False
+		self.updateAll		 = False
+		
+	def update_all(self):
+		self.updateAll = True
+		
 	def toggle_backlight(self):
 		bl = (self.backlight + 1) % 2
 		if bl == 1:
@@ -925,13 +714,11 @@ class PitftPlayerui:
 
 	def turn_backlight_off(self):
 		self.logger.debug("Backlight off")
-#		subprocess.call("/home/pi/bin/display off", shell=True)
 		subprocess.call("echo '0' > /sys/class/gpio/gpio508/value", shell=True)
 		self.backlight = 0
 
 	def turn_backlight_on(self):
 		self.logger.debug("Backlight on")
-#		subprocess.call("/home/pi/bin/display on", shell=True)
 		subprocess.call("echo '1' > /sys/class/gpio/gpio508/value", shell=True)
 		self.backlight = 1
 
@@ -949,7 +736,7 @@ class PitftPlayerui:
 		return self.showPlaylists
 
 	def toggle_playlists(self, state="Toggle"):
-		self.playlists = self.mpdc.listplaylists()
+		self.playlists = self.pc.get_playlists()
 
 		# Remove Radio from playlists
 		for i in reversed(range(len(self.playlists))):
@@ -973,7 +760,7 @@ class PitftPlayerui:
 		self.updateAll = True
 
 	def toggle_playlist(self, state="Toggle"):
-		self.playlist = self.mpdc.playlistinfo()
+		self.playlist = self.pc.get_playlist()
 		if state == "Toggle":
 			self.showPlaylist = not self.showPlaylist
 		elif state == "True":
@@ -986,94 +773,41 @@ class PitftPlayerui:
 			self.showPlaylists = False
 		self.updateAll = True
 
-	def update_all(self):
-		self.updateAll = True
 
 	def item_selector(self, number):
 		if self.showPlaylist and not self.showPlaylists:
 			if number + self.offset < len(self.playlist): 
-				self.mpdc.play(number + self.offset)
+				self.pc.play_item(number + self.offset)
 			self.showPlaylist = False
 			self.updateAll = True
 		elif self.showPlaylists and not self.showPlaylist:
 			if number + self.offset < len(self.playlists):
-				self.mpdc.clear()
-				self.mpdc.load(self.playlists[number + self.offset]["playlist"])
-				self.mpdc.play()
+				self.pc.load_playlist(self.playlists[number + self.offset]["playlist"])
+				self.pc.control_player("play", "mpd")
 			self.showPlaylists = False
-			self.switch_active_player("mpd")
+			#self.pc.control_player("mpd")
 			self.updateAll = True
 
 		# Clear offset
 		self.offset = 0
 		
-	def load_cd(self):
-		try:
-			cdrom = DiscID.open()
-			disc_id = DiscID.disc_id(cdrom)
-		except:
-			disc_id = {}
-
-		self.logger.debug("Loaded new cd, id: %s" % disc_id)
-		self.query_cddb(disc_id)
-		return disc_id
-		
-	def play_cd(self):
-		self.logger.info("Playing CD")
-		self.disc_id = self.load_cd()
-		if self.disc_id:
-			self.mpdc.clear()
-			number_of_tracks = int(self.disc_id[1])
-			for i in range (1, number_of_tracks):
-				self.mpdc.add("cdda:///" + str(i))
-
-			# Pause Spotify
-			self.switch_active_player("mpd")
-			self.updateAll = True
-
-			self.mpdc.random(0)
-			self.mpdc.repeat(0)
-			self.mpdc.play()
-
-	# Using api from spotify-connect-web
-	# Valid methods:  playback, info
-	# Valid info commands: metadata, status, image_url/<image_url>, display_name
-	# Valid playback commands: play, pause, prev, next, shuffle, repeat, volume
-	def spotify_control(self, method, command):
-		#c = httplib.HTTPConnection('localhost', 4000)
-		c = httplib.HTTPConnection(config.spotify_host, config.spotify_port)
-		c.request('GET', '/api/'+method+'/'+command, '{}')
-		doc = c.getresponse().read()
-		return doc
-
-	def switch_active_player(self, state="toggle"):
-		if state == "toggle":
-			if self.active_player == "spotify":
-				self.active_player = "mpd"
-			else:
-				self.active_player = "spotify"
-		else:
-			self.active_player = state
-
-		# Update screen
-		self.updateAll = True
-
-	def get_active_player(self):
-		return self.active_player
-
 	def inc_offset(self, number):
 		self.offset = self.offset - number
 		
 		# Limits for offset
 		if self.offset < 0:
 			self.offset = 0
+		# Disable scroll if all items fit on the screen
 		if (self.showPlaylists) and len(self.playlists) <= 8:
 			self.offset = 0
+		# Don't overscroll
 		elif (self.showPlaylists) and len(self.playlists) - 8 < self.offset:
 			self.offset = len(self.playlists) - 8
 		
+		# Disable scroll if all items fit on the screen
 		if (self.showPlaylist) and len(self.playlist) <= 8:
 			self.offset = 0
+		# Don't overscroll
 		elif (self.showPlaylist) and len(self.playlist) - 8 < self.offset:
 			self.offset = len(self.playlist) - 8
 		self.logger.debug("Offset: %s" % self.offset)

@@ -1,0 +1,180 @@
+# -*- coding: utf-8 -*-
+import sys, pygame
+from pygame.locals import *
+import time
+import subprocess
+import os
+import re
+import CDDB
+import DiscID
+import httplib
+import config
+from mpd import MPDClient
+import spotify_control
+import mpd_control
+
+class PlayerControl:
+	def __init__(self, client, logger):
+
+		self.spotify = spotify_control.SpotifyControl(logger)
+		self.mpd = mpd_control.MPDControl(client, logger)
+	
+		self.logger = logger
+
+		# Paths
+		self.path = os.path.dirname(sys.argv[0]) + "/"
+		os.chdir(self.path)
+	
+		# Things to remember
+		self.status = {}
+		self.song = {}
+
+		# Active player. Determine later
+		self.active_player = ""
+		
+	def determine_active_player(self, old_spotify_status, old_mpd_status):
+
+		# Determine active player if not set
+		try:
+			if not self.active_player:
+
+				# Spotify playing, MPD not
+				if self.spotify.status["state"] == "play" and not self.mpd.status["state"] == "play":
+					self.switch_active_player("spotify")
+
+				# MPD playing, Spotify not
+				elif not self.spotify.status["state"] == "play" and self.mpd.status["state"] == "play":
+					self.switch_active_player("mpd")
+
+				# Neither playing - default to mpd
+				elif not self.spotify.status["state"] == "play" and not self.mpd.status["state"] == "play":
+					self.switch_active_player("mpd")
+
+				# Both playing - default to mpd and pause Spotify
+				else:
+					self.switch_active_player("mpd")
+					self.control_player("pause", "spotify")
+		
+			# Started playback - switch and pause other player
+			# Spotify started playing - switch
+			if self.spotify.status["state"] == "play" and not old_spotify_status == "play" and old_spotify_status:
+				self.switch_active_player("spotify")
+				if self.mpd.status["state"] == "play":
+					self.control_player("pause", "mpd")
+					self.logger.debug("Spotify started, pausing mpd")
+
+			# MPD started playing - switch
+			if self.mpd.status["state"] == "play" and not old_mpd_status == "play" and old_mpd_status:
+				self.switch_active_player("mpd")
+				if self.spotify.status["state"] == "play":
+					self.control_player("pause", "spotify")
+					self.logger.debug("mpd started, pausing Spotify")
+		except:
+				self.switch_active_player("")
+				self.logger.debug("Can't determine active player yet")
+
+	def refresh_players(self):
+		
+		# Save old status
+		try:
+			old_spotify_status = self.spotify.status["state"]
+			old_mpd_status = self.mpd.status["state"]
+		except:
+			old_spotify_status = ""
+			old_mpd_status = ""
+
+		# Refresh players
+		if config.mpd_host:
+			self.mpd.refresh()
+
+		if config.spotify_host:
+			self.spotify.refresh()
+
+		# Get active player	
+		self.determine_active_player(old_spotify_status, old_mpd_status)
+
+		# Use active player's information
+		if self.active_player == "spotify":
+			self.status = self.spotify.status
+			self.song = self.spotify.song
+			
+		elif self.active_player == "mpd":
+			self.status = self.mpd.status
+			self.song = self.mpd.song
+		else:
+			self.status = {}
+			self.song = {}
+			
+	# Direction: +, -
+	def set_volume(self, amount, direction=""):
+		if self.active_player == "mpd":
+			if direction == "+":
+				volume = int(self.status["volume"]) + amount
+			elif direction == "-":
+				volume = int(self.status["volume"]) - amount
+			else:
+				volume = amount
+
+			volume = 100 if volume > 100 else volume
+			volume = 0 if volume < 0 else volume
+			self.mpd.set_volume(volume)
+			
+	def control_player(self, command, player="active"):
+	
+		# Translate
+		if player == "active":
+			player = self.active_player
+		if command == "play_pause":
+			if self.status["state"] == "play":
+				command = "pause"
+			else:
+				command = "play"
+		
+		# Switching commands
+		if command == "cd":
+			self.play_cd()
+		elif command == "radio":
+			self.load_playlist(config.radio_playlist)
+		elif command == "mpd":
+			self.switch_active_player("mpd")
+		elif command == "spotify":
+			self.switch_active_player("spotify")
+		elif command == "switch_player":
+			self.switch_active_player("toggle")
+
+		# Player specific commands
+		elif player == "spotify":
+			self.spotify.control(command)
+		elif player == "mpd":
+			self.mpd.control(command)			
+		else:
+			self.logger.debug("No player specified for control")
+
+	def load_playlist(self, command):
+		self.mpd.load_playlist(command)
+
+	def play_cd(self):
+		self.logger.info("Playing CD")
+		self.switch_active_player("mpd")
+		self.mpd.play_cd()
+		
+	def get_playlists(self):
+		return self.mpd.get_playlists()
+
+	def get_playlist(self):
+		return self.mpd.get_playlist()
+		
+	def play_item(self, number):
+		self.mpd.play_item(number)
+
+	def switch_active_player(self, state="toggle"):
+		if state == "toggle":
+			if self.active_player == "spotify":
+				self.active_player = "mpd"
+			else:
+				self.active_player = "spotify"
+		else:
+			self.active_player = state
+
+	def get_active_player(self):
+		return self.active_player
