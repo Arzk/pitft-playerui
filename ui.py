@@ -56,8 +56,6 @@ def signal_term_handler(signal, frame):
 
 class PitftDaemon(Daemon):
 	sm = None
-	client = None
-	network = None
 	screen = None
 
 	# Setup Python game, MPD, Last.fm and Screen manager
@@ -85,28 +83,18 @@ class PitftDaemon(Daemon):
 
 		logger.info("Display driver: %s" % pygame.display.get_driver())
 
-		# MPD ##############################
-		logger.info("Setting MPDClient")
-		self.client = MPDClient()
-		self.client.timeout = 10
-		self.client.idletimeout = None
-
-		# Pylast ####################################################################  
-		logger.info("Setting Pylast")
-		username = config.username
-		password_hash = pylast.md5(config.password_hash)
-		self.network = pylast.LastFMNetwork(api_key = config.API_KEY, api_secret = config.API_SECRET)
-
 		# Screen manager ###############
 		logger.info("Setting screen manager")
 		noSM = True
 		while noSM:
 			try:
-				self.sm = pitft_ui.PitftPlayerui(self.client, self.network, logger)
+				self.sm = pitft_ui.PitftPlayerui(logger)
 				noSM = False
+				logger.debug("Screen manager set")
 			except:
 				noSM = True
 				time.sleep(5)
+				logger.debug("Unable to set the screen manager")
 
 		# Mouse variables
 		self.longpress_time   = timedelta(milliseconds=500)
@@ -119,30 +107,14 @@ class PitftDaemon(Daemon):
 		self.mousebutton_down = False
 		self.longpress        = False
 
-	# Connect to MPD server
-	def connectToMPD(self):
-		logger.info("Trying to connect MPD server")
-		noConnection = True
-		while noConnection:
-			try:
-				self.client.connect(config.mpd_host, config.mpd_port)
-				noConnection=False
-			except Exception, e:
-				logger.info(e)
-				noConnection=True
-				time.sleep(15)
-		logger.info("Connection to MPD server established.")
-
 	def shutdown(self):
-		# Close MPD connection
-		if self.client:
-			self.client.close()
-			self.client.disconnect()
+		# Close MPD connection -  TODO
+#		self.sm.pc.mpd.disconnect()
+		pass
 		
 	# Main loop
 	def run(self):
 		self.setup()
-		self.connectToMPD()
 
 		try:
 			drawtime = datetime.datetime.now()
@@ -229,8 +201,6 @@ class PitftDaemon(Daemon):
 				# Update screen, fps=20
 				if drawtime < datetime.datetime.now():
 					drawtime = datetime.datetime.now() + timedelta(milliseconds=50)
-					self.sm.pc.refresh_players()
-					self.sm.parse_song()
 					self.sm.render(self.screen)
 					pygame.display.flip()
 			pygame.display.update()

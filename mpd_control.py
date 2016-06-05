@@ -6,11 +6,15 @@ import config
 from mpd import MPDClient
 
 class MPDControl:
-	def __init__(self, client, logger):
+	def __init__(self, logger):
 
-		self.mpdc = client
 		self.logger = logger
 	
+		# MPD Client
+		self.logger.info("Setting MPDClient")
+		self.reconnect = False
+		self.connectToMPD()
+
 		# Things to remember
 		self.status = {}
 		self.song = {}
@@ -26,10 +30,40 @@ class MPDControl:
 
 		# Print data
 		self.logger.info("MPD server version: %s" % self.mpdc.mpd_version)
+		
+	def connectToMPD(self):
+		if self.reconnect:
+			self.logger.info("Reconnecting to MPD server")
+		else:
+			self.logger.info("Trying to connect MPD server")
+		
+		client = MPDClient()
+		client.timeout = 10
+		client.idletimeout = None
+		noConnection = True
+		
+		while noConnection:
+			try:
+				client.connect(config.mpd_host, config.mpd_port)
+				noConnection=False
+			except Exception, e:
+				self.logger.info(e)
+				noConnection=True
+				time.sleep(15)
+		self.mpdc = client
+		self.reconnect = False
+		self.logger.info("Connection to MPD server established.")
+		
+	def disconnect(self):
+		# Close MPD connection
+		if self.mpdc:
+			self.mpdc.close()
+			self.mpdc.disconnect()
+			self.logger.debug("Disconnected from MPD")		
 					
 	def refresh(self):
 		if self.reconnect:
-			self.reconnect_mpd()
+			self.connectToMPD()
 		if self.reconnect == False:
 			connection = False
 			try:
@@ -40,7 +74,7 @@ class MPDControl:
 				# Read CDDB if playing CD
 				if "file" in self.song and config.cdda_enabled:
 					if "cdda://" in self.song["file"].decode('utf-8'):
-						self.refresh_cd()					
+						self.refresh_cd()
 
 			except Exception as e:
 				self.logger.debug(e)
@@ -108,24 +142,6 @@ class MPDControl:
 				self.song["time"] = (self.disc_id[int(self.song["track"]) + 2] - self.disc_id[int(self.song["track"]) + 1]) / 75
 		except:
 			self.song["time"] = 0
-
-	def reconnect_mpd(self):
-		self.logger.info("Reconnecting to MPD server")
-		client = MPDClient()
-		client.timeout = 10
-		client.idletimeout = None
-		noConnection = True
-		while noConnection:
-			try:
-				client.connect(config.mpd_host, config.mpd_port)
-				noConnection=False
-			except Exception, e:
-				self.logger.info(e)
-				noConnection=True
-				time.sleep(15)
-		self.mpdc = client
-		self.reconnect = False
-		self.logger.info("Connection to MPD server established.")
 		
 	# Direction: +, -
 	def set_volume(self, volume):
@@ -151,8 +167,7 @@ class MPDControl:
 			self.mpdc.repeat(repeat)
 		elif command == "random":
 			random = (int(self.status["random"]) + 1) % 2
-			self.mpdc.random(random)
-			
+			self.mpdc.random(random)			
 
 	def load_playlist(self, command):
 		self.mpdc.clear()

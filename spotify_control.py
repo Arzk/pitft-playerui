@@ -6,20 +6,19 @@ class SpotifyControl:
 	def __init__(self, logger):
 
 		self.logger = logger
-
 		self.status = {}
 		self.song = {}
 
 	def refresh(self):
 		try:
 			status = self.api("info","status")
-			#self.logger.debug(status)
 			metadata = self.api("info","metadata")
 		except:
 			status = {}
 			metadata = {}
 
 		self.status["active"] = False
+		
 		# Extract state from strings
 		if status:
 			for line in status.split("\n"):
@@ -69,6 +68,7 @@ class SpotifyControl:
 			command = "prev"
 		if command == "random":
 			command = "shuffle"
+			
 		# Prevent commands not implemented in api
 		if command in ["play", "pause", "prev", "next", "shuffle", "repeat"]:
 			self.api("playback", command)

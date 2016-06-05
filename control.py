@@ -14,12 +14,15 @@ import spotify_control
 import mpd_control
 
 class PlayerControl:
-	def __init__(self, client, logger):
+	def __init__(self, logger):
+		self.logger  = logger
+		self.spotify = None
+		self.mpd     = None
 
-		self.spotify = spotify_control.SpotifyControl(logger)
-		self.mpd = mpd_control.MPDControl(client, logger)
-	
-		self.logger = logger
+		if config.spotify_host and config.spotify_port:
+			self.spotify = spotify_control.SpotifyControl(logger)
+		if config.mpd_host and config.mpd_port:
+			self.mpd = mpd_control.MPDControl(logger)
 
 		# Paths
 		self.path = os.path.dirname(sys.argv[0]) + "/"
@@ -36,42 +39,50 @@ class PlayerControl:
 
 		# Determine active player if not set
 		try:
-			if not self.active_player:
-
-				# Spotify playing, MPD not
-				if self.spotify.status["state"] == "play" and not self.mpd.status["state"] == "play":
+			if self.spotify and self.mpd:
+				if not self.active_player:
+	
+					# Spotify playing, MPD not
+					if self.spotify.status["state"] == "play" and not self.mpd.status["state"] == "play":
+						self.switch_active_player("spotify")
+	
+					# MPD playing, Spotify not
+					elif not self.spotify.status["state"] == "play" and self.mpd.status["state"] == "play":
+						self.switch_active_player("mpd")
+	
+					# Neither playing - default to mpd
+					elif not self.spotify.status["state"] == "play" and not self.mpd.status["state"] == "play":
+						self.switch_active_player("mpd")
+	
+					# Both playing - default to mpd and pause Spotify
+					else:
+						self.switch_active_player("mpd")
+						self.control_player("pause", "spotify")
+			
+				# Started playback - switch and pause other player
+				# Spotify started playing - switch
+				if self.spotify.status["state"] == "play" and not old_spotify_status == "play" and old_spotify_status:
 					self.switch_active_player("spotify")
-
-				# MPD playing, Spotify not
-				elif not self.spotify.status["state"] == "play" and self.mpd.status["state"] == "play":
+					if self.mpd.status["state"] == "play":
+						self.control_player("pause", "mpd")
+						#self.logger.debug("Spotify started, pausing mpd")
+	
+				# MPD started playing - switch
+				if self.mpd.status["state"] == "play" and not old_mpd_status == "play" and old_mpd_status:
 					self.switch_active_player("mpd")
+					if self.spotify.status["state"] == "play":
+						self.control_player("pause", "spotify")
+						#self.logger.debug("mpd started, pausing Spotify")
 
-				# Neither playing - default to mpd
-				elif not self.spotify.status["state"] == "play" and not self.mpd.status["state"] == "play":
-					self.switch_active_player("mpd")
-
-				# Both playing - default to mpd and pause Spotify
-				else:
-					self.switch_active_player("mpd")
-					self.control_player("pause", "spotify")
-		
-			# Started playback - switch and pause other player
-			# Spotify started playing - switch
-			if self.spotify.status["state"] == "play" and not old_spotify_status == "play" and old_spotify_status:
+			elif self.spotify and not self.mpd:
 				self.switch_active_player("spotify")
-				if self.mpd.status["state"] == "play":
-					self.control_player("pause", "mpd")
-					self.logger.debug("Spotify started, pausing mpd")
 
-			# MPD started playing - switch
-			if self.mpd.status["state"] == "play" and not old_mpd_status == "play" and old_mpd_status:
+			elif not self.spotify and self.mpd:
 				self.switch_active_player("mpd")
-				if self.spotify.status["state"] == "play":
-					self.control_player("pause", "spotify")
-					self.logger.debug("mpd started, pausing Spotify")
+				
 		except:
 				self.switch_active_player("")
-				self.logger.debug("Can't determine active player yet")
+				#self.logger.debug("Can't determine active player yet")
 
 	def refresh_players(self):
 		
@@ -84,21 +95,21 @@ class PlayerControl:
 			old_mpd_status = ""
 
 		# Refresh players
-		if config.mpd_host:
+		if self.mpd:
 			self.mpd.refresh()
 
-		if config.spotify_host:
+		if self.spotify:
 			self.spotify.refresh()
 
 		# Get active player	
 		self.determine_active_player(old_spotify_status, old_mpd_status)
 
 		# Use active player's information
-		if self.active_player == "spotify":
+		if self.spotify and self.active_player == "spotify":
 			self.status = self.spotify.status
 			self.song = self.spotify.song
 			
-		elif self.active_player == "mpd":
+		elif self.mpd and self.active_player == "mpd":
 			self.status = self.mpd.status
 			self.song = self.mpd.song
 		else:
@@ -107,7 +118,7 @@ class PlayerControl:
 			
 	# Direction: +, -
 	def set_volume(self, amount, direction=""):
-		if self.active_player == "mpd":
+		if self.mpd and self.active_player == "mpd":
 			if direction == "+":
 				volume = int(self.status["volume"]) + amount
 			elif direction == "-":
@@ -124,20 +135,21 @@ class PlayerControl:
 		# Translate
 		if player == "active":
 			player = self.active_player
-		if command == "play_pause":
-			if self.status["state"] == "play":
-				command = "pause"
-			else:
-				command = "play"
+		if self.status:
+			if command == "play_pause":
+				if self.status["state"] == "play":
+					command = "pause"
+				else:
+					command = "play"
 		
 		# Switching commands
 		if command == "cd":
 			self.play_cd()
 		elif command == "radio":
 			self.load_playlist(config.radio_playlist)
-		elif command == "mpd":
+		elif self.mpd and command == "mpd":
 			self.switch_active_player("mpd")
-		elif command == "spotify":
+		elif self.spotify and command == "spotify":
 			self.switch_active_player("spotify")
 		elif command == "switch_player":
 			self.switch_active_player("toggle")
@@ -147,14 +159,11 @@ class PlayerControl:
 			self.spotify.control(command)
 		elif player == "mpd":
 			self.mpd.control(command)			
-		else:
-			self.logger.debug("No player specified for control")
 
 	def load_playlist(self, command):
 		self.mpd.load_playlist(command)
 
 	def play_cd(self):
-		self.logger.info("Playing CD")
 		self.switch_active_player("mpd")
 		self.mpd.play_cd()
 		
@@ -169,9 +178,9 @@ class PlayerControl:
 
 	def switch_active_player(self, state="toggle"):
 		if state == "toggle":
-			if self.active_player == "spotify":
+			if self.mpd and self.active_player == "spotify":
 				self.active_player = "mpd"
-			else:
+			elif self.spotify and self.active_player == "mpd":
 				self.active_player = "spotify"
 		else:
 			self.active_player = state

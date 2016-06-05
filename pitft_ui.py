@@ -6,6 +6,7 @@ import subprocess
 import os
 import glob
 import re
+import pylast
 from math import ceil, floor
 from threading import Thread
 import datetime
@@ -14,12 +15,17 @@ import config
 import control
 
 class PitftPlayerui:
-	def __init__(self, client, lfm, logger):
+	def __init__(self, logger):
 
-		self.lfm = lfm
 		self.logger = logger
 		
-		self.pc = control.PlayerControl(client, logger)
+		self.pc = control.PlayerControl(logger)
+
+		# Pylast ####################################################################  
+		logger.info("Setting Pylast")
+		username = config.username
+		password_hash = pylast.md5(config.password_hash)
+		self.lfm = pylast.LastFMNetwork(api_key = config.API_KEY, api_secret = config.API_SECRET)
 
 		# Paths
 		self.path = os.path.dirname(sys.argv[0]) + "/"
@@ -112,6 +118,7 @@ class PitftPlayerui:
 		self.turn_backlight_on()
 
 	def parse_song(self):
+
 		# -------------
 		# |  PARSE    |
 		# -------------
@@ -286,6 +293,13 @@ class PitftPlayerui:
 			self.updateVolume = True
 			
 	def render(self, surface):
+
+		# Refresh information from players
+		self.pc.refresh_players()
+
+		# Parse new song information
+		self.parse_song()
+		
 		if self.updateAll:
 			self.updateTrackInfo = True
 			self.updateAlbum	 = True
@@ -310,18 +324,18 @@ class PitftPlayerui:
 			surface.blit(self.image["icon_screenoff"], (460, 304))
 
 			# Change player button, if more than 1 player available
-			if self.pc.get_active_player() == "spotify" and config.mpd_host:
+			if self.pc.get_active_player() == "spotify" and self.pc.mpd:
 				surface.blit(self.image["button_spotify"], (418, 8))
-			elif self.pc.get_active_player() == "mpd" and config.spotify_host:
+			elif self.pc.get_active_player() == "mpd" and self.pc.spotify:
 				surface.blit(self.image["button_mpd"], (418, 8))
 					
-			if config.mpd_host:
+			if self.pc.mpd:
 				surface.blit(self.image["button_playlists"], (418, 66))
 			
-			if config.cdda_enabled:
+			if self.pc.mpd and config.cdda_enabled:
 				surface.blit(self.image["button_cd"], (418, 124))
 			
-			if config.radio_playlist:
+			if self.pc.mpd and config.radio_playlist:
 				surface.blit(self.image["button_radio"], (418, 182))
 
 		if self.updateAlbum or self.coverFetched:
@@ -433,13 +447,13 @@ class PitftPlayerui:
 					surface.blit(text, (12, 4 + 30*int(i)),(0,0, 408,30))
 
 		# Something is playing - update screen timeout
-		if config.screen_timeout > 0:
+		if self.pc.status and config.screen_timeout > 0:
 			if self.pc.status["state"] == "play": 
 				self.updateScreenTimeout()
 			# Nothing playing for 5 seconds, turn off screen if not already off
 			elif self.screen_timeout_time < datetime.datetime.now() and self.backlight:
 				self.turn_backlight_off()
-
+		
 		# Reset updates
 		self.resetUpdates()
 
@@ -457,18 +471,19 @@ class PitftPlayerui:
 
 			# Selectors
 			if 418 <= click_pos[0] <= 476 and 8 <= click_pos[1] <= 64:
-				if config.spotify_host:
+				if self.pc.mpd and self.pc.spotify:
 					self.logger.debug("Switching player")
 					self.button(14, mousebutton)
 			elif 418 <= click_pos[0] <= 476 and 66 <= click_pos[1] <= 122:
-				self.logger.debug("Playlists")
-				self.button(10, mousebutton)
+				if self.pc.mpd:
+					self.logger.debug("Playlists")
+					self.button(10, mousebutton)
 			elif 418 <= click_pos[0] <= 476 and 124 <= click_pos[1] <= 180:
-				if config.cdda_enabled:
+				if self.pc.mpd and config.cdda_enabled:
 					self.logger.debug("CD")
 					self.button(11, mousebutton)
 			elif 418 <= click_pos[0] <= 476 and 182 <= click_pos[1] <= 238:
-				if config.radio_playlist:
+				if self.pc.mpd and config.radio_playlist:
 					self.logger.debug("Radio")
 					self.button(12, mousebutton)
 
@@ -522,7 +537,7 @@ class PitftPlayerui:
 
 			# Open playlist when longpressing on bottom
 			elif 244 <= click_pos[1] <= 320 and mousebutton == 2:
-				if self.pc.get_active_player() == "mpd":
+				if self.pc.mpd and self.pc.get_active_player() == "mpd":
 					self.logger.debug("Toggle playlist")
 					self.button(9, mousebutton)
 
@@ -642,7 +657,7 @@ class PitftPlayerui:
 					self.logger.debug("No local coverart file found, switching to Last.FM")				
 
 		# Check Spotify coverart
-		elif "cover_uri" in self.pc.song and self.pc.get_active_player() == "spotify" and config.spotify_host:
+		elif "cover_uri" in self.pc.song and self.pc.get_active_player() == "spotify" and self.pc.spotify:
 			try:
 				coverart_url = config.spotify_host + ":" + config.spotify_port + "/api/info/image_url/" + self.pc.song["cover_uri"]
 				if coverart_url:
@@ -772,7 +787,6 @@ class PitftPlayerui:
 		if self.showPlaylist:
 			self.showPlaylists = False
 		self.updateAll = True
-
 
 	def item_selector(self, number):
 		if self.showPlaylist and not self.showPlaylists:
