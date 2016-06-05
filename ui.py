@@ -17,6 +17,7 @@ from logging.handlers import TimedRotatingFileHandler
 from daemon import Daemon
 import pitft_ui
 import config
+import Pyro4
 
 # OS enviroment variables for pitft
 os.environ["SDL_FBDEV"] = "/dev/fb1"
@@ -88,7 +89,7 @@ class PitftDaemon(Daemon):
 		noSM = True
 		while noSM:
 			try:
-				self.sm = pitft_ui.PitftPlayerui(logger)
+				self.sm = pitft_ui.PitftPlayerui()
 				noSM = False
 				logger.debug("Screen manager set")
 			except:

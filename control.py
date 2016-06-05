@@ -1,33 +1,20 @@
 # -*- coding: utf-8 -*-
-import sys, pygame
-from pygame.locals import *
-import time
-import subprocess
-import os
-import re
-import CDDB
-import DiscID
-import httplib
+import logging
 import config
-from mpd import MPDClient
 import spotify_control
 import mpd_control
 
 class PlayerControl:
-	def __init__(self, logger):
-		self.logger  = logger
+	def __init__(self):
+		self.logger  = logging.getLogger("PiTFT-Playerui logger.player control")
 		self.spotify = None
 		self.mpd     = None
 
 		if config.spotify_host and config.spotify_port:
-			self.spotify = spotify_control.SpotifyControl(logger)
+			self.spotify = spotify_control.SpotifyControl()
 		if config.mpd_host and config.mpd_port:
-			self.mpd = mpd_control.MPDControl(logger)
+			self.mpd = mpd_control.MPDControl()
 
-		# Paths
-		self.path = os.path.dirname(sys.argv[0]) + "/"
-		os.chdir(self.path)
-	
 		# Things to remember
 		self.status = {}
 		self.song = {}
@@ -82,7 +69,6 @@ class PlayerControl:
 				
 		except:
 				self.switch_active_player("")
-				#self.logger.debug("Can't determine active player yet")
 
 	def refresh_players(self):
 		
@@ -115,7 +101,7 @@ class PlayerControl:
 		else:
 			self.status = {}
 			self.song = {}
-			
+
 	# Direction: +, -
 	def set_volume(self, amount, direction=""):
 		if self.mpd and self.active_player == "mpd":
@@ -132,7 +118,6 @@ class PlayerControl:
 			
 	def control_player(self, command, player="active"):
 	
-		# Translate
 		if player == "active":
 			player = self.active_player
 		if self.status:
@@ -158,13 +143,12 @@ class PlayerControl:
 		elif player == "spotify":
 			self.spotify.control(command)
 		elif player == "mpd":
-			self.mpd.control(command)			
+			self.mpd.control(command)
 
 	def load_playlist(self, command):
 		self.mpd.load_playlist(command)
 
 	def play_cd(self):
-		self.switch_active_player("mpd")
 		self.mpd.play_cd()
 		
 	def get_playlists(self):

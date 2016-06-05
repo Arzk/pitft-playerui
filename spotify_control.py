@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 import httplib
+import logging
 import config
 
 class SpotifyControl:
-	def __init__(self, logger):
-
-		self.logger = logger
+	def __init__(self):	
+		self.logger = logging.getLogger("PiTFT-Playerui logger.Spotify control")
 		self.status = {}
-		self.song = {}
+		self.song   = {}
 
 	def refresh(self):
 		try:
@@ -68,7 +68,7 @@ class SpotifyControl:
 			command = "prev"
 		if command == "random":
 			command = "shuffle"
-			
+
 		# Prevent commands not implemented in api
 		if command in ["play", "pause", "prev", "next", "shuffle", "repeat"]:
 			self.api("playback", command)

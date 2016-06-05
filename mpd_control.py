@@ -1,19 +1,20 @@
 # -*- coding: utf-8 -*-
 import time
+import logging
 import CDDB
 import DiscID
 import config
 from mpd import MPDClient
 
 class MPDControl:
-	def __init__(self, logger):
+	def __init__(self):
 
-		self.logger = logger
+		self.logger = logging.getLogger("PiTFT-Playerui logger.MPD control")
 	
 		# MPD Client
 		self.logger.info("Setting MPDClient")
 		self.reconnect = False
-		self.connectToMPD()
+		self.connect()
 
 		# Things to remember
 		self.status = {}
@@ -31,7 +32,7 @@ class MPDControl:
 		# Print data
 		self.logger.info("MPD server version: %s" % self.mpdc.mpd_version)
 		
-	def connectToMPD(self):
+	def connect(self):
 		if self.reconnect:
 			self.logger.info("Reconnecting to MPD server")
 		else:
@@ -63,7 +64,7 @@ class MPDControl:
 					
 	def refresh(self):
 		if self.reconnect:
-			self.connectToMPD()
+			self.connect()
 		if self.reconnect == False:
 			connection = False
 			try:
@@ -213,15 +214,15 @@ class MPDControl:
 			disc_id = DiscID.disc_id(cdrom)
 		except:
 			disc_id = {}
-
-		self.logger.debug("Loaded new cd, id: %s" % disc_id)
-		self.query_cddb(disc_id)
+		if disc_id:
+			self.logger.debug("Loaded new cd, id: %s" % disc_id)
+			self.query_cddb(disc_id)
 		return disc_id
 		
 	def play_cd(self):
-		self.logger.info("Playing CD")
 		self.disc_id = self.load_cd()
 		if self.disc_id:
+			self.logger.info("Playing CD")
 			self.mpdc.clear()
 			number_of_tracks = int(self.disc_id[1])
 			for i in range (1, number_of_tracks):
@@ -230,6 +231,9 @@ class MPDControl:
 			self.mpdc.random(0)
 			self.mpdc.repeat(0)
 			self.mpdc.play()
+		else:
+			self.logger.info("No CD found")
+
 			
 	def get_playlists(self):
 		return self.mpdc.listplaylists()

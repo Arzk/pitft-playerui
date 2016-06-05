@@ -2,6 +2,7 @@
 import sys, pygame
 from pygame.locals import *
 import time
+import logging
 import subprocess
 import os
 import glob
@@ -15,14 +16,13 @@ import config
 import control
 
 class PitftPlayerui:
-	def __init__(self, logger):
+	def __init__(self):
 
-		self.logger = logger
-		
-		self.pc = control.PlayerControl(logger)
+		self.logger = logging.getLogger("PiTFT-Playerui logger.screen manager")
+		self.pc = control.PlayerControl()
 
 		# Pylast ####################################################################  
-		logger.info("Setting Pylast")
+		self.logger.info("Setting Pylast")
 		username = config.username
 		password_hash = pylast.md5(config.password_hash)
 		self.lfm = pylast.LastFMNetwork(api_key = config.API_KEY, api_secret = config.API_SECRET)
