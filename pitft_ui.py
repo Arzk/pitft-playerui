@@ -26,9 +26,7 @@ class PitftPlayerui:
 		# Paths
 		self.path = os.path.dirname(sys.argv[0]) + "/"
 		os.chdir(self.path)
-
-		self.logger.debug("crashed here")
-		
+	
 		# Fonts
 		self.fontfile = self.path + config.fontfile
 		self.logger.debug(self.fontfile)
@@ -861,20 +859,14 @@ class PitftPlayerui:
 
 		volume = 100 if volume > 100 else volume
 		volume = 0 if volume < 0 else volume
-		self.mpdc.setvol(volume)	
+		self.mpdc.setvol(volume)
 			
 	def toggle_playback(self):
 			status = self.playbackStatus
 			if status == "play":
-				if self.active_player == "spotify":
-					self.spotify_control("playback","pause")
-				else:
-					self.mpdc.pause()
+				self.control_player("pause")
 			else:
-				if self.active_player == "spotify":
-					self.spotify_control("playback","play")
-				else:
-					self.mpdc.play()
+				self.control_player("play")
 	
 	def control_player(self, command, player="active"):
 		if command == "repeat":

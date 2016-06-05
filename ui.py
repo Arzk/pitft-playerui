@@ -37,8 +37,6 @@ try:
 except:
 	logger.setLevel(logging.INFO)
 	
-
-
 handler = TimedRotatingFileHandler('/var/log/pitft-playerui/pitft-playerui.log',when="midnight",interval=1,backupCount=14)
 formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
 handler.setFormatter(formatter)
@@ -294,17 +292,17 @@ class PitftDaemon(Daemon):
 		else:
 			logger.debug("mouse button %s not supported" % mousebutton)
 
-
 	def shutdown(self):
 		# Close MPD connection
 		if self.client:
 			self.client.close()
 			self.client.disconnect()
-
+		
 	# Main loop
 	def run(self):
 		self.setup()
 		self.connectToMPD()
+
 		try:
 			drawtime = datetime.datetime.now()
 			while 1:
@@ -330,8 +328,6 @@ class PitftDaemon(Daemon):
 						end_x, end_y = pygame.mouse.get_pos()
 						direction_x = end_x - self.start_x
 						direction_y = end_y - self.start_y
-#						end_x,end_y = pygame.mouse.get_pos()
-#						direction = end_y - self.start_y
 
 						if abs(direction_x) >= self.flip_threshold or abs(direction_y) >= self.scroll_threshold:
 							self.mouse_scroll = True
@@ -356,7 +352,6 @@ class PitftDaemon(Daemon):
 
 					if event.type == pygame.MOUSEBUTTONUP and self.mousebutton_down:
 						# Not a long click or scroll
-#						if datetime.datetime.now() - clicktime < timedelta(milliseconds=500) and not self.mouse_scroll:
 						if not self.longpress and not self.mouse_scroll:
 							self.on_click(1)
 							
