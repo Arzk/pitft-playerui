@@ -61,10 +61,9 @@ Detailed install and calibration recommended
 
 Install dependencies:
 <pre>apt-get update
-apt-get install python-pygame
+apt-get install python-pygame memcached python-memcache
 pip install python-mpd2
 apt-get install evtest tslib libts-bin
-apt-get install memcached python-memcache
 </pre>
 
 For CD support install the cddb-py module:
@@ -73,14 +72,10 @@ http://cddb-py.sourceforge.net/
 For Spotify support install spotify-connect-web:
 https://github.com/Fornoth/spotify-connect-web
 
-Download PiTFT-playerui files from github.
-To be sure to start in the home directory do
+Download PiTFT-playerui files from github. To be sure to start in the home directory do
 <code>cd ~</code>
 
-Then install git:
-<code>apt-get install git-core</code>
-
-After installing clone the git repository:
+Clone the git repository:
 <code>git clone https://github.com/Arzk/pitft-playerui.git</code>
 
 Copy config.py.in to config.py
@@ -89,8 +84,8 @@ From config.py you need to change the font if you are using something else than 
 You can download for example Open Sans "OpenSans-Bold.ttf" from www.fontsquirrel.com/fonts/open-sans. Transfer ttf file to /home/pi/pitft-playerui/ folder.
 
 Set the other settings in config.py file:
-- Set the LastFM api key and login information for remote cover art fetching
 - For local cover art set the path of the mpd library
+- Set the LastFM api key and login information for remote cover art fetching
 - For Spotify set the path and port of Spotify-connect-web
 - To disable MPD support and use only spotify, clear the mpd_host and mpd_port
 
