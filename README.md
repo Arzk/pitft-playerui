@@ -94,6 +94,10 @@ pcm.dacci {
  type hw
  card sndrpihifiberry
 }
+ctl.dacci {
+ type hw
+ card sndrpihifiberry
+}
 </pre>
 
 Install dependencies:
