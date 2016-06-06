@@ -36,7 +36,7 @@ class MPDControl:
 		if self.reconnect:
 			self.logger.info("Reconnecting to MPD server")
 		else:
-			self.logger.info("Trying to connect MPD server")
+			self.logger.info("Trying to connect to MPD server")
 		
 		client = MPDClient()
 		client.timeout = 10
@@ -50,7 +50,7 @@ class MPDControl:
 			except Exception, e:
 				self.logger.info(e)
 				noConnection=True
-				time.sleep(15)
+				time.sleep(5)
 		self.mpdc = client
 		self.reconnect = False
 		self.logger.info("Connection to MPD server established.")
@@ -233,7 +233,6 @@ class MPDControl:
 			self.mpdc.play()
 		else:
 			self.logger.info("No CD found")
-
 			
 	def get_playlists(self):
 		return self.mpdc.listplaylists()

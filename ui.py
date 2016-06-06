@@ -17,7 +17,7 @@ from logging.handlers import TimedRotatingFileHandler
 from daemon import Daemon
 import pitft_ui
 import config
-import Pyro4
+import memcache
 
 # OS enviroment variables for pitft
 os.environ["SDL_FBDEV"] = "/dev/fb1"
@@ -116,10 +116,25 @@ class PitftDaemon(Daemon):
 	# Main loop
 	def run(self):
 		self.setup()
-
+		
 		try:
 			drawtime = datetime.datetime.now()
 			while 1:
+				
+				# See if there were any CLI commands
+				shared = memcache.Client(['127.0.0.1:11211'], debug=0)    
+				command = shared.get('command')
+				if command:
+					logger.debug("Got shared: %s" % command)
+					self.sm.pc.control_player(command)
+					if not self.sm.get_backlight_status():
+						self.sm.turn_backlight_on()
+					else:
+						self.sm.update_screen_timeout()
+					# Clear cache
+					shared.set('command', None)
+				
+				# Mouse events
 				for event in pygame.event.get():
 					if event.type == pygame.MOUSEBUTTONDOWN:
 						click_pos = (pygame.mouse.get_pos() [0], pygame.mouse.get_pos() [1])
@@ -197,7 +212,7 @@ class PitftDaemon(Daemon):
 					
 					# Update screen timeout if there's any mouse activity
 					if config.screen_timeout > 0:
-						self.sm.updateScreenTimeout()
+						self.sm.update_screen_timeout()
 
 				# Update screen, fps=20
 				if drawtime < datetime.datetime.now():

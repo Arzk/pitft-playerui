@@ -21,12 +21,9 @@ class PitftPlayerui:
 		self.logger = logging.getLogger("PiTFT-Playerui logger.screen manager")
 		self.pc = control.PlayerControl()
 
-		# Pylast ####################################################################  
-		self.logger.info("Setting Pylast")
-		username = config.username
-		password_hash = pylast.md5(config.password_hash)
-		self.lfm = pylast.LastFMNetwork(api_key = config.API_KEY, api_secret = config.API_SECRET)
-
+		# Pylast  
+		self.lastfm_connected = False
+		
 		# Paths
 		self.path = os.path.dirname(sys.argv[0]) + "/"
 		os.chdir(self.path)
@@ -37,7 +34,7 @@ class PitftPlayerui:
 	
 		# Fonts
 		self.fontfile = self.path + config.fontfile
-		self.logger.debug(self.fontfile)
+		self.logger.debug("Font file: %s" % self.fontfile)
 		self.font = {}
 		self.font['details']	= pygame.font.Font(self.fontfile, 16)
 		self.font['elapsed']	= pygame.font.Font(self.fontfile, 16)
@@ -112,10 +109,24 @@ class PitftPlayerui:
 		self.showPlaylists	 = False
 
 		# Offset for list scrolling
-		self.offset 		= 0
+		self.offset = 0
 
 		# Turn backlight on
 		self.turn_backlight_on()
+		
+	def connect_lfm(self):
+		self.logger.info("Setting Pylast")
+		username = config.username
+		password_hash = pylast.md5(config.password_hash)
+		self.lastfm_connected = False
+		try:
+			self.lfm = pylast.LastFMNetwork(api_key = config.API_KEY, api_secret = config.API_SECRET)
+			self.lastfm_connected = True
+			self.logger.debug("Connected to Last.fm")
+		except:
+			self.lfm = ""
+			time.sleep(5)
+			self.logger.debug("Last.fm not connected")
 
 	def parse_song(self):
 
@@ -293,6 +304,10 @@ class PitftPlayerui:
 			self.updateVolume = True
 			
 	def render(self, surface):
+	
+		# Connect to last.fm
+		if not self.lastfm_connected and config.API_KEY and config.API_SECRET:
+			self.connect_lfm()
 
 		# Refresh information from players
 		self.pc.refresh_players()
@@ -449,7 +464,10 @@ class PitftPlayerui:
 		# Something is playing - update screen timeout
 		if self.pc.status and config.screen_timeout > 0:
 			if self.pc.status["state"] == "play": 
-				self.updateScreenTimeout()
+				self.update_screen_timeout()
+				if not self.get_backlight_status():
+					self.turn_backlight_on()
+		
 			# Nothing playing for 5 seconds, turn off screen if not already off
 			elif self.screen_timeout_time < datetime.datetime.now() and self.backlight:
 				self.turn_backlight_off()
@@ -566,7 +584,7 @@ class PitftPlayerui:
 
 			elif number == 6:
 				self.pc.control_player("previous")
-
+				self.pc.listen_test()
 			elif number == 7:
 				self.pc.control_player("play_pause")
 
@@ -675,12 +693,14 @@ class PitftPlayerui:
 				pass
 
 		# No existing coverart, try to fetch from LastFM
-		if not self.cover:
+		if not self.cover and self.lastfm_connected:
 
 			try:
 				lastfm_album = self.lfm.get_album(self.artist, self.album)
 				self.logger.debug("caT album: %s" % lastfm_album)
 			except Exception, e:
+				# TODO: Check connection - now it is assumed that there is none
+				self.lastfm_connected = False
 				self.logger.exception(e)
 				raise
 
@@ -739,7 +759,7 @@ class PitftPlayerui:
 
 		# Update screen timeout timer
 		if config.screen_timeout > 0:
-			self.updateScreenTimeout()
+			self.update_screen_timeout()
 		
 	def get_backlight_status(self):
 		return self.backlight
@@ -826,5 +846,5 @@ class PitftPlayerui:
 			self.offset = len(self.playlist) - 8
 		self.logger.debug("Offset: %s" % self.offset)
 
-	def updateScreenTimeout(self):
+	def update_screen_timeout(self):
 		self.screen_timeout_time = datetime.datetime.now() + timedelta(seconds=config.screen_timeout)		

@@ -2,6 +2,7 @@
 
 import sys, os, time, atexit
 from signal import SIGTERM 
+import memcache
 
 class Daemon:
 	"""
@@ -131,7 +132,8 @@ class Daemon:
 		"""
 		Control playback
 		"""
-		print "Got command", command
+		shared = memcache.Client(['127.0.0.1:11211'], debug=0)
+		shared.set('command', command)
 		
 	def run(self):
 		"""
