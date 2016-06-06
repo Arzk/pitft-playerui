@@ -54,10 +54,47 @@ Known issues:
 
 Installing:
 ===========
-Current installation guide is tested and working with: Resistive PiTFT+ 3.5" + Raspberry Pi 3 Raspbian Jessie.
+Current installation guide is tested and working with: Resistive PiTFT+ 3.5", PiFi DAC+ and Raspberry Pi 3 running Raspbian Jessie.
 
 Install Raspbian and MPD and Configure PiTFT+ using the guide by Adafruit: https://learn.adafruit.com/adafruit-pitft-3-dot-5-touch-screen-for-raspberry-pi/ 
 Detailed install and calibration recommended
+
+For the player switching to work when using a separate DAC, set up dmix in alsa
+
+For PiFi DAC+ open /boot/config.txt and add the line:
+
+<code>dtoverlay=i2s-mmap</code>
+
+Open /etc/asound.conf and add the following:
+
+<pre>
+pcm.!default {
+ type plug
+ slave.pcm "dacci_dmix"
+}
+
+pcm.dacci_dmix {
+    type dmix
+    ipc_key 1024
+    ipc_perm 0666
+    slave {
+      pcm dacci
+      period_time 0
+      period_size 2048
+      buffer_size 32768
+      rate 44100
+   }
+   bindings {
+      0 0
+      1 1
+   }
+}
+
+pcm.dacci {
+ type hw
+ card sndrpihifiberry
+}
+</pre>
 
 Install dependencies:
 <pre>apt-get update
@@ -148,7 +185,7 @@ TODO:
 Author notes:
 =============
 
-There might be some bugs left, so let me hear about them. Feel free to give any improvement ideas. This is my first python project, so a lot of things could be done more efficiently.
+There might be some bugs left, so let me hear about them. Feel free to give any improvement ideas. This is my first python project, so a lot of things could surely be done more efficiently.
 
 Thanks:
 ===========
