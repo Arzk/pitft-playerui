@@ -1,4 +1,4 @@
-PiTFT-PlayerUI is a fork of PMB-PiTFT (Pi MusicBox PiTFT) that is a small Python script that uses mopidy's mpd-api to show controlling ui on Raspberry Pi's screen.
+PiTFT-PlayerUI is a fork of PMB-PiTFT (Pi MusicBox PiTFT), a small Python script that uses mopidy's mpd-api to show controlling ui on Raspberry Pi's screen.
 
 ![Screenshot](https://dl.dropboxusercontent.com/u/15996443/github/pitft-playerui.png)
 
@@ -9,6 +9,7 @@ Improvements:
 - Spotify-connect-web support (https://github.com/Fornoth/spotify-connect-web)
 - Darker UI
 - Gesture support
+- CLI player control
  
 Features:
 ===========
@@ -22,16 +23,14 @@ Shows and lets user control:
 - Repeat
 - Random
 - Playback status
+- Active player toggle
 - Playlists
 - CD playback
 - Radio playback
 - Volume
 
-Lets user control:
-- Screen backlight either manually or by setting a screen timeout
-
 Gestures:
-- Vertical scroll
+- Vertical scrolling in lists
 - Horizontal flip: next/previous
 - Long press on song info: show playlist
 - Long press on volume: increase step
@@ -43,11 +42,15 @@ Things you need:
 - Adafruit PiTFT+ 3.5" with Resistive Touchscreen ( https://www.adafruit.com/product/2441 )
 - Internet connection for Pi
 - Raspbian running on the Pi
-- MPD configured
+- [Optional] MPD configured
+- [Optional] Spotify-connect-web configured
+- [Optional] Last.fm API key for cover art fetching
 - [Optional] Helvetica Neue Bold-font. You can use normal Helvetica Bold as well or some other font.
 
 Known issues:
 ==============
+- Doesn't check if players are available when using CLI commands
+- Playlist view doesn't follow currently playing item
 
 Installing:
 ===========
@@ -61,6 +64,7 @@ Install dependencies:
 apt-get install python-pygame
 pip install python-mpd2
 apt-get install evtest tslib libts-bin
+apt-get install memcached python-memcache
 </pre>
 
 For CD support install the cddb-py module:
@@ -88,6 +92,7 @@ Set the other settings in config.py file:
 - Set the LastFM api key and login information for remote cover art fetching
 - For local cover art set the path of the mpd library
 - For Spotify set the path and port of Spotify-connect-web
+- To disable MPD support and use only spotify, clear the mpd_host and mpd_port
 
 For display backlight control write these lines to /etc/rc.local:
 <pre>echo 508 > /sys/class/gpio/export
@@ -98,7 +103,7 @@ echo '1' > /sys/class/gpio/gpio508/value
 This is a daemon and it has three commands: start, restart and stop.
 Use the following command to start ui:
 
-<code>sudo python /home/pi/pitft-playerui/pitft-playerui/ui.py start</code>
+<code>sudo python /home/pi/pitft-playerui/ui.py start</code>
 
 To run the script as a service, copy the systemd service file to /etc/systemd/system:
 
@@ -108,23 +113,47 @@ Note that using the framebuffer requires root access. The script can also be run
 
 Some specific things:
 =========
-- The radio UI button expects to find a playlist named "Radio". The Radio playlist is hidden from the playlists view
+- The radio UI button expects to find a playlist set in the config.py (default: "Radio"). 
+	- The Radio playlist is hidden from the playlists view
 - The active player view is decided between MPD and Spotify so that:
 	- On start the playing player is active. Pause Spotify if both are playing
 	- If Spotify is playing and MPD starts playing, pause Spotify and switch to MPD
 	- Vice versa if Spotify starts playing
 
+CLI:
+=========
+You can control the system from command line, for example using irexec, with
+
+<code>python /home/pi/pitft-playerui/ui.py control [command]</code>
+
+Valid commands implemented:
+- play
+- play_pause # Play/pause toggle
+- pause
+- stop
+- next
+- previous
+- rwd     # Rewind, only in MPD
+- ff      # Fast forward, only in MPD
+- repeat  # only in MPD
+- random  # only in MPD
+- spotify # Switch active player to Spotify
+- mpd     # Switch active player to MPD
+- cd      # Play CD
+- radio   # Load radio playlist
+
 TODO:
 =========
-- Sleep timer and other configs in a menu
-- CLI for LIRC control of both players
+- Support for OpenHome Mediaplayer (http://petemanchester.github.io/MediaPlayer/)
+- Volume control for Spotify
+- Sleep timer and other settings in a separate menu
 - Radio stream icons set in the config.py file
 - Got other ideas? Post an issue and tell me about it
 
 Author notes:
 =============
 
-There might be some bugs left, so let me hear about them. Feel free to give any improvement ideas.
+There might be some bugs left, so let me hear about them. Feel free to give any improvement ideas. This is my first python project, so a lot of things could be done more efficiently.
 
 Thanks:
 ===========
