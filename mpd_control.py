@@ -96,7 +96,7 @@ class MPDControl:
 	def refresh_cd(self):
 		# Get filename from mpd
 		try:
-			file = self.song["file"].decode('utf-8')
+			file = self.song["file"]
 		except:
 			file = "";
 		
@@ -128,7 +128,7 @@ class MPDControl:
 		# Title
 		try:
 			number=int(self.song["track"]) - 1
-			self.song["title"] = self.cdda_read_info["TTITLE" + str(number)].decode('utf-8')
+			self.song["title"] = self.cdda_read_info["TTITLE" + str(number)]
 		except:
 			self.song["title"] = ""
 		# Time

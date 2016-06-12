@@ -55,8 +55,6 @@ class SpotifyControl:
 					self.song["artist"] = line.split(": ")[1][1:-3].decode('unicode_escape').encode('utf-8')
 				if "track_name" in line:
 					self.song["title"] = line.split(": ")[1][1:-3].decode('unicode_escape').encode('utf-8')
-#					self.logger.debug(type(self.song["title"]))
-					self.logger.debug(self.song["title"])
 				if "cover_uri" in line:
 					self.song["cover_uri"] = line.split(": ")[1][1:-3]
 		else:
