@@ -50,7 +50,6 @@ Things you need:
 Known issues:
 ==============
 - Doesn't check if players are available when using CLI commands
-- Playlist view doesn't follow currently playing item
 
 Installing:
 ===========
