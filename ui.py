@@ -66,7 +66,16 @@ class PitftDaemon(Daemon):
 		signal(SIGTERM, signal_term_handler)
 		# Python game ######################
 		logger.info("Setting pygame")
-		pygame.init()
+		pygame_init_done = False
+		while not pygame_init_done:
+			try:
+				pygame.init()
+				pygame_init_done = True
+			except:
+				logger.debug("Pygame init failed")
+				pygame_init_done = False
+				time.sleep(5)
+			
 		pygame.mouse.set_visible(False)
 
 		# Hax for freezing
@@ -98,6 +107,7 @@ class PitftDaemon(Daemon):
 				logger.debug("Unable to set the screen manager")
 
 		# Mouse variables
+		self.clicktime 	      = datetime.datetime.now()
 		self.longpress_time   = timedelta(milliseconds=500)
 		self.scroll_threshold = 20
 		self.flip_threshold   = 80
@@ -120,109 +130,124 @@ class PitftDaemon(Daemon):
 		try:
 			drawtime = datetime.datetime.now()
 			while 1:
-				
-				# See if there were any CLI commands
-				shared = memcache.Client(['127.0.0.1:11211'], debug=0)    
-				command = shared.get('command')
-				if command:
-					logger.debug("Got shared: %s" % command)
-					self.sm.pc.control_player(command)
-					if not self.sm.get_backlight_status():
-						self.sm.turn_backlight_on()
-					else:
-						self.sm.update_screen_timeout()
-					# Clear cache
-					shared.set('command', None)
+
+				# Refresh info
+				self.sm.refresh()
+
+				# Check CLI events
+				self.read_cli()
 				
 				# Mouse events
-				for event in pygame.event.get():
-					if event.type == pygame.MOUSEBUTTONDOWN:
-						click_pos = (pygame.mouse.get_pos() [0], pygame.mouse.get_pos() [1])
-
-						# Instant click when backlight is off to turn it back on
-						if self.sm.get_backlight_status() == 0:
-							click_pos = (pygame.mouse.get_pos() [0], pygame.mouse.get_pos() [1])
-							self.sm.on_click(1, click_pos)
-
-						else:
-							# Save mouse position for determining if user has scrolled
-							self.start_x,self.start_y = pygame.mouse.get_pos()
-							self.mouse_scroll = False
-							clicktime = datetime.datetime.now()
-							self.mousebutton_down = True
-
-							#logger.debug("screen pressed") #for debugging purposes
-							#pos = (pygame.mouse.get_pos() [0], pygame.mouse.get_pos() [1])
-							#pygame.draw.circle(self.screen, (255,255,255), pos, 2, 0) #for debugging purposes - adds a small dot where the screen is pressed
-
-					if event.type == pygame.MOUSEMOTION and self.mousebutton_down and not self.longpress:
-						end_x, end_y = pygame.mouse.get_pos()
-						direction_x = end_x - self.start_x
-						direction_y = end_y - self.start_y
-
-						if abs(direction_x) >= self.flip_threshold or abs(direction_y) >= self.scroll_threshold:
-							self.mouse_scroll = True
-							# Assume that the bigger amount of scroll (x vs y) was the intention
-							if abs(direction_y) > abs(direction_x):
-								# A vertical movement of 20 pixels scrolls one line
-								if direction_y < 0:
-									self.sm.inc_offset(int(floor(direction_y/self.scroll_step)))
-								elif direction_y > 0:
-									self.sm.inc_offset(int(ceil(direction_y/self.scroll_step)))
-							else:
-								# A horizontal flip switches next/prev
-								if direction_x > 0:
-									self.sm.button(6, 1)
-								elif direction_x < 1:
-									self.sm.button(8, 1)
-								# don't repeat
-								self.mousebutton_down = False
-	
-						# Save new position
-						self.start_x,self.start_y=pygame.mouse.get_pos()
-
-					if event.type == pygame.MOUSEBUTTONUP and self.mousebutton_down:
-			
-						# Not a long click or scroll
-						if not self.longpress and not self.mouse_scroll:
-							click_pos = (pygame.mouse.get_pos() [0], pygame.mouse.get_pos() [1])
-							self.sm.on_click(1, click_pos)
-							
-						# Clear variables
-						end_x = 0;
-						end_y = 0;
-						self.start_x = 0;
-						self.start_y = 0;
-						self.mouse_scroll = False
-						self.mousebutton_down = False
-						self.longpress = False
-
-					# Long press - register second click
-					elif self.mousebutton_down and datetime.datetime.now() - clicktime > self.longpress_time and not self.mouse_scroll and not self.longpress:
-						click_pos = (pygame.mouse.get_pos() [0], pygame.mouse.get_pos() [1])
-						self.sm.on_click(2, click_pos)
-						clicktime = datetime.datetime.now()
-						self.longpress = True
-
-					# Speed up the long press, if continued
-					elif self.mousebutton_down and datetime.datetime.now() - clicktime > self.longpress_time/2 and not self.mouse_scroll and self.longpress:
-						click_pos = (pygame.mouse.get_pos() [0], pygame.mouse.get_pos() [1])
-						self.sm.on_click(2, click_pos)
-						clicktime = datetime.datetime.now()
-					
-					# Update screen timeout if there's any mouse activity
-					if config.screen_timeout > 0:
-						self.sm.update_screen_timeout()
+				self.read_mouse()
 
 				# Update screen, fps=20
 				if drawtime < datetime.datetime.now():
 					drawtime = datetime.datetime.now() + timedelta(milliseconds=50)
-					self.sm.render(self.screen)
-					pygame.display.flip()
+					# Don't draw when display is off
+					if self.sm.get_backlight_status():
+						self.sm.render(self.screen)
+						pygame.display.flip()
+					
 			pygame.display.update()
+			
 		except Exception, e:
 			logger.debug(e)
 			raise
+			
+	def read_mouse(self):
+		for event in pygame.event.get():
+			if event.type == pygame.MOUSEBUTTONDOWN:
+				click_pos = (pygame.mouse.get_pos() [0], pygame.mouse.get_pos() [1])
+				self.clicktime = datetime.datetime.now()
+
+				# Instant click when backlight is off to turn it back on
+				if not self.sm.get_backlight_status():
+					click_pos = (pygame.mouse.get_pos() [0], pygame.mouse.get_pos() [1])
+					self.sm.on_click(1, click_pos)
+
+				else:
+					# Save mouse position for determining if user has scrolled
+					self.start_x,self.start_y = pygame.mouse.get_pos()
+					self.mouse_scroll = False
+					self.mousebutton_down = True
+
+					#logger.debug("screen pressed") #for debugging purposes
+					#pos = (pygame.mouse.get_pos() [0], pygame.mouse.get_pos() [1])
+					#pygame.draw.circle(self.screen, (255,255,255), pos, 2, 0) #for debugging purposes - adds a small dot where the screen is pressed
+
+			if event.type == pygame.MOUSEMOTION and self.mousebutton_down and not self.longpress:
+				end_x, end_y = pygame.mouse.get_pos()
+				direction_x = end_x - self.start_x
+				direction_y = end_y - self.start_y
+
+				if abs(direction_x) >= self.flip_threshold or abs(direction_y) >= self.scroll_threshold:
+					self.mouse_scroll = True
+					# Assume that the bigger amount of scroll (x vs y) was the intention
+					if abs(direction_y) > abs(direction_x):
+						# A vertical movement of 20 pixels scrolls one line
+						if direction_y < 0:
+							self.sm.inc_offset(int(floor(direction_y/self.scroll_step)))
+						elif direction_y > 0:
+							self.sm.inc_offset(int(ceil(direction_y/self.scroll_step)))
+					else:
+						# A horizontal flip switches next/prev
+						if direction_x > 0:
+							self.sm.button(6, 1)
+						elif direction_x < 1:
+							self.sm.button(8, 1)
+						# don't repeat
+						self.mousebutton_down = False
+
+				# Save new position
+				self.start_x,self.start_y=pygame.mouse.get_pos()
+
+			if event.type == pygame.MOUSEBUTTONUP and self.mousebutton_down:
+	
+				# Not a long click or scroll
+				if not self.longpress and not self.mouse_scroll:
+					click_pos = (pygame.mouse.get_pos() [0], pygame.mouse.get_pos() [1])
+					self.sm.on_click(1, click_pos)
+					
+				# Clear variables
+				end_x = 0;
+				end_y = 0;
+				self.start_x = 0;
+				self.start_y = 0;
+				self.mouse_scroll = False
+				self.mousebutton_down = False
+				self.longpress = False
+
+			# Long press - register second click
+			elif self.mousebutton_down and not self.mouse_scroll:
+				if datetime.datetime.now() - self.clicktime > self.longpress_time and not self.longpress:
+					click_pos = (pygame.mouse.get_pos() [0], pygame.mouse.get_pos() [1])
+					self.sm.on_click(2, click_pos)
+					self.clicktime = datetime.datetime.now()
+					self.longpress = True
+
+				# Speed up the long press, if continued
+				elif datetime.datetime.now() - self.clicktime > self.longpress_time/2 and self.longpress:
+					click_pos = (pygame.mouse.get_pos() [0], pygame.mouse.get_pos() [1])
+					self.sm.on_click(2, click_pos)
+					self.clicktime = datetime.datetime.now()
+
+			# Update screen timeout if there's any mouse activity
+			if config.screen_timeout > 0:
+				self.sm.update_screen_timeout()
+
+	def read_cli(self):
+		# See if there were any CLI commands
+		shared = memcache.Client(['127.0.0.1:11211'], debug=0)    
+		command = shared.get('command')
+		if command:
+			logger.debug("Got shared: %s" % command)
+			self.sm.pc.control_player(command)
+			
+			# Set backlight on
+			self.sm.update_screen_timeout()
+
+			# Clear cache
+			shared.set('command', None)
 
 if __name__ == "__main__":
 	daemon = PitftDaemon('/tmp/pitft-playerui-daemon.pid')
@@ -241,5 +266,5 @@ if __name__ == "__main__":
 			sys.exit(2)
 		sys.exit(0)
 	else:
-		print "usage: %s start|stop|restart" % sys.argv[0]
+		print "usage: %s start|stop|restart|control <command>" % sys.argv[0]
 		sys.exit(2)

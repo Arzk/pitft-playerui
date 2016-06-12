@@ -23,8 +23,6 @@ class PlayerControl:
 		self.active_player = ""
 		
 	def determine_active_player(self, old_spotify_status, old_mpd_status):
-
-		# Determine active player if not set
 		try:
 			if self.spotify and self.mpd:
 				if not self.active_player:
@@ -52,14 +50,14 @@ class PlayerControl:
 					self.switch_active_player("spotify")
 					if self.mpd.status["state"] == "play":
 						self.control_player("pause", "mpd")
-						#self.logger.debug("Spotify started, pausing mpd")
+						self.logger.debug("Spotify started, pausing mpd")
 	
 				# MPD started playing - switch
 				if self.mpd.status["state"] == "play" and not old_mpd_status == "play" and old_mpd_status:
 					self.switch_active_player("mpd")
 					if self.spotify.status["state"] == "play":
 						self.control_player("pause", "spotify")
-						#self.logger.debug("mpd started, pausing Spotify")
+						self.logger.debug("mpd started, pausing Spotify")
 
 			elif self.spotify and not self.mpd:
 				self.switch_active_player("spotify")
@@ -101,7 +99,7 @@ class PlayerControl:
 		else:
 			self.status = {}
 			self.song = {}
-
+			
 	# Direction: +, -
 	def set_volume(self, amount, direction=""):
 		if self.mpd and self.active_player == "mpd":

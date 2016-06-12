@@ -82,4 +82,3 @@ class SpotifyControl:
 		c.request('GET', '/api/'+method+'/'+command, '{}')
 		doc = c.getresponse().read()
 		return doc
-

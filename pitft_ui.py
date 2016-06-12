@@ -40,7 +40,10 @@ class PitftPlayerui:
 		self.font['elapsed']	= pygame.font.Font(self.fontfile, 16)
 		self.font['playlist']	= pygame.font.Font(self.fontfile, 20)
 		self.font['field']		= pygame.font.Font(self.fontfile, 20)
-
+		self.color = {}
+		self.color['font']      = 230,228,227
+		self.color['highlight'] = 230,228,0
+				
 		# Images
 		self.image = {}
 		self.image["background"]			=pygame.image.load(self.path + "pics/" + "background.png")
@@ -127,6 +130,26 @@ class PitftPlayerui:
 			self.lfm = ""
 			time.sleep(5)
 			self.logger.debug("Last.fm not connected")
+			
+	def refresh(self):	
+		# (re)connect to last.fm
+		if not self.lastfm_connected and config.API_KEY and config.API_SECRET:
+			self.connect_lfm()
+
+		# Refresh information from players
+		self.pc.refresh_players()
+
+		# Parse new song information
+		self.parse_song()
+		
+		# Something is playing - keep screen on
+		if self.pc.status and config.screen_timeout > 0:
+			if self.pc.status["state"] == "play":
+				self.update_screen_timeout()
+		
+			# Nothing playing for n seconds, turn off screen if not already off
+			elif self.screen_timeout_time < datetime.datetime.now() and self.backlight:
+				self.turn_backlight_off()
 
 	def parse_song(self):
 
@@ -231,7 +254,7 @@ class PitftPlayerui:
 			self.updateAlbum = True
 			self.cover = False
 			
-			# Find cover art on different thread			
+			# Find cover art on different thread
 			try:
 				if self.coverartThread:
 					self.logger.debug("if caT")
@@ -302,19 +325,9 @@ class PitftPlayerui:
 		if self.volume != volume:
 			self.volume = volume
 			self.updateVolume = True
-			
+						
 	def render(self, surface):
 	
-		# Connect to last.fm
-		if not self.lastfm_connected and config.API_KEY and config.API_SECRET:
-			self.connect_lfm()
-
-		# Refresh information from players
-		self.pc.refresh_players()
-
-		# Parse new song information
-		self.parse_song()
-		
 		if self.updateAll:
 			self.updateTrackInfo = True
 			self.updateAlbum	 = True
@@ -369,20 +382,20 @@ class PitftPlayerui:
 				surface.blit(self.image["position_bg"], (55, 245))
 				surface.blit(self.image["icon_screenoff"], (460, 304))	# redraw screenoff icon
 
-			text = self.font["details"].render(self.artist, 1,(230,228,227))
+			text = self.font["details"].render(self.artist, 1,(self.color['font']))
 			surface.blit(text, (60, 258)) # Artist
 			if self.date:
-				text = self.font["details"].render(self.album + " (" + self.date + ")", 1,(230,228,227))
+				text = self.font["details"].render(self.album + " (" + self.date + ")", 1,(self.color['font']))
 			else:
-				text = self.font["details"].render(self.album, 1,(230,228,227))
+				text = self.font["details"].render(self.album, 1,(self.color['font']))
 			surface.blit(text, (60, 278)) # Album
 			if self.track:
-				text = self.font["details"].render(self.track.zfill(2) + " - " + self.title, 1,(230,228,227))
+				text = self.font["details"].render(self.track.zfill(2) + " - " + self.title, 1,(self.color['font']))
 			else:
-				text = self.font["details"].render(self.title, 1,(230,228,227))
+				text = self.font["details"].render(self.title, 1,(self.color['font']))
 			surface.blit(text, (60, 298)) # Title
 			if self.pc.get_active_player() == "mpd":
-				text = self.font["elapsed"].render(self.timeTotal, 1,(230,228,227))
+				text = self.font["elapsed"].render(self.timeTotal, 1,(self.color['font']))
 				surface.blit(text, (429, 238)) # Track length
 
 		# Spotify-connect-web api doesn't deliver elapsed information
@@ -391,7 +404,7 @@ class PitftPlayerui:
 				surface.blit(self.image["background"], (0,242), (0,242, 427,20)) # reset background
 				surface.blit(self.image["position_bg"], (55, 245))
 			surface.blit(self.image["position_fg"], (55, 245),(0,0,int(370*self.timeElapsedPercentage),10))
-			text = self.font["elapsed"].render(self.timeElapsed, 1,(230,228,227))
+			text = self.font["elapsed"].render(self.timeElapsed, 1,(self.color['font']))
 			surface.blit(text, (10, 238)) # Elapsed
 
 		if self.updateRepeat:
@@ -434,20 +447,35 @@ class PitftPlayerui:
 
 		if self.showPlaylist:
 			surface.blit(self.image["background"], (4,4), (4,4, 416,234)) # reset background
+			
 			if self.playlist:
 				for i in range(0,8):
 					try:
-						playlistitem = self.playlist[i+self.offset]
-						if "title" in playlistitem:
-							if "artist" in playlistitem:
-								playlistitem = playlistitem["artist"] + " - " + playlistitem["title"]
-							else:
-								playlistitem = playlistitem["title"]
-						if "file" in playlistitem:
-							playlistitem = playlistitem["file"].split("/")[-1]
+						# Parse information
+						if "title" in self.playlist[i+self.offset]:
+							playlistitem = self.playlist[i+self.offset]["title"]
+							if "artist" in self.playlist[i+self.offset]:
+								playlistitem = self.playlist[i+self.offset]["artist"] + " - " + playlistitem
+							if "pos" in self.playlist[i+self.offset]:
+								pos = int(self.playlist[i+self.offset]["pos"]) + 1
+								pos = str(pos).rjust(4, ' ')
+								playlistitem = pos + ". " + playlistitem
+
+						# No title, get filename
+						elif "file" in self.playlist[i+self.offset]:
+							playlistitem = self.playlist[i+self.offset]["file"].split("/")[-1]
 					except:
 						playlistitem = ""
-					text = self.font["playlist"].render(playlistitem, 1,(230,228,227))
+
+					# Highlight currently playing item
+					try:
+						if self.playlist[i+self.offset]["pos"] == self.pc.song["pos"]:
+							text = self.font["playlist"].render(playlistitem, 1,(self.color['highlight']))
+						else: 
+							text = self.font["playlist"].render(playlistitem, 1,(self.color['font']))
+
+					except:
+						text = self.font["playlist"].render(playlistitem, 1,(self.color['font']))
 					surface.blit(text, (12, 4 + 30*int(i)),(0,0, 408,30))
 
 		if self.showPlaylists:
@@ -458,35 +486,39 @@ class PitftPlayerui:
 						listitem = self.playlists[i+self.offset]["playlist"]
 					except:
 						listitem = ""
-					text = self.font["playlist"].render(listitem, 1,(230,228,227))
+					text = self.font["playlist"].render(listitem, 1,(self.color['font']))
 					surface.blit(text, (12, 4 + 30*int(i)),(0,0, 408,30))
-
-		# Something is playing - update screen timeout
-		if self.pc.status and config.screen_timeout > 0:
-			if self.pc.status["state"] == "play": 
-				self.update_screen_timeout()
-				if not self.get_backlight_status():
-					self.turn_backlight_on()
-		
-			# Nothing playing for 5 seconds, turn off screen if not already off
-			elif self.screen_timeout_time < datetime.datetime.now() and self.backlight:
-				self.turn_backlight_off()
-		
+	
 		# Reset updates
 		self.resetUpdates()
 
 	# Click handler
 	def on_click(self, mousebutton, click_pos):
 
-		# Screen is off and its touched
-		if self.get_backlight_status() == 0 and 0 <= click_pos[0] <= 480 and 0 <= click_pos[1] <= 320:
-			self.logger.debug("Screen off, Screen touch")
+		# Screen is off and it's touched
+		if not self.get_backlight_status() and 0 <= click_pos[0] <= 480 and 0 <= click_pos[1] <= 320:
+			self.logger.debug("Screen off, screen touch")
 			self.button(2, mousebutton)
 
 		# Screen is on. Check which button is touched 
 		else:
 			# There is no multi touch so if one button is pressed another one can't be pressed at the same time
 
+			# Playlists are shown - hide on empty space or button click
+			if self.get_playlists_status() or self.get_playlist_status():
+				if not 4 <= click_pos[0] <= 416 or not 4 <= click_pos[1] <= 243:
+					self.logger.debug("Hiding lists")
+					self.button(13, mousebutton)
+
+				# List item clicked
+				# List item to select: 4 - 33: 0, 34-63 = 1 etc
+				elif 4 <= click_pos[0] <= 416 and 4 <= click_pos[1] <= 243:
+					list_item = int(floor((click_pos[1] - 4)/30))
+					if mousebutton == 1:
+						self.logger.debug("Selecting list item %s" % list_item)
+						self.item_selector(list_item)
+					elif mousebutton == 2:
+						self.logger.debug("Second-clicked list item %s" % list_item)
 			# Selectors
 			if 418 <= click_pos[0] <= 476 and 8 <= click_pos[1] <= 64:
 				if self.pc.mpd and self.pc.spotify:
@@ -504,22 +536,6 @@ class PitftPlayerui:
 				if self.pc.mpd and config.radio_playlist:
 					self.logger.debug("Radio")
 					self.button(12, mousebutton)
-
-			# Playlists are shown - hide on empty space click
-			elif self.get_playlists_status() or self.get_playlist_status():
-				if not 4 <= click_pos[0] <= 416 or not 4 <= click_pos[1] <= 243:
-					self.logger.debug("Hiding lists")
-					self.button(13, mousebutton)
-
-				# List item clicked
-				# List item to select: 4 - 33: 0, 34-63 = 1 etc
-				elif 4 <= click_pos[0] <= 416 and 4 <= click_pos[1] <= 243:
-					list_item = int(floor((click_pos[1] - 4)/30))
-					if mousebutton == 1:
-						self.logger.debug("Selecting list item %s" % list_item)
-						self.item_selector(list_item)
-					elif mousebutton == 2:
-						self.logger.debug("Second-clicked list item %s" % list_item)
 
 			# Toggles
 			elif 420 <= click_pos[0] <= 480 and 260 <= click_pos[1] <= 320:
@@ -584,7 +600,7 @@ class PitftPlayerui:
 
 			elif number == 6:
 				self.pc.control_player("previous")
-				self.pc.listen_test()
+				
 			elif number == 7:
 				self.pc.control_player("play_pause")
 
@@ -599,11 +615,8 @@ class PitftPlayerui:
 				self.update_all()
 
 			elif number == 12:
-				if not self.get_playlist_status():
-					self.pc.control_player("radio")
-					self.toggle_playlist("True")
-				else:
-					self.toggle_playlist("False")
+				self.pc.control_player("radio")
+				self.toggle_playlist("True")
 	
 			elif number == 13:
 				self.toggle_playlists("False")
@@ -629,7 +642,7 @@ class PitftPlayerui:
 				self.pc.control_player("ff")
 
 			elif number == 9:
-				self.toggle_playlist()
+				self.toggle_playlist("True")
 
 		else:
 			self.logger.debug("mouse button %s not supported" % mousebutton)
@@ -699,10 +712,11 @@ class PitftPlayerui:
 				lastfm_album = self.lfm.get_album(self.artist, self.album)
 				self.logger.debug("caT album: %s" % lastfm_album)
 			except Exception, e:
-				# TODO: Check connection - now it is assumed that there is none
+				# TODO: Check connection - now it is assumed that there is none if fetching failed
 				self.lastfm_connected = False
+				lastfm_album = {}
 				self.logger.exception(e)
-				raise
+				pass
 
 			if lastfm_album:
 				try:
@@ -741,21 +755,20 @@ class PitftPlayerui:
 		self.updateAll = True
 		
 	def toggle_backlight(self):
-		bl = (self.backlight + 1) % 2
-		if bl == 1:
-			self.turn_backlight_on()
-		else:
+		if self.backlight:
 			self.turn_backlight_off()
+		else:
+			self.turn_backlight_on()
 
 	def turn_backlight_off(self):
 		self.logger.debug("Backlight off")
 		subprocess.call("echo '0' > /sys/class/gpio/gpio508/value", shell=True)
-		self.backlight = 0
+		self.backlight = False
 
 	def turn_backlight_on(self):
 		self.logger.debug("Backlight on")
 		subprocess.call("echo '1' > /sys/class/gpio/gpio508/value", shell=True)
-		self.backlight = 1
+		self.backlight = True
 
 		# Update screen timeout timer
 		if config.screen_timeout > 0:
@@ -771,13 +784,9 @@ class PitftPlayerui:
 		return self.showPlaylists
 
 	def toggle_playlists(self, state="Toggle"):
-		self.playlists = self.pc.get_playlists()
 
-		# Remove Radio from playlists
-		for i in reversed(range(len(self.playlists))):
-			if "playlist" in self.playlists[i]:
-				if self.playlists[i].get('playlist') == config.radio_playlist:
-					self.playlists.pop(i)
+		# Clear scroll offset
+		self.offset = 0
 
 		if state == "Toggle":
 			self.showPlaylists = not self.showPlaylists
@@ -786,41 +795,64 @@ class PitftPlayerui:
 		elif state == "False":
 			self.showPlaylists = False
 
-		# Clear scroll offset
-		self.offset = 0
+		# Refresh playlists if visible
+		if self.showPlaylists:
+			self.playlists = self.pc.get_playlists()
+	
+			# Remove Radio from playlists
+			for i in reversed(range(len(self.playlists))):
+				if "playlist" in self.playlists[i]:
+					if self.playlists[i].get('playlist') == config.radio_playlist:
+						self.playlists.pop(i)
 
 		# Ensure that both are not active at the same time
 		if self.showPlaylists:
 			self.showPlaylist = False
+
+		# Update screen
 		self.updateAll = True
 
 	def toggle_playlist(self, state="Toggle"):
-		self.playlist = self.pc.get_playlist()
+	
+		# Set offset to point to the current track
+		if "pos" in self.pc.song:
+			self.offset = int(self.pc.song["pos"])
+		else:
+			self.offset = 0
+	
 		if state == "Toggle":
 			self.showPlaylist = not self.showPlaylist
 		elif state == "True":
 			self.showPlaylist = True
 		elif state == "False":
 			self.showPlaylist = False
+		
+		self.logger.info("Playlist: %s" % self.showPlaylist)
 
-		# Ensure that both are not active at the same time
+		# Refresh playlist if visible
 		if self.showPlaylist:
+			self.playlist = self.pc.get_playlist()
+			
+			# Ensure that both are not active at the same time
 			self.showPlaylists = False
-		self.updateAll = True
+
+		# Update screen
+		self.update_all()
 
 	def item_selector(self, number):
 		if self.showPlaylist and not self.showPlaylists:
 			if number + self.offset < len(self.playlist): 
 				self.pc.play_item(number + self.offset)
 			self.showPlaylist = False
-			self.updateAll = True
 		elif self.showPlaylists and not self.showPlaylist:
 			if number + self.offset < len(self.playlists):
 				self.pc.load_playlist(self.playlists[number + self.offset]["playlist"])
 				self.pc.control_player("play", "mpd")
 			self.showPlaylists = False
 			#self.pc.control_player("mpd")
-			self.updateAll = True
+
+		# Update screen
+		self.update_all()
 
 		# Clear offset
 		self.offset = 0
@@ -847,4 +879,7 @@ class PitftPlayerui:
 		self.logger.debug("Offset: %s" % self.offset)
 
 	def update_screen_timeout(self):
-		self.screen_timeout_time = datetime.datetime.now() + timedelta(seconds=config.screen_timeout)		
+		if self.get_backlight_status():
+			self.screen_timeout_time = datetime.datetime.now() + timedelta(seconds=config.screen_timeout)		
+		else:
+			self.turn_backlight_on()
