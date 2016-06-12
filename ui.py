@@ -2,14 +2,9 @@
 import sys, pygame
 from pygame.locals import *
 import time
-import subprocess
 import os
-import glob
-import re
-import pylast
 import logging
 import datetime
-from mpd import MPDClient
 from math import ceil, floor
 from datetime import timedelta
 from signal import alarm, signal, SIGALRM, SIGTERM, SIGKILL
@@ -59,7 +54,7 @@ class PitftDaemon(Daemon):
 	sm = None
 	screen = None
 
-	# Setup Python game, MPD, Last.fm and Screen manager
+	# Setup Python game and Screen manager
 	def setup(self):
 		logger.info("Starting setup")
 		
@@ -83,7 +78,7 @@ class PitftDaemon(Daemon):
 		alarm(3)
 		try:
 			# Set screen size
-			size = width, height = 480, 320
+			size = width, height = config.resolution
 			self.screen = pygame.display.set_mode(size)
 			alarm(0)
 		except Alarm:

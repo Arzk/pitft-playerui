@@ -74,7 +74,7 @@ class MPDControl:
 
 				# Read CDDB if playing CD
 				if "file" in self.song and config.cdda_enabled:
-					if "cdda://" in self.song["file"].decode('utf-8'):
+					if "cdda://" in self.song["file"]:
 						self.refresh_cd()
 
 			except Exception as e:
@@ -117,7 +117,7 @@ class MPDControl:
 			self.song["album"] = ""
 		# Date
 		try:
-			self.song["date"] = self.cdda_read_info["DYEAR"].decode('utf-8')
+			self.song["date"] = self.cdda_read_info["DYEAR"]
 		except:
 			self.song["date"] = ""
 		# Track Number
