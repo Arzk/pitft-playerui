@@ -90,16 +90,7 @@ class PitftDaemon(Daemon):
 
 		# Screen manager ###############
 		logger.info("Setting screen manager")
-		noSM = True
-		while noSM:
-			try:
-				self.sm = pitft_ui.PitftPlayerui()
-				noSM = False
-				logger.debug("Screen manager set")
-			except:
-				noSM = True
-				time.sleep(5)
-				logger.debug("Unable to set the screen manager")
+		self.sm = pitft_ui.PitftPlayerui()
 
 		# Mouse variables
 		self.clicktime 	      = datetime.datetime.now()
@@ -227,7 +218,7 @@ class PitftDaemon(Daemon):
 					self.clicktime = datetime.datetime.now()
 
 			# Update screen timeout if there's any mouse activity
-			if config.screen_timeout > 0:
+			if config.screen_timeout > 0 and not self.sm.backlight_forced_off:
 				self.sm.update_screen_timeout()
 
 	def read_cli(self):
@@ -239,7 +230,8 @@ class PitftDaemon(Daemon):
 			self.sm.pc.control_player(command)
 			
 			# Set backlight on
-			self.sm.update_screen_timeout()
+			if not self.sm.backlight_forced_off:
+				self.sm.update_screen_timeout()
 
 			# Clear cache
 			shared.set('command', None)
