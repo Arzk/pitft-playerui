@@ -2,6 +2,10 @@
 # Settings
 ###############
 
+# Resolution. Don't use any other resolution than these two
+#resolution = 320,240
+resolution = 480,320
+
 # Font file. Has to be in this folder
 fontfile = "helvetica-neue-bold.ttf"
 

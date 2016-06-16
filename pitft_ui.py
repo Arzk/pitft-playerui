@@ -59,7 +59,6 @@ class PitftPlayerui:
 		self.image["button_next"]          = pygame.image.load(self.path + "pics/" + "button-next.png")
 		self.image["button_pause"]         = pygame.image.load(self.path + "pics/" + "button-pause.png")
 		self.image["button_play"]          = pygame.image.load(self.path + "pics/" + "button-play.png")
-		self.image["button_stop"]          = pygame.image.load(self.path + "pics/" + "button-stop.png")
 		self.image["button_prev"]          = pygame.image.load(self.path + "pics/" + "button-prev.png")
 		self.image["button_volumeminus"]   = pygame.image.load(self.path + "pics/" + "button-volumeminus.png")
 		self.image["button_volumeplus"]    = pygame.image.load(self.path + "pics/" + "button-volumeplus.png")
@@ -70,57 +69,87 @@ class PitftPlayerui:
 		self.image["button_radio"]         = pygame.image.load(self.path + "pics/" + "button-radio.png")
 		self.image["button_cd"]            = pygame.image.load(self.path + "pics/" + "button-cd.png")
 		self.image["button_playlists"]     = pygame.image.load(self.path + "pics/" + "button-playlists.png")
-		self.image["button_playlist"]      = pygame.image.load(self.path + "pics/" + "button-list.png")
 		
 		# Sizes
 		self.size = {}
 		if config.resolution[0] == 480 and config.resolution[1] == 320:
-			self.size['coverart']          = 228
-			self.size['selectorbutton']    = 58
-			self.size['controlbutton']     = 48
-			self.size['button_screenoff']  = 60
-			self.size['icon_screenoff']    = 20, 16
-			self.size['togglebutton']      = 65, 32
-			self.size['volume_text_width'] = 50
-			self.size['trackinfo_height']  = 20 # Row height
-			self.size['progressbar_width'] = 370
-			self.size['margin']            = 4
-			self.size['padding_x']         = 8
-			self.size['padding_y']         = 4
+			self.size['margin']             = 4
+			self.size['padding_x']          = 8
+			self.size['padding_y']          = 4
+			self.size['coverart']           = 228
+			self.size['selectorbutton']     = 58
+			self.size['controlbutton']      = 48
+			self.size['button_screenoff']   = 60
+			self.size['icon_screenoff']     = 20, 16
+			self.size['togglebutton']       = 62, 25
+			self.size['volume_text_width']  = 46
+			self.size['volume_field']       = 46, 26
+			self.size['volume_fieldoffset'] = 6
+			self.size['trackinfo_height']   = 20 # Row height
+			self.size['details']            = 46,52
+			self.size['elapsed']            = 40
+			self.size['elapsedmargin']      = 6
+			self.size['elapsedoffset']      = 7
+			self.size['controlbuttonsoffset']      = 16
+			self.size['progressbar']        = 370, 8
+			self.size['progressbar_height'] = 20
+			self.size['listitem_height']     = 30
 		elif config.resolution[0] == 320 and config.resolution[1] == 240:
-			self.size['coverart']          = 128
-			self.size['selectorbutton']    = 48
-			self.size['controlbutton']     = 38
-			self.size['button_screenoff']  = 40
-			self.size['icon_screenoff']    = 20, 16
-			self.size['togglebutton']      = 65, 32
-			self.size['volume_text_width'] = 40
-			self.size['trackinfo_height']  = 20 # Row height
-			self.size['progressbar_width'] = 220
-			self.size['margin']            = 4
-			self.size['padding_x']         = 8
-			self.size['padding_y']         = 4
+			self.size['margin']             = 4
+			self.size['padding_x']          = 4
+			self.size['padding_y']          = 2
+			self.size['coverart']           = 158
+			self.size['selectorbutton']     = 42
+			self.size['controlbutton']      = 38
+			self.size['button_screenoff']   = 40
+			self.size['icon_screenoff']     = 20, 16
+			self.size['togglebutton']       = 62, 25
+			self.size['volume_text_width']  = 30
+			self.size['volume_field']       = 30, 26
+			self.size['volume_fieldoffset'] = 2
+			self.size['trackinfo_height']   = 16 # Row height
+			self.size['details']            = 36,42
+			self.size['elapsed']            = 32
+			self.size['elapsedmargin']      = 6
+			self.size['elapsedoffset']      = 4
+			self.size['controlbuttonsoffset'] = 7
+			self.size['progressbar']        = config.resolution[0] - 2 * (self.size['elapsed'] + self.size['elapsedmargin'] + self.size['margin'] + 5), 8    #205, 8
+			self.size['progressbar_height'] = 20
+			self.size['listitem_height']     = 20
+
+			# Resize fonts
+			self.font['details']     = pygame.font.Font(self.fontfile, 14)
+			self.font['elapsed']     = pygame.font.Font(self.fontfile, 14)
+			self.font['playlist']    = pygame.font.Font(self.fontfile, 14)
+			self.font['field']       = pygame.font.Font(self.fontfile, 16)
+			
+			# Scale images
+			try:
+				self.image['background']         = pygame.transform.scale(self.image['background'], (config.resolution))
+				self.image['coverart_place']     = pygame.transform.scale(self.image['coverart_place'], (self.size['coverart'], self.size['coverart']))
+				self.image['coverart_border']    = pygame.transform.scale(self.image['coverart_border'], (self.size['coverart'], self.size['coverart']))
+				self.image['details']              = pygame.transform.scale(self.image['details'], (self.size['details']))
+				self.image['field']              = pygame.transform.scale(self.image['field'], (self.size['volume_field'][0] + 2, self.size['volume_field'][1]))
+				self.image['progress_bg']        = pygame.transform.scale(self.image['progress_bg'], (self.size['progressbar']))
+				self.image['progress_fg']        = pygame.transform.scale(self.image['progress_fg'], (self.size['progressbar']))
+				self.image['button_next']        = pygame.transform.scale(self.image['button_next'], (self.size['controlbutton'],self.size['controlbutton']))
+				self.image['button_pause']       = pygame.transform.scale(self.image['button_pause'], (self.size['controlbutton'],self.size['controlbutton']))
+				self.image['button_play']        = pygame.transform.scale(self.image['button_play'], (self.size['controlbutton'],self.size['controlbutton']))
+				self.image['button_prev']        = pygame.transform.scale(self.image['button_prev'], (self.size['controlbutton'],self.size['controlbutton']))
+				self.image['button_volumeminus'] = pygame.transform.scale(self.image['button_volumeminus'], (self.size['controlbutton'],self.size['controlbutton']))
+				self.image['button_volumeplus']  = pygame.transform.scale(self.image['button_volumeplus'], (self.size['controlbutton'],self.size['controlbutton']))
+				self.image['button_spotify']     = pygame.transform.scale(self.image['button_spotify'], (self.size['selectorbutton'],self.size['selectorbutton']))
+				self.image['button_mpd']         = pygame.transform.scale(self.image['button_mpd'], (self.size['selectorbutton'],self.size['selectorbutton']))
+				self.image['button_radio']       = pygame.transform.scale(self.image['button_radio'], (self.size['selectorbutton'],self.size['selectorbutton']))
+				self.image['button_cd']          = pygame.transform.scale(self.image['button_cd'], (self.size['selectorbutton'],self.size['selectorbutton']))
+				self.image['button_playlists']   = pygame.transform.scale(self.image['button_playlists'], (self.size['selectorbutton'],self.size['selectorbutton']))
+			except Exception, e:
+				self.logger.debug(e)
+
 		else:
 			# Not a nice shutdown, but crashes like it should
 			self.logger.info("Unsupported resolution: %s" % config.resolution)
-			
-		# Resize images if not using 480x320
-		if not config.resolution[0] == 480 and not config.resolution[1] == 320:
-			self.logger.debug("resizing pictures")
-			
-			scale = float(config.resolution[0])/480
-			
-			#TODO: Scale these really
-			for image in self.image:
-				orig_size = self.image[image].get_rect().size
-				width = int(floor(float(orig_size[0]) * scale))
-				height = int(floor(float(orig_size[1]) * scale))
-				if "background" in image or "progress" in image or "button_" in image or "coverart_" in image or "field" in image or "icon_randomandrepeat" in image:
-					self.image[image] = pygame.transform.scale(self.image[image], (width, height))
-			
-			# for var in self.size:
-				# self.size[var] = int(floor(self.size[var] * scale))
-				
+	
 		# Positioning
 		self.pos = {}
 		
@@ -140,35 +169,30 @@ class PitftPlayerui:
 		# Area for track info
 		self.pos['bottomdivider'] = self.pos['bottom'] - 78
 		
-		# Background refresh for track info
-		self.pos['trackinfobackground'] = 0, self.pos['bottomdivider']
-		self.size['trackinfobackground'] = config.resolution[0], config.resolution[1] - self.pos['bottomdivider']
-		
 		# Track information 
-		self.pos['progressbar']        = 55, self.pos['bottomdivider'] + 7 # 245
-		self.pos['progressbar_height'] = 20
-		self.pos['trackinfo']          = 60, self.pos['progressbar'][1] + 13 # 258
-		self.pos['details']            = 6, self.pos['trackinfo'][1] + 5 # 263
-		self.pos['artist']             = self.pos['trackinfo'][0], self.pos['trackinfo'][1]
-		self.pos['album']              = self.pos['trackinfo'][0], self.pos['trackinfo'][1] + self.size['trackinfo_height']
-		self.pos['track']              = self.pos['trackinfo'][0], self.pos['trackinfo'][1] + 2*self.size['trackinfo_height']		                       
-		self.pos['elapsed']            = self.pos['left'] + 6, self.pos['progressbar'][1] - 7
-		self.pos['track_length']       = self.pos['right'] - 46, self.pos['progressbar'][1] - 7
+		self.pos['track']              = self.pos['left'] + self.size['elapsed'] + 16, self.pos['bottom'] - self.size['trackinfo_height']
+		self.pos['album']              = self.pos['track'][0], self.pos['track'][1] - self.size['trackinfo_height']
+		self.pos['artist']             = self.pos['album'][0], self.pos['album'][1] - self.size['trackinfo_height']
+		self.pos['details']            = self.pos['left'] + 2, self.pos['artist'][1] + 4 # 263
+		self.pos['progressbar']        = self.pos['left'] + self.size['elapsed'] + 11, self.pos['artist'][1] - 13 # 245
+		self.pos['elapsed']            = self.pos['left'] + self.size['elapsedmargin'], self.pos['progressbar'][1] - self.size['elapsedoffset']
+		self.pos['track_length']       = self.pos['right'] - self.size['elapsed'] - self.size['elapsedmargin'], self.pos['progressbar'][1] - self.size['elapsedoffset']
+		
+		# Background refresh for track info
+		self.pos['trackinfobackground'] = 0, self.pos['progressbar'][1] - 6
+		self.size['trackinfobackground'] = config.resolution[0], config.resolution[1] - self.pos['progressbar'][1] + 6
 
 		# Background refresh for elapsed information
-		self.pos['progressbackground'] = 0, self.pos['bottomdivider']
-		self.size['progressbackground'] = self.pos['track_length'][0], 20 #427,20
+		self.pos['progressbackground'] = 0, self.pos['progressbar'][1] - 6
+		self.size['progressbackground'] = self.pos['track_length'][0], self.size['progressbar_height'] #427,20
 		
 		# Topmost selector button
 		self.pos['selectorbutton'] = self.pos['right'] - self.size['selectorbutton'], self.pos['paddedtop'] #418, 8
 		
 		# Center (pause) control button
 		self.pos['controlbutton'] = (self.pos['selectorbutton'][0] + self.size['padding_x'] + self.size['coverart'] - self.size['controlbutton'])/2, \
-									self.pos['bottomdivider'] - 2 * self.size['controlbutton'] - 16	#306, 132
-		# Background reset
-		self.pos['trackinfo_bg']       = 0,self.pos['progressbar'][1]-3
-		self.pos['trackinfo_bg_size']  = 427,self.pos['progressbar_height']
-				
+									self.pos['progressbar'][1] - 2 * self.size['controlbutton'] - self.size['controlbuttonsoffset']	#306, 132
+		
 		# Selector buttons
 		selector_buttons_shown = 0
 		self.pos['button_spotify']   = self.pos['selectorbutton'] #418, 8		
@@ -188,25 +212,23 @@ class PitftPlayerui:
 		self.pos['button_next']          = self.pos['controlbutton'][0] + self.size['controlbutton'], self.pos['controlbutton'][1] # 354, 132
 		self.pos['button_volumeminus']   = self.pos['controlbutton'][0] - self.size['controlbutton'], self.pos['controlbutton'][1] + self.size['controlbutton'] # 258, 190
 		self.pos['button_volumeplus']    = self.pos['controlbutton'][0] + self.size['controlbutton'], self.pos['controlbutton'][1] + self.size['controlbutton'] # 354, 190
-		self.pos['volume_field']         = self.pos['controlbutton'][0] - 3                         , self.pos['button_volumeplus'][1] + 6 # 303, 186
+		self.pos['volume_field']         = self.pos['controlbutton'][0] - 1                         , self.pos['button_volumeplus'][1] +  self.size['volume_fieldoffset'] # 303, 186
 		self.pos['volume_text']          = self.pos['volume_field'][0]                              , self.pos['volume_field'][1] + 3  #304, 189
 		self.pos['button_repeat']        = self.pos['controlbutton'][0]                             , self.pos['controlbutton'][1] - self.size['controlbutton'] - self.size['togglebutton'][1] #313,56
 		self.pos['button_random']        = self.pos['controlbutton'][0]                             , self.pos['controlbutton'][1] - self.size['controlbutton'] #313,88
-		self.pos['icon_randomandrepeat'] = self.pos["button_repeat"][0] - 28                        , self.pos['button_repeat'][1] - 1 #285, 55
+		self.pos['icon_randomandrepeat'] = self.pos["button_repeat"][0] - 24                        , self.pos['button_repeat'][1] + 6 #285, 55
 		self.pos['icon_screenoff']       = config.resolution[0] - self.size['icon_screenoff'][0]    , config.resolution[1] - self.size['icon_screenoff'][1] # 464, 304
 		self.pos['button_screenoff']     = config.resolution[0] - self.size['button_screenoff']     , config.resolution[1] - self.size['button_screenoff'] # 464, 304
 		
 		# Background refresh for control buttons
 		self.pos['repeatbackground']     = self.pos["button_repeat"] # 310,50
 		self.pos['randombackground']     = self.pos["button_random"] # 310,83
-		self.size['repeatbackground']    = 105, 31
-		self.size['randombackground']    = self.size['repeatbackground']
+		self.size['repeatbackground']    = self.size['togglebutton']
+		self.size['randombackground']    = self.size['togglebutton']
 
 		self.pos['button_playbackground']  = self.pos['button_play']
 		self.size['button_playbackground'] = self.size['controlbutton'], self.size['controlbutton']
-		
-		self.size['volume_field']        = 46, 26
-		
+				
 		# Playlist(s) views
 		self.pos['list_left']           = self.pos['left'] #4
 		self.pos['list_right']          = self.pos['selectorbutton'][0] - 2 #416
@@ -214,7 +236,6 @@ class PitftPlayerui:
 		self.pos['list_bottom']         = self.pos['progressbar'][1] - 2 # 243
 		self.pos['list_width']          = self.pos['list_right'] - self.size['padding_x'] # 408
 		self.pos['list_height']         = self.pos['list_bottom'] - self.size['padding_y'] # 234 -> 239
-		self.pos['listitem_height']     = 30
 		
 		self.pos['listbackground']      = self.pos['list_left'], self.pos['list_top']
 		self.size['listbackground']     = self.pos['list_width'], self.pos['list_height'] #416,234
@@ -554,7 +575,7 @@ class PitftPlayerui:
 			if not self.updateAll or not self.updateTrackInfo:
 				surface.blit(self.image["background"], (self.pos['progressbackground']), (self.pos['progressbackground'], self.size['progressbackground'])) # reset background
 				surface.blit(self.image["progress_bg"], (self.pos['progressbar']))
-			surface.blit(self.image["progress_fg"], (self.pos['progressbar']),(0,0,int(self.size['progressbar_width']*self.timeElapsedPercentage),10))
+			surface.blit(self.image["progress_fg"], (self.pos['progressbar']),(0,0,int(self.size['progressbar'][0]*self.timeElapsedPercentage),10))
 			text = self.font["elapsed"].render(self.timeElapsed, 1,(self.color['font']))
 			surface.blit(text, (self.pos['elapsed'])) # Elapsed
 
@@ -627,7 +648,7 @@ class PitftPlayerui:
 
 					except:
 						text = self.font["playlist"].render(playlistitem, 1,(self.color['font']))
-					surface.blit(text, (self.pos['paddedleft'],self.pos['top'] + self.pos['listitem_height']*int(i)),(0,0, self.pos['list_width'],self.pos['listitem_height']))
+					surface.blit(text, (self.pos['paddedleft'],self.pos['top'] + self.size['listitem_height']*int(i)),(0,0, self.pos['list_width'],self.size['listitem_height']))
 
 		if self.showPlaylists:
 			surface.blit(self.image["background"], (self.pos['listbackground']), (self.pos['listbackground'], self.size['listbackground'])) # reset background
@@ -638,7 +659,7 @@ class PitftPlayerui:
 					except:
 						listitem = ""
 					text = self.font["playlist"].render(listitem, 1,(self.color['font']))
-					surface.blit(text, (self.pos['paddedleft'],self.pos['top'] + self.pos['listitem_height']*int(i)),(0,0, self.pos['list_width'],self.pos['listitem_height']))
+					surface.blit(text, (self.pos['paddedleft'],self.pos['top'] + self.size['listitem_height']*int(i)),(0,0, self.pos['list_width'],self.size['listitem_height']))
 	
 		# Reset updates
 		self.resetUpdates()
@@ -666,7 +687,7 @@ class PitftPlayerui:
 				# List item clicked
 				# List item to select: 4 - 33: 0, 34-63 = 1 etc
 				elif self.pos['left'] <= click_pos[0] <= self.pos['list_right'] and self.pos['top'] <= click_pos[1] <= self.pos['list_bottom']:
-					list_item = int(floor((click_pos[1] - self.pos['left'])/self.pos['listitem_height']))
+					list_item = int(floor((click_pos[1] - self.pos['left'])/self.size['listitem_height']))
 					if mousebutton == 1:
 						self.logger.debug("Selecting list item %s" % list_item)
 						self.item_selector(list_item)
@@ -735,7 +756,7 @@ class PitftPlayerui:
 				self.button(8, mousebutton) 
 
 			# Open playlist when longpressing on bottom
-			elif self.pos['bottomdivider'] <= click_pos[1] <= config.resolution[1] and mousebutton == 2:
+			elif self.pos['artist'][1] <= click_pos[1] <= config.resolution[1] and mousebutton == 2:
 				if self.pc.mpd and self.pc.get_active_player() == "mpd":
 					self.logger.debug("Toggle playlist")
 					self.button(9, mousebutton)
@@ -836,7 +857,7 @@ class PitftPlayerui:
 				self.logger.debug("Found coverart files: %s" % coverartfiles)
 				# If multiple found, select one of them
 				for file in coverartfiles:
-					# Check file extension, png, jpg and gif accepted
+					# Check file extension - png, jpg and gif accepted
 					if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
 						if not coverartfile:
 							coverartfile = file

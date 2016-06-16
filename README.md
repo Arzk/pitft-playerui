@@ -4,7 +4,7 @@ PiTFT-PlayerUI is a fork of PMB-PiTFT (Pi MusicBox PiTFT), a small Python script
 
 Improvements:
 ===========
-- Support for 3.5" PiTFT+
+- Support for 2.8" and 3.5" PiTFT+
 - Audio CD tag fetching from FreeDB
 - Spotify-connect-web support (https://github.com/Fornoth/spotify-connect-web)
 - Darker UI
@@ -113,7 +113,7 @@ For Spotify support install spotify-connect-web:
 https://github.com/Fornoth/spotify-connect-web
 
 Download PiTFT-playerui files from github. To be sure to start in the home directory do
-<code>cd ~</code>
+<code>cd</code>
 
 Clone the git repository:
 <code>git clone https://github.com/Arzk/pitft-playerui.git</code>
