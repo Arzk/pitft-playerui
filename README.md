@@ -10,7 +10,7 @@ Improvements:
 - Darker UI
 - Gesture support
 - CLI player control
- 
+
 Features:
 ===========
 Shows following details of currently playing track in MPD and Spotify:
@@ -50,6 +50,8 @@ Things you need:
 Known issues:
 ==============
 - Doesn't check if players are available when using CLI commands
+- Requires all the python modules even though features are disabled in config
+- Cover art is not saved separately for each player, has to be refetched when the player is changed
 
 Installing:
 ===========
@@ -58,7 +60,7 @@ Current installation guide is tested and working with: Resistive PiTFT+ 3.5", Pi
 Install Raspbian and MPD and Configure PiTFT+ using the guide by Adafruit: https://learn.adafruit.com/adafruit-pitft-3-dot-5-touch-screen-for-raspberry-pi/ 
 Detailed install and calibration recommended
 
-For the player switching to work when using a separate DAC, set up dmix in alsa
+For the player switching to work when using a separate DAC with no hardware mixer, set up dmix in alsa
 
 For PiFi DAC+ open /boot/config.txt and add the line:
 
@@ -124,6 +126,7 @@ From config.py you need to change the font if you are using something else than 
 You can download for example Open Sans "OpenSans-Bold.ttf" from www.fontsquirrel.com/fonts/open-sans. Transfer ttf file to /home/pi/pitft-playerui/ folder.
 
 Set the other settings in config.py file:
+- Resolution defaults to 480x320. Set to 320x240 if using 2.8" PiTFT
 - For local cover art set the path of the mpd library
 - Set the LastFM api key and login information for remote cover art fetching
 - For Spotify set the path and port of Spotify-connect-web
