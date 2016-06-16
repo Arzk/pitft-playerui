@@ -128,7 +128,7 @@ class PitftPlayerui:
 				self.image['background']         = pygame.transform.scale(self.image['background'], (config.resolution))
 				self.image['coverart_place']     = pygame.transform.scale(self.image['coverart_place'], (self.size['coverart'], self.size['coverart']))
 				self.image['coverart_border']    = pygame.transform.scale(self.image['coverart_border'], (self.size['coverart'], self.size['coverart']))
-				self.image['details']              = pygame.transform.scale(self.image['details'], (self.size['details']))
+				self.image['details']            = pygame.transform.scale(self.image['details'], (self.size['details']))
 				self.image['field']              = pygame.transform.scale(self.image['field'], (self.size['volume_field'][0] + 2, self.size['volume_field'][1]))
 				self.image['progress_bg']        = pygame.transform.scale(self.image['progress_bg'], (self.size['progressbar']))
 				self.image['progress_fg']        = pygame.transform.scale(self.image['progress_fg'], (self.size['progressbar']))
@@ -147,7 +147,7 @@ class PitftPlayerui:
 				self.logger.debug(e)
 
 		else:
-			# Not a nice shutdown, but crashes like it should
+			# TODO: Not a nice shutdown, but crashes like it should
 			self.logger.info("Unsupported resolution: %s" % config.resolution)
 	
 		# Positioning
@@ -222,8 +222,8 @@ class PitftPlayerui:
 		
 		# Background refresh for control buttons
 		self.pos['repeatbackground']     = self.pos["button_repeat"] # 310,50
-		self.pos['randombackground']     = self.pos["button_random"] # 310,83
 		self.size['repeatbackground']    = self.size['togglebutton']
+		self.pos['randombackground']     = self.pos["button_random"] # 310,83
 		self.size['randombackground']    = self.size['togglebutton']
 
 		self.pos['button_playbackground']  = self.pos['button_play']
@@ -234,8 +234,8 @@ class PitftPlayerui:
 		self.pos['list_right']          = self.pos['selectorbutton'][0] - 2 #416
 		self.pos['list_top']            = self.pos['top'] #4
 		self.pos['list_bottom']         = self.pos['progressbar'][1] - 2 # 243
-		self.pos['list_width']          = self.pos['list_right'] - self.size['padding_x'] # 408
-		self.pos['list_height']         = self.pos['list_bottom'] - self.size['padding_y'] # 234 -> 239
+		self.pos['list_width']          = self.pos['list_right'] - self.pos['list_left'] # 408
+		self.pos['list_height']         = self.pos['list_bottom'] - self.pos['list_top'] # 234 -> 239
 		
 		self.pos['listbackground']      = self.pos['list_left'], self.pos['list_top']
 		self.size['listbackground']     = self.pos['list_width'], self.pos['list_height'] #416,234
@@ -315,7 +315,6 @@ class PitftPlayerui:
 		if self.pc.status and config.screen_timeout > 0 and not self.backlight_forced_off:
 			if self.pc.status["state"] == "play":
 				self.update_screen_timeout()
-#				self.logger.debug("Something playing, backlight on")
 		
 			# Nothing playing for n seconds, turn off screen if not already off
 			elif self.screen_timeout_time < datetime.datetime.now() and self.backlight:
@@ -648,7 +647,7 @@ class PitftPlayerui:
 
 					except:
 						text = self.font["playlist"].render(playlistitem, 1,(self.color['font']))
-					surface.blit(text, (self.pos['paddedleft'],self.pos['top'] + self.size['listitem_height']*int(i)),(0,0, self.pos['list_width'],self.size['listitem_height']))
+					surface.blit(text, (self.pos['list_left'],self.pos['list_top'] + self.size['listitem_height']*int(i)),(0,0, self.pos['list_width'],self.size['listitem_height']))
 
 		if self.showPlaylists:
 			surface.blit(self.image["background"], (self.pos['listbackground']), (self.pos['listbackground'], self.size['listbackground'])) # reset background
@@ -659,7 +658,7 @@ class PitftPlayerui:
 					except:
 						listitem = ""
 					text = self.font["playlist"].render(listitem, 1,(self.color['font']))
-					surface.blit(text, (self.pos['paddedleft'],self.pos['top'] + self.size['listitem_height']*int(i)),(0,0, self.pos['list_width'],self.size['listitem_height']))
+					surface.blit(text, (self.pos['list_left'],self.pos['list_top'] + self.size['listitem_height']*int(i)),(0,0, self.pos['list_width'],self.size['listitem_height']))
 	
 		# Reset updates
 		self.resetUpdates()
