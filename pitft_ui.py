@@ -83,7 +83,7 @@ class PitftPlayerui:
 			self.size['icon_screenoff']     = 20, 16
 			self.size['togglebutton']       = 62, 25
 			self.size['volume_text_width']  = 46
-			self.size['volume_field']       = 46, 26
+			self.size['volume_field']       = 44, 24
 			self.size['volume_fieldoffset'] = 6
 			self.size['trackinfo_height']   = 20 # Row height
 			self.size['details']            = 46,52
@@ -104,9 +104,9 @@ class PitftPlayerui:
 			self.size['button_screenoff']   = 40
 			self.size['icon_screenoff']     = 20, 16
 			self.size['togglebutton']       = 62, 25
-			self.size['volume_text_width']  = 30
-			self.size['volume_field']       = 30, 26
-			self.size['volume_fieldoffset'] = 2
+			self.size['volume_text_width']  = 40
+			self.size['volume_field']       = 34, 26
+			self.size['volume_fieldoffset'] = 4
 			self.size['trackinfo_height']   = 16 # Row height
 			self.size['details']            = 36,42
 			self.size['elapsed']            = 32
@@ -129,7 +129,7 @@ class PitftPlayerui:
 				self.image['coverart_place']     = pygame.transform.scale(self.image['coverart_place'], (self.size['coverart'], self.size['coverart']))
 				self.image['coverart_border']    = pygame.transform.scale(self.image['coverart_border'], (self.size['coverart'], self.size['coverart']))
 				self.image['details']            = pygame.transform.scale(self.image['details'], (self.size['details']))
-				self.image['field']              = pygame.transform.scale(self.image['field'], (self.size['volume_field'][0] + 2, self.size['volume_field'][1]))
+				self.image['field']              = pygame.transform.scale(self.image['field'], (self.size['volume_field'][0] + 2, self.size['volume_field'][1] + 2))
 				self.image['progress_bg']        = pygame.transform.scale(self.image['progress_bg'], (self.size['progressbar']))
 				self.image['progress_fg']        = pygame.transform.scale(self.image['progress_fg'], (self.size['progressbar']))
 				self.image['button_next']        = pygame.transform.scale(self.image['button_next'], (self.size['controlbutton'],self.size['controlbutton']))
@@ -599,7 +599,7 @@ class PitftPlayerui:
 		if self.updateVolume:
 			if config.volume_enabled and self.pc.get_active_player() == "mpd":
 				if not self.updateAll:
-					surface.blit(self.image["field"], (self.pos['volume_field']), ((2,2), self.size['volume_field'])) # Reset field value area
+					surface.blit(self.image["field"], (self.pos['volume_field']), ((0,0), self.size['volume_field'])) # Reset field value area
 				else:
 					surface.blit(self.image["field"], (self.pos['volume_field'])) # Draw field
 			
