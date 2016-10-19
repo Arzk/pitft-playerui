@@ -882,9 +882,9 @@ class PitftPlayerui:
 			try:
 				coverart_url = config.spotify_host + ":" + config.spotify_port + "/api/info/image_url/" + self.pc.song["cover_uri"]
 				if coverart_url:
-					subprocess.check_output("wget -q %s -O %s/cover.png" % (coverart_url, "/tmp/"), shell=True )
+					subprocess.check_output("wget -q %s -O %s/sp_cover.png" % (coverart_url, "/tmp/"), shell=True )
 					self.logger.debug("Spotify coverart downloaded")
-					coverart=pygame.image.load("/tmp/" + "cover.png")
+					coverart=pygame.image.load("/tmp/" + "sp_cover.png")
 					self.logger.debug("Spotify coverart loaded")
 					self.image["cover"] = pygame.transform.scale(coverart, (self.size['coverart'],self.size['coverart']))
 					self.logger.debug("Spotify coverart placed")
@@ -914,9 +914,9 @@ class PitftPlayerui:
 					self.logger.debug("caT curl: %s" % coverart_url)
 					if coverart_url:
 						self.logger.debug("caT sp start")
-						subprocess.check_output("wget -q %s -O %s/cover.png" % (coverart_url, "/tmp/"), shell=True )
+						subprocess.check_output("wget -q %s -O %s/mpd_cover.png" % (coverart_url, "/tmp/"), shell=True )
 						self.logger.debug("caT sp end")
-						coverart=pygame.image.load("/tmp/" + "cover.png")
+						coverart=pygame.image.load("/tmp/" + "mpd_cover.png")
 						self.logger.debug("caT c loaded")
 						self.image["cover"] = pygame.transform.scale(coverart, (self.size['coverart'], self.size['coverart']))
 						self.logger.debug("caT c placed")

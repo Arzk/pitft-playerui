@@ -69,8 +69,24 @@ class SpotifyControl:
 		if command == "random":
 			command = "shuffle"
 
+				
 		# Prevent commands not implemented in api
 		if command in ["play", "pause", "prev", "next", "shuffle", "repeat"]:
+		
+			# Check shuffle and repeat state
+			if command == "shuffle" and self.status["random"] == 1:
+				command += '/disable'
+			elif command == "shuffle":
+				command += '/enable'
+				self.logger.info("Spotify command: %s" % command)
+				
+			if command == "repeat" and self.status["repeat"] == 1:
+				command += '/disable'
+			elif command == "repeat":
+				command += '/enable'
+				self.logger.info("Spotify command: %s" % command)
+
+			#Send command
 			self.api("playback", command)
 
 	# Using api from spotify-connect-web
