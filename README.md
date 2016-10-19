@@ -173,8 +173,8 @@ Valid commands implemented:
 - previous
 - rwd     # Rewind, only in MPD
 - ff      # Fast forward, only in MPD
-- repeat  # only in MPD
-- random  # only in MPD
+- repeat
+- random
 - spotify # Switch active player to Spotify
 - mpd     # Switch active player to MPD
 - cd      # Play CD
