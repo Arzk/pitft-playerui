@@ -7,13 +7,13 @@ class SpotifyControl:
 	def __init__(self):	
 		self.logger = logging.getLogger("PiTFT-Playerui logger.Spotify control")
 		self.status = {}
-		metadata    = {}
 		self.song   = {}
 
 	def refresh(self, active):
+		metadata = {}
 		try:
 			status = self.api("info","status")
-			if active and self.status["active"]:
+			if active:
 				metadata = self.api("info","metadata")
 		except:
 			status = {}
@@ -47,7 +47,7 @@ class SpotifyControl:
 					else:
 						self.status["repeat"] = 0
 
-		if active and metadata and self.status["active"]:
+		if active and bool(metadata):
 			# Parse multiline string of type
 			# '  "album_name": "Album", '
 			# Split lines and remove leading '"' + ending '", '

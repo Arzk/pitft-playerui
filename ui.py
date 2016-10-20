@@ -136,11 +136,11 @@ class PitftDaemon(Daemon):
 						self.sm.render(self.screen)
 						pygame.display.flip()
 
-						# Check CLI events
-						self.read_cli()
+					# Check CLI events
+					self.read_cli()
 
-						# Mouse events
-						self.read_mouse()
+					# Mouse events
+					self.read_mouse()
 				else:
 					# Sleep a bit
 					time.sleep(self.sleeptime/1000.0)
