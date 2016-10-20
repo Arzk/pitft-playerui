@@ -61,14 +61,15 @@ class MPDControl:
 			self.mpdc.disconnect()
 			self.logger.debug("Disconnected from MPD")		
 					
-	def refresh(self):
+	def refresh(self,active):
 		if self.reconnect:
 			self.connect()
 		if self.reconnect == False:
 			connection = False
 			try:
 				self.status = self.mpdc.status()
-				self.song = self.mpdc.currentsong()
+				if active:
+					self.song = self.mpdc.currentsong()
 				connection = True
 
 				# Read CDDB if playing CD

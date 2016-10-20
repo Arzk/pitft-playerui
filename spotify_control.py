@@ -9,10 +9,11 @@ class SpotifyControl:
 		self.status = {}
 		self.song   = {}
 
-	def refresh(self):
+	def refresh(self, active):
 		try:
 			status = self.api("info","status")
-			metadata = self.api("info","metadata")
+			if active:
+				metadata = self.api("info","metadata")
 		except:
 			status = {}
 			metadata = {}
@@ -28,6 +29,7 @@ class SpotifyControl:
 						self.status["active"] = True
 					else:
 						self.status["active"] = False
+						
 				if "playing" in line:
 					if "true" in line and self.status["active"]:
 						self.status["state"] = "play"
@@ -44,7 +46,7 @@ class SpotifyControl:
 					else:
 						self.status["repeat"] = 0
 
-		if metadata and self.status["active"]:
+		if active and metadata and self.status["active"]:
 			# Parse multiline string of type
 			# '  "album_name": "Album", '
 			# Split lines and remove leading '"' + ending '", '

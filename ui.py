@@ -119,7 +119,7 @@ class PitftDaemon(Daemon):
 			while 1:
 
 				if refreshtime < datetime.datetime.now():
-					refreshtime = datetime.datetime.now() + timedelta(milliseconds=500)
+					refreshtime = datetime.datetime.now() + timedelta(milliseconds=1000)
 					# Refresh info
 					self.sm.refresh()
 

@@ -80,10 +80,16 @@ class PlayerControl:
 
 		# Refresh players
 		if self.mpd:
-			self.mpd.refresh()
+			if self.active_player == "mpd":
+				self.mpd.refresh(1)
+			else:
+				self.mpd.refresh(0)
 
 		if self.spotify:
-			self.spotify.refresh()
+			if self.active_player == "spotify":
+				self.spotify.refresh(1)
+			else:
+				self.spotify.refresh(0)
 
 		# Get active player	
 		self.determine_active_player(old_spotify_status, old_mpd_status)
