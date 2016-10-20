@@ -7,12 +7,13 @@ class SpotifyControl:
 	def __init__(self):	
 		self.logger = logging.getLogger("PiTFT-Playerui logger.Spotify control")
 		self.status = {}
+		metadata    = {}
 		self.song   = {}
 
 	def refresh(self, active):
 		try:
 			status = self.api("info","status")
-			if active:
+			if active and self.status["active"]:
 				metadata = self.api("info","metadata")
 		except:
 			status = {}
@@ -61,7 +62,7 @@ class SpotifyControl:
 					self.song["cover_uri"] = line.split(": ")[1][1:-3]
 		else:
 			self.song = {}
-					
+				
 	def control(self, command):
 		# Translate commands
 		if command == "stop":

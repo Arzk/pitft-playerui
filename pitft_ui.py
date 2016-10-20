@@ -678,7 +678,6 @@ class PitftPlayerui:
 
 			# Playlists are shown - hide on empty space or button click
 			if self.get_playlists_status() or self.get_playlist_status():
-			#	if not self.pos['list_left'] <= click_pos[0] <= self.pos['list_right'] or not self.pos['list_top'] <= click_pos[1] <= self.pos['list_bottom']:
 				if not self.pos['list_top'] <= click_pos[1] <= self.pos['list_bottom']:
 					self.logger.debug("Hiding lists")
 					self.button(13, mousebutton)
@@ -767,10 +766,8 @@ class PitftPlayerui:
 
 			if number == 0:  
 				self.pc.control_player("repeat")
-				self.pc.status["repeat"] = (int(self.pc.status["repeat"]) + 1) % 2
 			elif number == 1:
 				self.pc.control_player("random")
-				self.pc.status["random"] = (int(self.pc.status["random"]) + 1) % 2
 
 			elif number == 2:
 				self.toggle_backlight()
@@ -789,10 +786,6 @@ class PitftPlayerui:
 				
 			elif number == 7:
 				self.pc.control_player("play_pause")
-				if self.pc.status["state"] == "play":
-					self.pc.status["state"] == "pause"
-				else:
-					self.pc.status["state"] == "play"
 
 			elif number == 8:
 				self.pc.control_player("next")
@@ -841,6 +834,9 @@ class PitftPlayerui:
 
 		else:
 			self.logger.debug("mouse button %s not supported" % mousebutton)
+			
+		#Refresh players in the end 
+		self.refresh()
 
 	def fetch_coverart(self):
 		self.logger.debug("caT start")
@@ -1046,7 +1042,6 @@ class PitftPlayerui:
 				self.pc.load_playlist(self.playlists[number + self.offset]["playlist"])
 				self.pc.control_player("play", "mpd")
 			self.showPlaylists = False
-			#self.pc.control_player("mpd")
 
 		# Update screen
 		self.update_all()
@@ -1060,14 +1055,14 @@ class PitftPlayerui:
 		# Limits for offset
 		if self.offset < 0:
 			self.offset = 0
-		# Disable scroll if all items fit on the screen
+		# Disable scroll if all items fit on the screen - playlists
 		if (self.showPlaylists) and len(self.playlists) <= 8:
 			self.offset = 0
 		# Don't overscroll
 		elif (self.showPlaylists) and len(self.playlists) - 8 < self.offset:
 			self.offset = len(self.playlists) - 8
 		
-		# Disable scroll if all items fit on the screen
+		# Disable scroll if all items fit on the screen - playlist
 		if (self.showPlaylist) and len(self.playlist) <= 8:
 			self.offset = 0
 		# Don't overscroll

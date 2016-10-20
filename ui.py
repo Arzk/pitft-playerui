@@ -103,41 +103,47 @@ class PitftDaemon(Daemon):
 		self.mouse_scroll     = False
 		self.mousebutton_down = False
 		self.longpress        = False
+		
+		# Times in milliseconds
+		self.screen_refreshtime = 100
+		self.player_refreshtime = 500
+		self.sleeptime = self.screen_refreshtime / 2.0
 
 	def shutdown(self):
 		# Close MPD connection -  TODO
 #		self.sm.pc.mpd.disconnect()
 		pass
-		
+
 	# Main loop
 	def run(self):
 		self.setup()
-		
+
 		try:
 			drawtime = datetime.datetime.now()
 			refreshtime = datetime.datetime.now()
 			while 1:
 
 				if refreshtime < datetime.datetime.now():
-					refreshtime = datetime.datetime.now() + timedelta(milliseconds=1000)
+					refreshtime = datetime.datetime.now() + timedelta(milliseconds=self.player_refreshtime)
 					# Refresh info
 					self.sm.refresh()
 
-				# Check CLI events
-				self.read_cli()
-				
-				# Mouse events
-				self.read_mouse()
-
-				# Update screen, fps=20
+				# Update screen
 				if drawtime < datetime.datetime.now():
-					drawtime = datetime.datetime.now() + timedelta(milliseconds=50)
+					drawtime = datetime.datetime.now() + timedelta(milliseconds=self.screen_refreshtime)
 					# Don't draw when display is off
 					if self.sm.get_backlight_status():
 						self.sm.render(self.screen)
 						pygame.display.flip()
-					
-			pygame.display.update()
+
+						# Check CLI events
+						self.read_cli()
+
+						# Mouse events
+						self.read_mouse()
+				else:
+					# Sleep a bit
+					time.sleep(self.sleeptime/1000.0)
 			
 		except Exception, e:
 			logger.debug(e)
