@@ -68,7 +68,6 @@ class SpotifyControl:
 			command = "prev"
 		if command == "random":
 			command = "shuffle"
-
 				
 		# Prevent commands not implemented in api
 		if command in ["play", "pause", "prev", "next", "shuffle", "repeat"]:
@@ -76,15 +75,17 @@ class SpotifyControl:
 			# Check shuffle and repeat state
 			if command == "shuffle" and self.status["random"] == 1:
 				command += '/disable'
+				self.status["random"] = 0;
 			elif command == "shuffle":
 				command += '/enable'
-				self.logger.info("Spotify command: %s" % command)
+				self.status["random"] = 1;
 				
 			if command == "repeat" and self.status["repeat"] == 1:
 				command += '/disable'
+				self.status["repeat"] = 0;
 			elif command == "repeat":
 				command += '/enable'
-				self.logger.info("Spotify command: %s" % command)
+				self.status["repeat"] = 1;
 
 			#Send command
 			self.api("playback", command)
