@@ -75,10 +75,8 @@ class SpotifyControl:
 			# Check shuffle and repeat state
 			if command == "shuffle" and self.status["random"] == 1:
 				command += '/disable'
-				self.status["random"] = 0;
 			elif command == "shuffle":
 				command += '/enable'
-				self.status["random"] = 1;
 				
 			if command == "repeat" and self.status["repeat"] == 1:
 				command += '/disable'

@@ -115,10 +115,13 @@ class PitftDaemon(Daemon):
 		
 		try:
 			drawtime = datetime.datetime.now()
+			refreshtime = datetime.datetime.now()
 			while 1:
 
-				# Refresh info
-				self.sm.refresh()
+				if refreshtime < datetime.datetime.now():
+					refreshtime = datetime.datetime.now() + timedelta(milliseconds=500)
+					# Refresh info
+					self.sm.refresh()
 
 				# Check CLI events
 				self.read_cli()

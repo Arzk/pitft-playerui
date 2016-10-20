@@ -19,7 +19,6 @@ class MPDControl:
 		# Things to remember
 		self.status = {}
 		self.song = {}
-		self.reconnect = False
 	
 		# CDDA variables
 		self.disc_id = {}

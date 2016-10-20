@@ -662,7 +662,7 @@ class PitftPlayerui:
 	
 		# Reset updates
 		self.resetUpdates()
-
+		
 	# Click handler
 	def on_click(self, mousebutton, click_pos):
 
@@ -758,7 +758,7 @@ class PitftPlayerui:
 			elif self.pos['artist'][1] <= click_pos[1] <= config.resolution[1] and mousebutton == 2:
 				if self.pc.mpd and self.pc.get_active_player() == "mpd":
 					self.logger.debug("Toggle playlist")
-					self.button(9, mousebutton)
+					self.button(9, mousebutton)			
 
 	#define action on pressing buttons
 	def button(self, number, mousebutton):
@@ -767,9 +767,10 @@ class PitftPlayerui:
 
 			if number == 0:  
 				self.pc.control_player("repeat")
-
+				self.pc.status["repeat"] = (int(self.pc.status["repeat"]) + 1) % 2
 			elif number == 1:
 				self.pc.control_player("random")
+				self.pc.status["random"] = (int(self.pc.status["random"]) + 1) % 2
 
 			elif number == 2:
 				self.toggle_backlight()
@@ -788,6 +789,10 @@ class PitftPlayerui:
 				
 			elif number == 7:
 				self.pc.control_player("play_pause")
+				if self.pc.status["state"] == "play":
+					self.pc.status["state"] == "pause"
+				else:
+					self.pc.status["state"] == "play"
 
 			elif number == 8:
 				self.pc.control_player("next")
