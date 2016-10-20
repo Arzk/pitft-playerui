@@ -94,7 +94,7 @@ class SpotifyControl:
 	# Using api from spotify-connect-web
 	# Valid methods:  playback, info
 	# Valid info commands: metadata, status, image_url/<image_url>, display_name
-	# Valid playback commands: play, pause, prev, next, shuffle, repeat, volume
+	# Valid playback commands: play, pause, prev, next, shuffle[/enable|disable], repeat[/enable|disable], volume
 	def api(self, method, command):
 		c = httplib.HTTPConnection(config.spotify_host, config.spotify_port)
 		c.request('GET', '/api/'+method+'/'+command, '{}')
