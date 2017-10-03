@@ -8,13 +8,15 @@ class SpotifyControl:
 		self.logger = logging.getLogger("PiTFT-Playerui logger.Spotify control")
 		self.status = {}
 		self.song   = {}
+		self.connection = httplib.HTTPConnection(config.spotify_host, config.spotify_port)
+		self.logger.info("Connected to Spotify")
 
 	def refresh(self, active):
 		metadata = {}
 		try:
-			status = self.api("info","status")
+			status = self.api(self.connection,"info","status")
 			if active:
-				metadata = self.api("info","metadata")
+				metadata = self.api(self.connection,"info","metadata")
 		except:
 			status = {}
 			metadata = {}
@@ -89,14 +91,13 @@ class SpotifyControl:
 				self.status["repeat"] = 1;
 
 			#Send command
-			self.api("playback", command)
+			self.api(self.connection,"playback", command)
 
 	# Using api from spotify-connect-web
 	# Valid methods:  playback, info
 	# Valid info commands: metadata, status, image_url/<image_url>, display_name
 	# Valid playback commands: play, pause, prev, next, shuffle[/enable|disable], repeat[/enable|disable], volume
-	def api(self, method, command):
-		c = httplib.HTTPConnection(config.spotify_host, config.spotify_port)
-		c.request('GET', '/api/'+method+'/'+command, '{}')
-		doc = c.getresponse().read()
+	def api(self, client, method, command):
+		client.request('GET', '/api/'+method+'/'+command, '{}')
+		doc = client.getresponse().read()
 		return doc
