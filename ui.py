@@ -105,8 +105,8 @@ class PitftDaemon(Daemon):
 		self.longpress        = False
 		
 		# Times in milliseconds
-		self.screen_refreshtime = 100
-		self.player_refreshtime = 500
+		self.screen_refreshtime = 50
+		self.player_refreshtime = 100
 		self.sleeptime = self.screen_refreshtime / 2.0
 
 	def shutdown(self):

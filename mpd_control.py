@@ -124,7 +124,7 @@ class MPDControl:
 		try:
 			self.song["track"] = file.split("cdda:///")[-1].split()[0]
 		except:
-			self.song["track"] = file.split("cdda:///")[-1].split()[0]
+			self.song["track"] = ""
 		# Title
 		try:
 			number=int(self.song["track"]) - 1
@@ -134,7 +134,7 @@ class MPDControl:
 		# Time
 		try:
 			if int(self.song["track"]) == int(self.disc_id[1]):
-				# The final track has to be count with 
+				# The final track has to be counted with 
 				# CD length in seconds - start frame of final track
 				# 75 frames = 1 second
 				self.song["time"] = self.disc_id[int(self.song["track"]) + 2] - self.disc_id[int(self.song["track"]) + 1] / 75
