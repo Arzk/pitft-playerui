@@ -23,18 +23,19 @@ os.environ["SDL_MOUSEDRV"] = "TSLIB"
 if not os.path.isdir ('/var/log/pitft-playerui'):
 	os.mkdir('/var/log/pitft-playerui')
 
-logger = logging.getLogger("PiTFT-Playerui logger")
+logger = logging.getLogger("PiTFT-Playerui")
 try: 
 	if config.loglevel == "DEBUG":
 		loglevel = logging.DEBUG
 		logger.setLevel(loglevel)
+		formatter = logging.Formatter("%(asctime)s %(levelname)-5s %(name)-32s %(lineno)-4d %(message)s")
 	else:
 		logger.setLevel(logging.INFO)
+		formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
 except:
 	logger.setLevel(logging.INFO)
 	
 handler = TimedRotatingFileHandler('/var/log/pitft-playerui/pitft-playerui.log',when="midnight",interval=1,backupCount=14)
-formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 

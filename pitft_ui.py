@@ -18,7 +18,7 @@ import control
 class PitftPlayerui:
 	def __init__(self):
 
-		self.logger = logging.getLogger("PiTFT-Playerui logger.screen manager")
+		self.logger = logging.getLogger("PiTFT-Playerui.Screen_Manager")
 		self.pc = control.PlayerControl()
 
 		# Pylast  
@@ -412,33 +412,27 @@ class PitftPlayerui:
 
 		# Artist
 		if self.artist != artist:
-			self.logger.debug("Artist if")
 			self.artist = artist
 			self.updateTrackInfo = True
 
 		# Album
 		if self.album != album or self.oldCoverartThreadRunning:
-			self.logger.debug("Album if")
 			self.album = album
+			self.updateTrackInfo = True
 			self.updateAlbum = True
 			self.cover = False
 			
 			# Find cover art on different thread
 			try:
 				if self.coverartThread:
-					self.logger.debug("if caT")
 					if self.coverartThread.is_alive():
-						self.logger.debug("caT is alive")
 						self.oldCoverartThreadRunning = True
 					else:
-						self.logger.debug("caT not live")
 						self.oldCoverartThreadRunning = False
-						self.coverartThread = Thread(target=self.fetch_coverart)
-						self.logger.debug("caT go")
+						self.coverartThread = Thread(target=self._fetch_coverart)
 						self.coverartThread.start()
 				else:
-					self.logger.debug("not caT")
-					self.coverartThread = Thread(target=self.fetch_coverart)
+					self.coverartThread = Thread(target=self._fetch_coverart)
 					self.coverartThread.start()
 			except Exception, e:
 				self.logger.debug("Coverartthread: %s" % e)
@@ -695,7 +689,6 @@ class PitftPlayerui:
 			if self.pos['button_spotify'][0] <= click_pos[0] <= self.pos['button_spotify'][0] + self.size["selectorbutton"] \
 			and self.pos['button_spotify'][1] <= click_pos[1] <= self.pos['button_spotify'][1] + self.size["selectorbutton"] \
 			and self.pc.mpd and self.pc.spotify:
-				self.logger.debug("Switching player")
 				self.button(14, mousebutton)
 			elif self.pos['button_playlists'][0] <= click_pos[0] <= self.pos['button_playlists'][0] + self.size["selectorbutton"] \
 			and self.pos['button_playlists'][1] <= click_pos[1] <= self.pos['button_playlists'][1] + self.size["selectorbutton"] \
@@ -838,99 +831,25 @@ class PitftPlayerui:
 		#Refresh players in the end 
 		self.refresh()
 
-	def fetch_coverart(self):
-		self.logger.debug("caT start")
+	def _fetch_coverart(self):
 		self.processingCover = True
 		self.coverFetched = False
 		self.cover = False
-
-		# Search for local coverart
-		if "file" in self.pc.song and self.pc.get_active_player() == "mpd" and config.library_path:
 		
-			folder = os.path.dirname(config.library_path + "/" + self.pc.song["file"])
-			coverartfile = ""
-			
-			# Get all folder.* files from album folder
-			coverartfiles = glob.glob(folder + '/folder.*')
-
-			if coverartfiles:
-				self.logger.debug("Found coverart files: %s" % coverartfiles)
-				# If multiple found, select one of them
-				for file in coverartfiles:
-					# Check file extension - png, jpg and gif accepted
-					if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-						if not coverartfile:
-							coverartfile = file
-							self.logger.debug("Set first candidate for coverart: %s" % coverartfile)
-						else:
-							# Found multiple files. Assume that the largest one has the best quality
-							if os.path.getsize(coverartfile) < os.path.getsize(file):
-								coverartfile = file
-								self.logger.debug("Better candidate found: %s" % coverartfile)
-				if coverartfile:
-					# Image found, load it
-					self.logger.debug("Using coverart: %s" % coverartfile)
-					coverart=pygame.image.load(coverartfile)
-					self.image["cover"] = pygame.transform.scale(coverart, (self.size['coverart'],self.size['coverart']))
-					self.processingCover = False
-					self.coverFetched = True
-					self.cover = True
-				else:
-					self.logger.debug("No local coverart file found, switching to Last.FM")				
-
-		# Check Spotify coverart
-		elif "cover_uri" in self.pc.song and self.pc.get_active_player() == "spotify" and self.pc.spotify:
+		if self.pc.coverartfile:
 			try:
-				coverart_url = config.spotify_host + ":" + config.spotify_port + "/api/info/image_url/" + self.pc.song["cover_uri"]
-				if coverart_url:
-					subprocess.check_output("wget -q %s -O %s/sp_cover.png" % (coverart_url, "/tmp/"), shell=True )
-					self.logger.debug("Spotify coverart downloaded")
-					coverart=pygame.image.load("/tmp/" + "sp_cover.png")
-					self.logger.debug("Spotify coverart loaded")
-					self.image["cover"] = pygame.transform.scale(coverart, (self.size['coverart'],self.size['coverart']))
-					self.logger.debug("Spotify coverart placed")
-					self.processingCover = False
-					self.coverFetched = True
-					self.cover = True
+				self.logger.debug("Using coverart: %s" % self.pc.coverartfile)
+				coverart=pygame.image.load(self.pc.coverartfile)
+				self.image["cover"] = pygame.transform.scale(coverart, (self.size['coverart'],self.size['coverart']))
+				self.processingCover = False
+				self.coverFetched = True
+				self.cover = True
 			except Exception, e:
 				self.logger.exception(e)
 				pass
-
-		# No existing coverart, try to fetch from LastFM
-		if not self.cover and self.lfm_connected:
-
-			try:
-				lastfm_album = self.lfm.get_album(self.artist, self.album)
-				self.logger.debug("caT album: %s" % lastfm_album)
-			except Exception, e:
-				# TODO: Check connection - now it is assumed that there is none if fetching failed
-				self.lfm_connected = False
-				lastfm_album = {}
-				self.logger.exception(e)
-				pass
-
-			if lastfm_album:
-				try:
-					coverart_url = lastfm_album.get_cover_image(2)
-					self.logger.debug("caT curl: %s" % coverart_url)
-					if coverart_url:
-						self.logger.debug("caT sp start")
-						subprocess.check_output("wget -q %s -O %s/mpd_cover.png" % (coverart_url, "/tmp/"), shell=True )
-						self.logger.debug("caT sp end")
-						coverart=pygame.image.load("/tmp/" + "mpd_cover.png")
-						self.logger.debug("caT c loaded")
-						self.image["cover"] = pygame.transform.scale(coverart, (self.size['coverart'], self.size['coverart']))
-						self.logger.debug("caT c placed")
-						self.processingCover = False
-						self.coverFetched = True
-						self.cover = True
-				except Exception, e:
-					self.logger.exception(e)
-					pass
 					
 		# Processing finished
 		self.processingCover = False
-		self.logger.debug("caT end")
 
 	def resetUpdates(self):
 		self.updateTrackInfo = False
