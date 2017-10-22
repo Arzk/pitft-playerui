@@ -15,8 +15,8 @@ class MPDControl:
 	def __init__(self):
 
 		self.logger = logging.getLogger("PiTFT-Playerui.MPD")
-	
-		# Pylast  
+
+		# Pylast
 		self.lfm_connected = False
 
 		# MPD Client
@@ -26,26 +26,23 @@ class MPDControl:
 		# Things to remember
 		self.status = {}
 		self.status["state"]  = ""
-		self.status["elapsed"]  = ""
+		self.status["elapsed"] = ""
 		self.status["repeat"] = ""
 		self.status["random"] = ""
 		self.status["volume"] = ""
 		self.song   = {}
+		
 		self.song["artist"]   = ""
 		self.song["album"]    = ""
 		self.song["date"]     = ""
 		self.song["track"]    = ""
 		self.song["title"]    = ""
 		self.song["time"]     = ""
-		
-		
-		
-		
-		
-		self.cover          = False		
-		self.coverartfile = ""
-		self.coverartThread = None
-		
+
+		self.cover            = False
+		self.coverartfile     = ""
+		self.coverartThread   = None
+
 		self.update = {}
 		self.update["active"]       = False
 		self.update["state"]     	= False
@@ -53,10 +50,9 @@ class MPDControl:
 		self.update["random"]    	= False
 		self.update["repeat"]    	= False
 		self.update["volume"]    	= False
-
 		self.update["trackinfo"] 	= False
 		self.update["coverart"]    	= False
-		
+
 		# CDDA variables
 		self.disc_id = {}
 		self.cdda_artist_album = {}
@@ -67,48 +63,48 @@ class MPDControl:
 
 		# Print data
 		self.logger.info("MPD server version: %s" % self.mpdc.mpd_version)
-		
-	def refresh(self,active):
+
+	def refresh(self):
 		status = {}
 		song = {}
-		
+
 		try:
 			status = self.mpdc.status()
-			
+
 			# Check for changes in status
 			if status != self.status:
-				
 				if status["state"] != self.status["state"]:
 					self.update["state"] = True
 					# Started playing - request active status
 					if status["state"] == "play":
 						self.update["active"] = True
-				if status["elapsed"] != self.status["elapsed"]:
-					self.update["elapsed"] = True
 				if status["repeat"] != self.status["repeat"]:
 					self.update["repeat"]  = True
 				if status["random"] != self.status["random"]:
 					self.update["random"]  = True
 				if status["volume"] != self.status["volume"]:
 					self.update["volume"]  = True
-			
+				if status["state"] != "stop":
+					if status["elapsed"] != self.status["elapsed"]:
+						self.update["elapsed"] = True
+				else:
+					status["elapsed"] = ""
 				# Save new status
 				self.status = status
 
-			# Fetch song info if active
-			if active:
-				song = self.mpdc.currentsong()				
-							
+			# Fetch song info 
+			song = self.mpdc.currentsong()
+			if song:
 				# Read CDDB if playing CD
 				if "file" in song and config.cdda_enabled:
 					if "cdda://" in song["file"]:
 						song=self._refresh_cd(song)
-						
+	
 				# Fetch coverart
 				if not self.cover or self.song["album"] != song["album"]:
 					self.logger.debug("MPD coverart changed, fetching...")
 					self.cover = False
-				
+	
 					# Find cover art on different thread
 					try:
 						if self.coverartThread:
@@ -120,38 +116,38 @@ class MPDControl:
 							self.coverartThread.start()
 					except Exception, e:
 						self.logger.debug("Coverartthread: %s" % e)
-						
+	
 				# Check for changes in song
 				if song != self.song:
-					if ( 
-					         song["artist"] != self.song["artist"] or
-					         song["album"]  != self.song["album"]  or
-					         song["date"]   != self.song["date"]   or
-					         song["track"]  != self.song["track"]  or
-					         song["title"]  != self.song["title"]  or
-					         song["time"]   != self.song["time"]
+					if (
+							song["artist"] != self.song["artist"] or
+							song["album"]  != self.song["album"]  or
+							song["date"]   != self.song["date"]   or
+							song["track"]  != self.song["track"]  or
+							song["title"]  != self.song["title"]  or
+							song["time"]   != self.song["time"]
 					):
-						self.update["trackinfo"] = True										
+						self.update["trackinfo"] = True
 					if song["album"] != self.song["album"]:
 						self.update["coverart"] = True
 					if song["time"] != self.song["time"]:
 						self.update["coverart"] = True
 						self.updateElapsed = True
-						
+	
 					# Save new song info
 					self.song = song
 
 		except Exception as e:
-			self.logger.debug(e)		
-		
+			self.logger.debug(e)
+
 	def _connect(self):
 		self.logger.info("Trying to connect to MPD server")
-		
+
 		client = MPDClient()
 		client.timeout = 10
 		client.idletimeout = None
 		noConnection = True
-		
+
 		while noConnection:
 			try:
 				client.connect(config.mpd_host, config.mpd_port)
@@ -166,21 +162,21 @@ class MPDControl:
 		# (re)connect to last.fm
 		if not self.lfm_connected and config.API_KEY and config.API_SECRET:
 			self._connect_lfm()
-		
+
 	def _disconnect(self):
 		# Close MPD connection
 		if self.mpdc:
 			self.mpdc.close()
 			self.mpdc.disconnect()
-			self.logger.debug("Disconnected from MPD")		
-					
+			self.logger.debug("Disconnected from MPD")
+
 	def _refresh_cd(self, song):
-		
+
 		# CDDB query not done - do it now
 		if not self.cdda_read_info:
 			self.load_cd()
-	
-		# Fill song information from CD	
+
+		# Fill song information from CD
 		# Artist
 		try:
 			song["artist"] = self.cdda_artist_album[0]
@@ -211,7 +207,7 @@ class MPDControl:
 		# Time
 		try:
 			if int(song["track"]) == int(self.disc_id[1]):
-				# The final track has to be counted with 
+				# The final track has to be counted with
 				# CD length in seconds - start frame of final track
 				# 75 frames = 1 second
 				song["time"] = self.disc_id[int(song["track"]) + 2] - self.disc_id[int(song["track"]) + 1] / 75
@@ -220,13 +216,13 @@ class MPDControl:
 				song["time"] = (self.disc_id[int(song["track"]) + 2] - self.disc_id[int(song["track"]) + 1]) / 75
 		except:
 			song["time"] = 0
-		
+
 		return song
-		
+
 	# Direction: +, -
 	def set_volume(self, volume):
 		self.mpdc.setvol(volume)
-			
+
 	def control(self, command):
 		if command == "next":
 			self.mpdc.next()
@@ -247,21 +243,21 @@ class MPDControl:
 			self.mpdc.repeat(repeat)
 		elif command == "random":
 			random = (int(self.status["random"]) + 1) % 2
-			self.mpdc.random(random)			
+			self.mpdc.random(random)
 
 	def load_playlist(self, command):
 		self.mpdc.clear()
 		self.mpdc.load(command)
 
 	def _query_cddb(self, disc_id):
-	
+
 		try:
 			(self.cdda_query_status, self.cdda_query_info) = CDDB.query(disc_id)
 		except:
 			self.cdda_query_status = {}
 			self.cdda_query_info = {}
 		self.logger.debug("CDDB Query status: %s" % self.cdda_query_status)
-				
+
 		# Exact match found
 		try:
 			if self.cdda_query_status == 200:
@@ -277,7 +273,7 @@ class MPDControl:
 		except:
 			self.cdda_read_status = 0
 			self.cdda_read_info = {}
-			
+
 		# Read successful - Save data
 		if self.cdda_read_status == 210:
 			try:
@@ -297,7 +293,7 @@ class MPDControl:
 			self.logger.debug("Loaded new cd, id: %s" % disc_id)
 			self._query_cddb(disc_id)
 		return disc_id
-		
+
 	def play_cd(self):
 		self.disc_id = self.load_cd()
 		if self.disc_id:
@@ -312,26 +308,26 @@ class MPDControl:
 			self.mpdc.play()
 		else:
 			self.logger.info("No CD found")
-			
+
 	def get_playlists(self):
 		return self.mpdc.listplaylists()
 
 	def get_playlist(self):
 		return self.mpdc.playlistinfo()
-		
+
 	def play_item(self, number):
 		self.mpdc.play(number)
-		
+
 	def _fetch_coverart(self, song):
 		self.cover = False
 		self.coverartfile=""
 
 		# Search for local coverart
 		if "file" in song and config.library_path:
-		
+
 			folder = os.path.dirname(config.library_path + "/" + song["file"])
 			coverartfile = ""
-			
+
 			# Get all folder.* files from album folder
 			coverartfiles = glob.glob(folder + '/folder.*')
 
@@ -356,7 +352,7 @@ class MPDControl:
 					self.cover = True
 					self.update["coverart"]	= True
 				else:
-					self.logger.debug("No local coverart file found, switching to Last.FM")				
+					self.logger.debug("No local coverart file found, switching to Last.FM")
 
 		# No existing coverart, try to fetch from LastFM
 		if not self.cover and self.lfm_connected:
@@ -381,10 +377,10 @@ class MPDControl:
 				except Exception, e:
 					self.logger.exception(e)
 					pass
-					
+
 		# Processing finished
 		self.processingCover = False
-		
+
 	def _connect_lfm(self):
 		self.logger.info("Setting Pylast")
 		username = config.username
@@ -398,4 +394,4 @@ class MPDControl:
 			self.lfm = ""
 			time.sleep(5)
 			self.logger.debug("Last.fm not connected")
-		
+

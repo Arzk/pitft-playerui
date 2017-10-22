@@ -23,7 +23,7 @@ class PlayerControl:
 
 		# Active player. Determine later
 		self.active_player = "mpd"
-		
+
 	def determine_active_player(self):
 		if self.spotify and self.mpd:
 			# Spotify playing
@@ -48,35 +48,35 @@ class PlayerControl:
 		elif not self.spotify and self.mpd:
 			self.switch_active_player("mpd")
 
-	def refresh_players(self):		
+	def refresh_players(self):
 
 		# Refresh players
 		if self.mpd:
-			active = 1 if self.active_player == "mpd" else 0
-			self.mpd.refresh(active)
+			self.mpd.refresh()
 		if self.spotify:
-			active = 1 if self.active_player == "spotify" else 0
-			self.spotify.refresh(active)
+			self.spotify.refresh()
 
-		# Get active player	
+		# Get active player
 		self.determine_active_player()
 
 		# Use active player's information
 		if self.active_player == "spotify":
-			self.status = self.spotify.status
-			self.song = self.spotify.song
-			self.cover = self.spotify.cover
+			self.status       = self.spotify.status
+			self.song         = self.spotify.song
+			self.cover        = self.spotify.cover
 			self.coverartfile = self.spotify.coverartfile
-			
+			self.update       = self.spotify.update
+
 		elif self.active_player == "mpd":
-			self.status = self.mpd.status
-			self.song = self.mpd.song
-			self.cover = self.mpd.cover
-			self.coverartfile = self.mpd.coverartfile
+			self.status         = self.mpd.status
+			self.song           = self.mpd.song
+			self.cover          = self.mpd.cover
+			self.coverartfile   = self.mpd.coverartfile
+			self.update         = self.mpd.update
 		else:
 			self.status = {}
 			self.song = {}
-			
+
 	# Direction: +, -
 	def set_volume(self, amount, direction=""):
 		if self.active_player == "mpd":
@@ -90,9 +90,9 @@ class PlayerControl:
 			volume = 100 if volume > 100 else volume
 			volume = 0 if volume < 0 else volume
 			self.mpd.set_volume(volume)
-			
+
 	def control_player(self, command, player="active"):
-	
+
 		if player == "active":
 			player = self.active_player
 		if self.status:
@@ -101,7 +101,7 @@ class PlayerControl:
 					command = "pause"
 				else:
 					command = "play"
-		
+
 		# Switching commands
 		if command == "cd":
 			self.play_cd()
@@ -125,13 +125,13 @@ class PlayerControl:
 
 	def play_cd(self):
 		self.mpd.play_cd()
-		
+
 	def get_playlists(self):
 		return self.mpd.get_playlists()
 
 	def get_playlist(self):
 		return self.mpd.get_playlist()
-		
+
 	def play_item(self, number):
 		self.mpd.play_item(number)
 

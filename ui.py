@@ -24,7 +24,7 @@ if not os.path.isdir ('/var/log/pitft-playerui'):
 	os.mkdir('/var/log/pitft-playerui')
 
 logger = logging.getLogger("PiTFT-Playerui")
-try: 
+try:
 	if config.loglevel == "DEBUG":
 		loglevel = logging.DEBUG
 		logger.setLevel(loglevel)
@@ -34,7 +34,7 @@ try:
 		formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
 except:
 	logger.setLevel(logging.INFO)
-	
+
 handler = TimedRotatingFileHandler('/var/log/pitft-playerui/pitft-playerui.log',when="midnight",interval=1,backupCount=14)
 handler.setFormatter(formatter)
 logger.addHandler(handler)
@@ -58,7 +58,7 @@ class PitftDaemon(Daemon):
 	# Setup Python game and Screen manager
 	def setup(self):
 		logger.info("Starting setup")
-		
+
 		signal(SIGTERM, signal_term_handler)
 		# Python game ######################
 		logger.info("Setting pygame")
@@ -71,7 +71,7 @@ class PitftDaemon(Daemon):
 				logger.debug("Pygame init failed")
 				pygame_init_done = False
 				time.sleep(5)
-			
+
 		pygame.mouse.set_visible(False)
 
 		# Hax for freezing
@@ -104,7 +104,7 @@ class PitftDaemon(Daemon):
 		self.mouse_scroll     = False
 		self.mousebutton_down = False
 		self.longpress        = False
-		
+
 		# Times in milliseconds
 		self.screen_refreshtime = 50
 		self.player_refreshtime = 100
@@ -145,11 +145,11 @@ class PitftDaemon(Daemon):
 				else:
 					# Sleep a bit
 					time.sleep(self.sleeptime/1000.0)
-			
+
 		except Exception, e:
 			logger.debug(e)
 			raise
-			
+
 	def read_mouse(self):
 		for event in pygame.event.get():
 			if event.type == pygame.MOUSEBUTTONDOWN:
@@ -198,12 +198,12 @@ class PitftDaemon(Daemon):
 				self.start_x,self.start_y=pygame.mouse.get_pos()
 
 			if event.type == pygame.MOUSEBUTTONUP and self.mousebutton_down:
-	
-				# Not a long click or scroll
+
+				# Not a long click or scroll: click
 				if not self.longpress and not self.mouse_scroll:
 					click_pos = (pygame.mouse.get_pos() [0], pygame.mouse.get_pos() [1])
 					self.sm.on_click(1, click_pos)
-					
+
 				# Clear variables
 				end_x = 0;
 				end_y = 0;
@@ -233,12 +233,12 @@ class PitftDaemon(Daemon):
 
 	def read_cli(self):
 		# See if there were any CLI commands
-		shared = memcache.Client(['127.0.0.1:11211'], debug=0)    
+		shared = memcache.Client(['127.0.0.1:11211'], debug=0)
 		command = shared.get('command')
 		if command:
 			logger.debug("Got shared: %s" % command)
 			self.sm.pc.control_player(command)
-			
+
 			# Set backlight on
 			if not self.sm.backlight_forced_off:
 				self.sm.update_screen_timeout()
