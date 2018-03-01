@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import httplib
+import httplib, urllib
 import logging
 from threading import Thread
 import subprocess
@@ -8,36 +8,55 @@ import config
 class SpotifyControl:
 	def __init__(self):
 		self.logger = logging.getLogger("PiTFT-Playerui.Spotify")
-
-		self.status = {}
-		self.status["state"]   = ""
-		self.status["repeat"]  = ""
-		self.status["random"]  = ""
-		
-		self.song = {}
-		self.song["artist"]    = ""
-		self.song["album"]     = ""
-		self.song["title"]     = ""
-		self.song["cover_uri"] = ""
-
-		self.coverartfile      = ""
-		self.cover             = False
-		self.coverartThread    = None
-
-		self.update = {}
-		self.update["active"]    = False
-		self.update["state"]     = False
-		self.update["elapsed"]   = False
-		self.update["random"]    = False
-		self.update["repeat"]    = False
-		self.update["volume"]    = False
-		self.update["trackinfo"] = False
-		self.update["coverart"]  = False
-
 		self.client = httplib.HTTPConnection(config.spotify_host, config.spotify_port)
-		self.logger.info("Connected to Spotify")
+		self.coverartThread = None
 
-	def refresh(self):
+		# Capabilities
+		self.capabilities = {}
+		self.capabilities["name"]            = "spotify"
+		self.capabilities["volume_enabled"]  = True
+		self.capabilities["seek_enabled"]    = False
+		self.capabilities["random_enabled"]  = True 
+		self.capabilities["repeat_enabled"]  = True
+		self.capabilities["elapsed_enabled"] = False
+		self.capabilities["tracknumber_enabled"] = False
+
+		# Things to remember
+		self.data = {}
+		self.data["status"] = {}
+		self.data["status"]["state"]     = ""
+		self.data["status"]["repeat"]    = ""
+		self.data["status"]["random"]    = ""
+		self.data["status"]["volume"]    = ""
+		                         
+		self.data["song"] = {}           
+		self.data["song"]["artist"]      = ""
+		self.data["song"]["album"]       = ""
+		self.data["song"]["title"]       = ""
+		self.data["song"]["cover_uri"]   = ""
+                                 
+		self.data["coverartfile"]        = ""
+		self.data["cover"]               = False
+
+		self.data["update"] = {}
+		self.data["update"]["active"]    = False
+		self.data["update"]["state"]     = False
+		self.data["update"]["elapsed"]   = False
+		self.data["update"]["random"]    = False
+		self.data["update"]["repeat"]    = False
+		self.data["update"]["volume"]    = False
+		self.data["update"]["trackinfo"] = False
+		self.data["update"]["coverart"]  = False
+		
+		self.volume = ""
+
+	def __getitem__(self, item):
+		return self.data[item]
+
+	def __call__(self, item):
+		return self.capabilities[item]
+
+	def refresh(self, active=False):
 		status = {}
 		song = {}
 
@@ -53,77 +72,114 @@ class SpotifyControl:
 					status["random"] = 1 if "true" in line else 0
 				if "repeat" in line:
 					status["repeat"] = 1 if "true" in line else 0
+			
+			# Get volume from previous metadata
+			status["volume"] = self.volume
 
 			# Check for changes in status
-			if status != self.status:
+			if status != self.data["status"]:
 
-				if status["state"] != self.status["state"]:
-					self.update["state"]   = True
+				if status["state"] != self.data["status"]["state"]:
+					self.data["update"]["state"]   = True
 					# Started playing - request active status
 					if status["state"] == "play":
-						self.update["active"] = True
-				if status["repeat"] != self.status["repeat"]:
-					self.update["repeat"]  = True
-				if status["random"] != self.status["random"]:
-					self.update["random"]  = True
+						self.data["update"]["active"] = True
+				if status["repeat"] != self.data["status"]["repeat"]:
+					self.data["update"]["repeat"]  = True
+				if status["random"] != self.data["status"]["random"]:
+					self.data["update"]["random"]  = True
+				if status["volume"] != self.data["status"]["volume"]:
+					self.data["update"]["volume"]  = True
 
 				#Save new status
-				self.status = status
+				self.data["status"] = status
+				
 
-			# Fetch song info
-			sp_metadata = self._api("info","metadata")
+			if active:
+				# Fetch song info
+				sp_metadata = self._api("info","metadata")
+	
+				# Parse multiline string of type
+				# '  "album_name": "Album", '
+				# Split lines and remove leading '"' + ending '", '
+				for line in sp_metadata.split("\n"):
+					if "album_name" in line:
+						song["album"] = line.split(": ")[1][1:-3].decode('unicode_escape').encode('utf-8')
+					if "artist_name" in line:
+						song["artist"] = line.split(": ")[1][1:-3].decode('unicode_escape').encode('utf-8')
+					if "track_name" in line:
+						song["title"] = line.split(": ")[1][1:-3].decode('unicode_escape').encode('utf-8')
+					if "cover_uri" in line:
+						song["cover_uri"] = line.split(": ")[1][1:-3]
+					if "volume" in line:
+						self.volume = str(int(line.split(": ")[1])*100/65535)
+							
+				# Sanity check
+				if "artist" not in song:
+					song["artist"] = ""
+					
+				if "album" not in song:
+					song["album"] = ""
+					
+				if "date" not in song:
+					song["date"] = ""
+					
+				if "track" not in song:
+					song["track"] = ""
+					
+				if "title" not in song:
+					song["title"] = ""
 
-			# Parse multiline string of type
-			# '  "album_name": "Album", '
-			# Split lines and remove leading '"' + ending '", '
-			for line in sp_metadata.split("\n"):
-				if "album_name" in line:
-					song["album"] = line.split(": ")[1][1:-3].decode('unicode_escape').encode('utf-8')
-				if "artist_name" in line:
-					song["artist"] = line.split(": ")[1][1:-3].decode('unicode_escape').encode('utf-8')
-				if "track_name" in line:
-					song["title"] = line.split(": ")[1][1:-3].decode('unicode_escape').encode('utf-8')
-				if "cover_uri" in line:
-					song["cover_uri"] = line.split(": ")[1][1:-3]
-
-			# Fetch coverart
-			if song["cover_uri"] and not self.cover or song["cover_uri"] != self.song["cover_uri"]:
-				self.logger.debug("Spotify coverart changed, fetching...")
-				self.cover = False
-
-				# Find cover art on different thread
-				try:
-					if self.coverartThread:
-						if not self.coverartThread.is_alive():
+				if "time" not in song:
+					song["time"] = ""
+					
+				# Fetch coverart
+				if song["cover_uri"] and not self.data["cover"] or song["cover_uri"] != self.data["song"]["cover_uri"]:
+					self.logger.debug("Spotify coverart changed, fetching...")
+					self.data["cover"] = False
+	
+					# Find cover art on different thread
+					try:
+						if self.coverartThread:
+							if not self.coverartThread.is_alive():
+								self.coverartThread = Thread(target=self._fetch_coverart(song["cover_uri"]))
+								self.coverartThread.start()
+						else:
 							self.coverartThread = Thread(target=self._fetch_coverart(song["cover_uri"]))
 							self.coverartThread.start()
-					else:
-						self.coverartThread = Thread(target=self._fetch_coverart(song["cover_uri"]))
-						self.coverartThread.start()
-				except Exception, e:
-					self.logger.debug("Coverartthread: %s" % e)
-			else:
-				song["coverartfile"] = self.coverartfile
-				song["cover"] = self.cover
-
-			# Check for changes in song
-			if song != self.song:
-				if (
-						 song["artist"] != self.song["artist"] or
-						 song["album"]  != self.song["album"]  or
-						 song["title"]  != self.song["title"]
-				):
-					self.update["trackinfo"] = True
-				if song["album"] != self.song["album"]:
-					self.update["coverart"] = True
-
-				# Save new song info
-				self.song = song
+					except Exception, e:
+						self.logger.debug("Coverartthread: %s" % e)
+				else:
+					song["coverartfile"] = self.data["coverartfile"]
+					song["cover"] = self.data["cover"]
+	
+				# Check for changes in song
+				if song != self.data["song"]:
+					if (
+							song["artist"] != self.data["song"]["artist"] or
+							song["album"]  != self.data["song"]["album"]  or
+							song["title"]  != self.data["song"]["title"]
+					):
+						self.data["update"]["trackinfo"] = True
+					if song["album"] != self.data["song"]["album"]:
+						self.data["update"]["coverart"] = True
+										
+					# Save new song info
+					self.data["song"] = song
 
 		except Exception as e:
 			self.logger.debug(e)
+					
+	def update_ack(self, updated):
+		self.data["update"][updated] = False
 
-	def control(self, command):
+	def force_update (self,item="all"):
+		if item == "all":
+			self.data["update"] = dict.fromkeys(self.data["update"], True)
+		else:
+			self.data["update"][item] = True
+
+	def control(self, command, parameter=-1):
 		# Translate commands
 		if command == "stop":
 			command = "pause"
@@ -131,45 +187,53 @@ class SpotifyControl:
 			command = "prev"
 		if command == "random":
 			command = "shuffle"
+		if command == "volume" and parameter != -1:
+			parameter = parameter*65535/100
 
 		# Prevent commands not implemented in api
-		if command in ["play", "pause", "prev", "next", "shuffle", "repeat"]:
+		if command in ["play", "pause", "prev", "next", "shuffle", "repeat", "volume"]:
 
 			# Check shuffle and repeat state
-			if command == "shuffle" and self.status["random"] == 1:
-				command += '/disable'
-			elif command == "shuffle":
-				command += '/enable'
+			if command == "shuffle":
+				if self.data["status"]["random"] == 1:
+					command += '/disable'
+				else:
+					command += '/enable'
 
-			if command == "repeat" and self.status["repeat"] == 1:
-				command += '/disable'
-#				self.status["repeat"] = 0;
-			elif command == "repeat":
-				command += '/enable'
-#				self.status["repeat"] = 1;
+			if command == "repeat":
+				if self.data["status"]["repeat"] == 1:
+					command += '/disable'
+				else:
+					command += '/enable'
 
 			#Send command
-			self._api("playback", command)
+			self._api("playback", command, parameter)
+			
+	def _fetch_coverart(self, cover_uri):
+		self.data["cover"] = False
+		self.data["coverartfile"] = ""
+		try:
+			coverart_url = config.spotify_host + ":" + config.spotify_port + "/api/info/image_url/" + cover_uri
+			if coverart_url:
+				self.data["coverartfile"] = "/dev/shm/sp_cover.png"
+				subprocess.check_output("wget -q %s -O %s" % (coverart_url, self.data["coverartfile"]), shell=True )
+				self.logger.debug("Spotify coverart downloaded")
+				self.data["cover"] = True
+				self.data["update"]["coverart"]	= True
+		except Exception, e:
+			self.logger.exception(e)
+			pass
 
 	# Using api from spotify-connect-web
 	# Valid methods:  playback, info
 	# Valid info commands: metadata, status, image_url/<image_url>, display_name
 	# Valid playback commands: play, pause, prev, next, shuffle[/enable|disable], repeat[/enable|disable], volume
-	def _api(self, method, command):
-		self.client.request('GET', '/api/'+method+'/'+command, '{}')
-		doc = self.client.getresponse().read()
+	def _api(self, method, command, parameter=0):
+		if command != "volume":
+			self.client.request('GET', '/api/'+method+'/'+command, '{}')
+		else:
+			params = urllib.urlencode({"value": parameter})
+			headers = {"Content-type": "application/x-www-form-urlencoded", "Accept": "text/plain"}
+			self.client.request('POST', '/api/'+method+'/'+command, params, headers)
+		doc = self.client.getresponse().read()		
 		return doc
-
-	def _fetch_coverart(self, cover_uri):
-		self.cover = False
-
-		try:
-			coverart_url = config.spotify_host + ":" + config.spotify_port + "/api/info/image_url/" + cover_uri
-			if coverart_url:
-				self.coverartfile = "/dev/shm/sp_cover.png"
-				subprocess.check_output("wget -q %s -O %s" % (coverart_url, self.coverartfile), shell=True )
-				self.logger.debug("Spotify coverart downloaded")
-				self.cover = True
-		except Exception, e:
-			self.logger.exception(e)
-			pass

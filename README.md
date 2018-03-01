@@ -103,8 +103,8 @@ ctl.dacci {
 
 Install dependencies:
 <pre>apt-get update
-apt-get install python-pygame memcached python-memcache
-pip install python-mpd2
+apt-get install python-pygame memcached python-memcache python-lirc
+pip install python-mpd2 mplayer.py
 apt-get install evtest tslib libts-bin
 </pre>
 
