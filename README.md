@@ -40,6 +40,7 @@ Things you need:
 =================
 - Raspberry pi (I am using model 3)
 - Adafruit PiTFT+ 3.5" with Resistive Touchscreen ( https://www.adafruit.com/product/2441 )
+- Touchscreen calibration ( https://github.com/raysan5/raylib/wiki/Install-and-configure-Touchscreen-Drivers-(RPi) )
 - Internet connection for Pi
 - Raspbian running on the Pi
 - [Optional] MPD configured
