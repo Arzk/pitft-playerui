@@ -15,6 +15,7 @@ import config
 import memcache
 
 # OS enviroment variables for pitft
+os.putenv ("SDL_VIDEODRIVER" , "fbcon")
 os.environ["SDL_FBDEV"] = "/dev/fb1"
 os.environ["SDL_MOUSEDEV"] = "/dev/input/touchscreen"
 os.environ["SDL_MOUSEDRV"] = "TSLIB"
