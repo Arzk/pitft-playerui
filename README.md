@@ -53,6 +53,7 @@ Known issues:
 - Doesn't check if players are available when using CLI commands
 - Requires all the python modules even though features are disabled in config
 - Cover art is not saved separately for each player, has to be refetched when the player is changed
+- Inacurrate touchscreen calibration/detection using Raspbian Jessie/Stretch with sdl2, need to force downgrage sdl to 1.2 version (script provided in repo forcesdl_1.2)
 
 Installing:
 ===========
