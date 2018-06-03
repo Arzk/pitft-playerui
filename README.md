@@ -1,6 +1,6 @@
 PiTFT-PlayerUI is a fork of PMB-PiTFT (Pi MusicBox PiTFT), a small Python script that uses mopidy's mpd-api to show controlling ui on Raspberry Pi's screen.
 
-![Screenshot](https://dl.dropboxusercontent.com/u/15996443/github/pitft-playerui.png)
+![Screenshot](https://dl.dropboxusercontent.com/s/c2x5mcrbz4xqm0j/pitft-playerui.gif)
 
 Improvements:
 ===========
@@ -41,7 +41,7 @@ Things you need:
 - Raspberry pi (I am using model 3)
 - Adafruit PiTFT+ 3.5" with Resistive Touchscreen ( https://www.adafruit.com/product/2441 )
 - Internet connection for Pi
-- Raspbian running on the Pi
+- Raspbian running on the Pi (development moved to Stretch)
 - [Optional] MPD configured
 - [Optional] Spotify-connect-web configured
 - [Optional] Last.fm API key for cover art fetching
@@ -49,9 +49,8 @@ Things you need:
 
 Known issues:
 ==============
-- Doesn't check if players are available when using CLI commands
+- Hugely in progress
 - Requires all the python modules even though features are disabled in config
-- Cover art is not saved separately for each player, has to be refetched when the player is changed
 
 Installing:
 ===========
