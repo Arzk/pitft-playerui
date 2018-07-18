@@ -10,7 +10,6 @@ from datetime import timedelta
 from signal import alarm, signal, SIGALRM, SIGTERM, SIGKILL
 from logging.handlers import TimedRotatingFileHandler
 from daemon import Daemon
-import memcache
 import lirc
 
 from screen_manager import ScreenManager
@@ -98,9 +97,6 @@ class PitftDaemon(Daemon):
 		self.sm = ScreenManager(path)
 		logger.debug("Screen manager set")
 
-		# CLI and lirc sockets
-		self.sharedmem = memcache.Client(['127.0.0.1:11211'], debug=0)
-		
 		# LIRC
 		lircrcfile = path + "pitft-playerui.lircrc"
 		self.lirc_enabled = False
@@ -143,7 +139,6 @@ class PitftDaemon(Daemon):
 
 		while 1:
 			# Check CLI and mouse events
-			self.userevents = self.userevents | self.read_cli()
 			self.userevents = self.userevents | self.read_mouse()
 			if self.lirc_enabled:
 				self.userevents = self.userevents | self.read_lirc()
@@ -168,7 +163,6 @@ class PitftDaemon(Daemon):
 		userevents = False
 		
 		for event in pygame.event.get():
-		
 			if event.type == pygame.MOUSEBUTTONDOWN:
 				userevents = True
 				self.clicktime = datetime.datetime.now()
@@ -179,15 +173,14 @@ class PitftDaemon(Daemon):
 					self.mousebutton_down = False
 				else:
 					self.mousebutton_down = True
-					
+
 			if event.type == pygame.MOUSEMOTION and self.mousebutton_down and not self.longpress:
 				userevents = True
 				pos = pygame.mouse.get_pos()
 				direction = (pos[0] - self.pos[0], pos[1] - self.pos[1])
-				
+
 				# Start scrolling
-				if not self.mouse_scroll:
-					
+				if not self.mouse_scroll:					
 					if abs(direction[0]) >= self.scroll_threshold:
 						self.mouse_scroll = "x"
 						self.scroll(self.start_pos,direction[0],0)
@@ -202,10 +195,10 @@ class PitftDaemon(Daemon):
 						self.scroll(self.start_pos, direction[0], 0)
 					if self.mouse_scroll == "y" and abs(direction[1]) > 0:
 						self.scroll(self.start_pos, 0, direction[1])
-						
+
 				# Save new position
 				self.pos = pos
-							
+
 			if event.type == pygame.MOUSEBUTTONUP:
 				userevents = True
 				# Not a long click or scroll: click
@@ -214,44 +207,31 @@ class PitftDaemon(Daemon):
 						self.sm.on_click(1, self.start_pos)
 					else:
 						self.scroll(self.start_pos, 0,0, True)
-	
+
 				# Clear variables
 				self.mousebutton_down = False
 				self.mouse_scroll     = ""
 				self.longpress        = False
-						
+
 		# Long press - register second click
 		if self.mousebutton_down and not self.mouse_scroll:
 			userevents = True
 			if datetime.datetime.now() - self.clicktime > self.longpress_time:
 				self.mousebutton_down = self.sm.on_click(2, self.start_pos)
-				
+
 				# Update timers
 				self.clicktime = datetime.datetime.now()
 		return userevents
 
 	def scroll(self, start, x, y, end=False):
 		self.sm.on_scroll(start, x, y, end)
-	
+
 	def read_lirc(self):
 		commands = lirc.nextcode()
 		if commands:
 			for command in commands:
 				self.sm.pc.control_player(command)
 				logger.debug(command)
-			return True
-		return False
-
-	def read_cli(self):
-		# See if there were any CLI commands
-		command = self.sharedmem.get('command')
-		if command:
-			logger.debug("Got CLI: %s" % command)
-			self.sm.pc.control_player(command)
-
-			# Clear cache
-			self.sharedmem.set('command', None)
-			
 			return True
 		return False
 
@@ -265,12 +245,10 @@ if __name__ == "__main__":
 			daemon.stop()
 		elif 'restart' == sys.argv[1]:
 			daemon.restart()
-		elif 'control' == sys.argv[1] and len(sys.argv) == 3:
-			daemon.control(sys.argv[2])
 		else:
 			print "Unknown command"
 			sys.exit(2)
 		sys.exit(0)
 	else:
-		print "usage: %s start|stop|restart|control <command>" % sys.argv[0]
+		print "usage: %s start|stop|restart|" % sys.argv[0]
 		sys.exit(2)

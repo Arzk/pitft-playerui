@@ -41,7 +41,7 @@ Things you need:
 - Raspberry pi (I am using model 3)
 - Adafruit PiTFT+ 3.5" with Resistive Touchscreen ( https://www.adafruit.com/product/2441 )
 - Internet connection for Pi
-- Raspbian running on the Pi (development moved to Stretch)
+- Raspbian running on the Pi (Jessie)
 - [Optional] MPD configured
 - [Optional] Spotify-connect-web configured
 - [Optional] Last.fm API key for cover art fetching
@@ -102,7 +102,7 @@ ctl.dacci {
 
 Install dependencies:
 <pre>apt-get update
-apt-get install python-pygame memcached python-memcache python-lirc
+apt-get install python-pygame python-lirc
 pip install python-mpd2 mplayer.py
 apt-get install evtest tslib libts-bin
 </pre>
@@ -157,32 +157,9 @@ Some specific things:
 	- If Spotify is playing and MPD starts playing, pause Spotify and switch to MPD
 	- Vice versa if Spotify starts playing
 
-CLI:
-=========
-You can control the system from command line, for example using irexec, with
-
-<code>python /home/pi/pitft-playerui/ui.py control [command]</code>
-
-Valid commands implemented:
-- play
-- play_pause # Play/pause toggle
-- pause
-- stop
-- next
-- previous
-- rwd     # Rewind, only in MPD
-- ff      # Fast forward, only in MPD
-- repeat
-- random
-- spotify # Switch active player to Spotify
-- mpd     # Switch active player to MPD
-- cd      # Play CD
-- radio   # Load radio playlist
-
 TODO:
 =========
 - Support for OpenHome Mediaplayer (http://petemanchester.github.io/MediaPlayer/)
-- Volume control for Spotify
 - Sleep timer and other settings in a separate menu
 - Radio stream icons set in the config.py file
 - Got other ideas? Post an issue and tell me about it
