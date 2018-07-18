@@ -38,7 +38,7 @@ try:
 except:
 	logger.setLevel(logging.INFO)
 
-handler = TimedRotatingFileHandler('/var/log/pitft-playerui/pygame_test.log',when="midnight",interval=1,backupCount=14)
+handler = TimedRotatingFileHandler('/var/log/pitft-playerui/pitft-playerui.log',when="midnight",interval=1,backupCount=14)
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 

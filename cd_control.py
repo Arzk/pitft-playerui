@@ -26,6 +26,7 @@ class CDControl:
 		self.capabilities["random_enabled"]  = False 
 		self.capabilities["repeat_enabled"]  = False
 		self.capabilities["elapsed_enabled"] = False
+		self.capabilities["library_enabled"] = False
 
 		# Things to remember
 		self.data = {}

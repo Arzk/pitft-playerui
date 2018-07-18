@@ -34,6 +34,7 @@ class MPDControl:
 		self.capabilities["random_enabled"]  = True 
 		self.capabilities["repeat_enabled"]  = True
 		self.capabilities["elapsed_enabled"] = True
+		self.capabilities["library_enabled"] = False
 
 		# Things to remember
 		self.data = {}

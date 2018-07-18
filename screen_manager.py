@@ -53,7 +53,6 @@ class ScreenManager:
 
 			self.image["progress_bg"]            = pygame.image.load("pics/" + "position-background.png")
 			self.image["progress_fg"]            = pygame.image.load("pics/" + "position-foreground.png")
-			self.image["icon_screenoff"]         = pygame.image.load("pics/" + "screen-off.png")
 			self.image["volume_bg"]              = pygame.image.load("pics/" + "volume_bg.png")
 			self.image["volume_fg"]              = pygame.image.load("pics/" + "volume_fg.png")
                                                 
@@ -103,11 +102,8 @@ class ScreenManager:
 		self.offset             = 0,0
 		self.draw_offset        = 0,0
 		self.turn_backlight_on()
-		self.topmenu = []
-		self.topmenu.append ({"name": "SPOTIFY", "func": self.switch_spotify})
-		self.topmenu.append ({"name": "MPD", "func": self.switch_mpd})
-		self.topmenu.append ({"name": "CD", "func": self.switch_cd})
-		self.topmenu.append ({"name": "RADIO", "func": self.switch_mpd})
+
+		self.topmenu = self.pc.get_player_names()
 
 		self.bottommenu = []
 		self.bottommenu.append ({"name": "PLAYLIST", "func": self.show_playlist})
@@ -115,7 +111,9 @@ class ScreenManager:
 		self.bottommenu.append ({"name": "LIBRARY", "func": self.show_library})
 		
 		self.logger.debug("Init done")
-	
+
+		self.first_refresh_done = False
+
 	def refresh(self, active):
 
 		# Update screen timeout if there was any user activity
@@ -124,7 +122,7 @@ class ScreenManager:
 
 		# Refresh information from players
 		try:
-			self.pc.refresh(active)
+			self.pc.refresh(self.first_refresh_done)
 		except Exception, e:
 			self.logger.debug(e)
 			raise
@@ -146,6 +144,7 @@ class ScreenManager:
 			elif self.screen_timeout_time < datetime.datetime.now() and self.backlight:
 				self.turn_backlight_off()
 				active = False
+		self.first_refresh_done = True
 		return active
 
 	def parse_song(self):
@@ -345,7 +344,7 @@ class ScreenManager:
 			
 	def switch_screen(self,screen):
 		self.screen=screen
-		self.force_update("all")
+		self.force_update()
 
 	def render_mainscreen(self,surface):
 
@@ -364,10 +363,10 @@ class ScreenManager:
 				surface.blit(text,
 							menupos("bottommenu", index, (text_rect[0],self.draw_offset[1]))) 
 			# Top menu
-			for item in self.topmenu:
-				index = self.topmenu.index(item)
+			# TODO: Skip current player
+			for index, item in enumerate(self.topmenu):
 				color = "text" if self.draw_offset[1] == (index+1)*size["topmenu"] else "inactive"
-				text = render_text(self.topmenu[index]["name"], self.font["menuitem"], color)			
+				text = render_text(self.topmenu[index], self.font["menuitem"], color)			
 				text_rect = text.get_rect(center=(config.resolution[0]/2, 0))
 				surface.blit(text,
 							menupos("topmenu", index, (text_rect[0],self.draw_offset[1]), "up")) 
@@ -398,9 +397,7 @@ class ScreenManager:
 							pos("track_length", (0,self.draw_offset[1])))
 
 			self.update_ack("trackinfo")
-			
-			surface.blit(self.image["icon_screenoff"], pos("icon_screenoff", (0,0)))
-			
+						
 		# Time Elapsed
 		if self.updated("elapsed") and self.pc("elapsed_enabled"):
 
@@ -469,11 +466,6 @@ class ScreenManager:
 			if mousebutton == 1:
 				self.logger.debug("Toggle play/pause")
 				self.pc.control_player("play_pause")
-								
-		# Screen off button
-		if clicked(clickpos, pos("icon_screenoff"), size["icon_screenoff"]):
-			self.logger.debug("Screen forced off")
-			self.turn_backlight_off(True)
 
 		# Repeat button
 		if clicked(clickpos, pos("repeatbutton"), size["controlbutton"]) and self.pc("repeat_enabled"):
@@ -485,14 +477,14 @@ class ScreenManager:
 		if config.volume_enabled and self.pc("volume_enabled") and clicked(clickpos, pos("volume_click"), size["volume_click"]):
 			volume = (pos("volume_slider")[1]+size["volume_slider"][1]-clickpos[1])*100/size["volume_slider"][1]
 			volume = limit(volume,0,100)
-			self.pc.control_player("volume", "active", volume)
+			self.pc.control_player("volume", volume)
 		
 		# Progress bar
 		if self.pc("elapsed_enabled") and self.pc("seek_enabled"):		
 			if clicked(clickpos, pos("progressbar"), size["progressbar_click"]) or clicked(clickpos, pos("elapsed"), size["elapsed"]):
 				seek = float(clickpos[0]-pos("progressbar")[0])/float(size["progressbar"][0])
 				seek = limit(seek,0.0,1.0)
-				self.pc.control_player("seek", "active", seek)
+				self.pc.control_player("seek", seek)
 			
 		# Return value: allow repeat
 		return allow_repeat
@@ -507,7 +499,7 @@ class ScreenManager:
 			self.seekpos = float(start[0]+x-pos("progressbar")[0])/float(size["progressbar"][0])
 			self.seekpos = limit(self.seekpos,0.0,1.0)
 			if end:
-				self.pc.control_player("seek", "active", self.seekpos)
+				self.pc.control_player("seek", self.seekpos)
 				self.seekpos = -1.0
 				
 		# scrolling volume
@@ -517,7 +509,7 @@ class ScreenManager:
 			self.volumepos = (pos("volume_slider")[1]+size["volume_slider"][1]-(start[1]+y))*100/size["volume_slider"][1]
 			self.volumepos = limit(self.volumepos,0,100)
 			if end:
-				self.pc.control_player("volume", "active", self.volumepos)
+				self.pc.control_player("volume", self.volumepos)
 				self.volumepos = -1
 
 		# Normal scroll
@@ -548,14 +540,17 @@ class ScreenManager:
 					self.pc.control_player("next")
 				elif self.draw_offset[0] < 0:
 					self.pc.control_player("previous")
-				# Top menu
+					
+				# Top menu: Player selection
 				for i in range (0,len(self.topmenu)):
 					if self.draw_offset[1] == (i+1)*size["topmenu"]:
-						self.topmenu[i]["func"]()
+						self.pc.control_player("switch", i)
+						
 				# Bottom menu
 				for i in range (0,len(self.bottommenu)):
 					if self.draw_offset[1] == -(i+1)*size["bottommenu"]:
 						self.bottommenu[i]["func"]()
+						
 				# Reset offset
 				self.draw_offset = (0,0)
 				# Reset cover image
@@ -633,13 +628,13 @@ class ScreenManager:
 		self.switch_screen("playlist")
 
 	def switch_mpd(self):
-		self.pc.control_player("mpd")
+		self.pc.control_player("switch", 1)
 
 	def switch_spotify(self):
-		self.pc.control_player("spotify")
+		self.pc.control_player("switch", 0)
 
 	def switch_cd(self):
-		self.pc.control_player("cd")
+		self.pc.control_player("switch", 2)
 		
 	def show_library(self):
 		self.logger.debug("Bottommenu3")
