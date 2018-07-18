@@ -41,7 +41,7 @@ Things you need:
 - Raspberry pi (I am using model 3)
 - Adafruit PiTFT+ 3.5" with Resistive Touchscreen ( https://www.adafruit.com/product/2441 )
 - Internet connection for Pi
-- Raspbian running on the Pi (Jessie)
+- Raspbian running on the Pi (Jessie is ok)
 - [Optional] MPD configured
 - [Optional] Spotify-connect-web configured
 - [Optional] Last.fm API key for cover art fetching
@@ -51,6 +51,7 @@ Known issues:
 ==============
 - Hugely in progress
 - Requires all the python modules even though features are disabled in config
+- python-lirc doesn't seem to work with the new lirc in Raspbian Stretch?
 
 Installing:
 ===========
@@ -70,7 +71,18 @@ Open /etc/asound.conf and add the following:
 <pre>
 pcm.!default {
  type plug
- slave.pcm "dacci_dmix"
+ slave.pcm "pifi"
+}
+
+pcm.pifi {
+    type softvol
+    slave {
+        pcm "dacci_dmix"
+    }
+    control  {
+        name "PCM"
+        card sndrpihifiberry
+    }
 }
 
 pcm.dacci_dmix {
@@ -99,6 +111,8 @@ ctl.dacci {
  card sndrpihifiberry
 }
 </pre>
+
+This should set MPD and Spotify to use the same softvol volume slider. To set the balance between players, use the replaygain preamp settings in mpd.conf.
 
 Install dependencies:
 <pre>apt-get update
