@@ -21,6 +21,7 @@ class CDControl:
 		# Capabilities
 		self.capabilities = {}
 		self.capabilities["name"]            = "cd"
+		self.capabilities["connected"]       = False
 		self.capabilities["volume_enabled"]  = False
 		self.capabilities["seek_enabled"]    = False
 		self.capabilities["random_enabled"]  = False 

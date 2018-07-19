@@ -15,7 +15,7 @@ size = {}
 size["margin"]               = 4,4
 size["padding"]              = 4,4
 size["coverart"]             = 256, 256
-size["topmenu"]              = 60
+size["topmenu"]              = 80
 size["bottommenu"]           = 60
 size["selectorbutton"]       = 64, 64
 size["controlbutton"]        = 48, 48
@@ -42,12 +42,12 @@ size["listitem_height"]      = 30
 ###################
 # positioning
 ###################
-_pos = {}	
+_pos = {}
 
 # Screen borders
 _pos["left"]         = size   ["margin"][0]
 _pos["right"]        = config.resolution[0]  - size["margin"] [0]
-_pos["top"]          = size   ["margin"][1]     
+_pos["top"]          = size   ["margin"][1]
 _pos["bottom"]       = config.resolution[1]  - size["margin"][1]
 _pos["paddedleft"]   = _pos    ["left"]       + size["padding"][0]
 _pos["paddedright"]  = _pos    ["right"]      - size["padding"][0]
@@ -64,9 +64,9 @@ _pos["testtext"]     = _pos["center"][0], _pos["bottom"]
 _pos["playlist"]     = _pos["paddedleft"], _pos["paddedtop"]
 
 # Track info
-_pos["track"]              = _pos["left"] + size["elapsedmargin"], _pos["bottom"] - size["trackinfo_height"] 
-_pos["album"]              = _pos["track"][0], _pos["track"][1] - size["trackinfo_height"]                   
-_pos["progressbar"]        = _pos["left"] + size["elapsed"][0] + 11, _pos["album"][1] - 12                    
+_pos["track"]              = _pos["left"] + size["elapsedmargin"], _pos["bottom"] - size["trackinfo_height"]
+_pos["album"]              = _pos["track"][0], _pos["track"][1] - size["trackinfo_height"]
+_pos["progressbar"]        = _pos["left"] + size["elapsed"][0] + 11, _pos["album"][1] - 12
 _pos["elapsed"]            = _pos["left"] + size["elapsedmargin"], _pos["progressbar"][1] - size["elapsedoffset"]
 _pos["track_length"]       = _pos["right"] - size["elapsed"][0] - size["elapsedmargin"], _pos["progressbar"][1] - size["elapsedoffset"]
 
@@ -96,9 +96,9 @@ _pos["icon_screenoff"]       = config.resolution[0] - size["icon_screenoff"][0]-
 # Cover art
 _pos["coverart"]      = (config.resolution[0] - size["coverart"][0])/2, _pos["top"] #4
 
-###########################	
+###########################
 # Helper functions
-###########################	
+###########################
 def limit(value,min,max):
 	value = max if value > max else value
 	value = min if value < min else value
@@ -111,14 +111,14 @@ def limit_offset(offset,max=(-config.resolution[0],-config.resolution[1],config.
 	else:
 		offset = (max[0] if offset[0] < max[0] else offset[0],
 				  offset[1])
-	if offset[1] > 0:	
+	if offset[1] > 0:
 		offset = (offset[0],
 				  max[3] if offset[1] > max[3] else offset[1])
 	else:
 		offset = (offset[0],
 				 max[1] if offset[1] < max[1] else offset[1])
 	return offset
-	
+
 def render_menuitem(text, font, color_str, menu, index, offset, direction="up"):
 
 	if direction == "down":

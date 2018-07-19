@@ -29,8 +29,11 @@ class PlayerControl:
 				self.players.append(CDControl())
 		except Exception, e:
 			self.logger.debug(e)
-
-		self.logger.debug("Players found: %s" % self.players)
+		
+		# Quit if no players
+		if not len(self.players):
+			self.logger.debug("No players defined! Quitting")
+			raise
 					
 		self.logger.debug("Player control set")
 		

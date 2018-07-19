@@ -363,13 +363,13 @@ class ScreenManager:
 				surface.blit(text,
 							menupos("bottommenu", index, (text_rect[0],self.draw_offset[1]))) 
 			# Top menu
-			# TODO: Skip current player
-			for index, item in enumerate(self.topmenu):
-				color = "text" if self.draw_offset[1] == (index+1)*size["topmenu"] else "inactive"
-				text = render_text(self.topmenu[index], self.font["menuitem"], color)			
+			for i in range (0,len(self.topmenu)-1):
+				index = i if i < self.pc.get_current() else i+1
+				color = "text" if self.draw_offset[1] == (i+1)*size["topmenu"] else "inactive"
+				text = render_text(self.topmenu[index], self.font["menuitem"], color)
 				text_rect = text.get_rect(center=(config.resolution[0]/2, 0))
 				surface.blit(text,
-							menupos("topmenu", index, (text_rect[0],self.draw_offset[1]), "up")) 
+							menupos("topmenu", i, (text_rect[0],self.draw_offset[1]), "up")) 
 			self.update_ack("screen")
 
 		# Track info
@@ -522,7 +522,7 @@ class ScreenManager:
 			else:
 				y = 0 if abs(y) < size["bottommenu"] else y-y%size["bottommenu"]+size["bottommenu"]
 			self.draw_offset = (x,y)
-			self.draw_offset = limit_offset(self.draw_offset,(-108,-len(self.bottommenu)*size["bottommenu"], 108, len(self.topmenu)*size["topmenu"]))
+			self.draw_offset = limit_offset(self.draw_offset,(-108,-len(self.bottommenu)*size["bottommenu"], 108, (len(self.topmenu)-1)*size["topmenu"]))
 	
 			if x > 0:
 				self.image["coverart_border"] = self.image["coverart_border_next"]
@@ -542,9 +542,11 @@ class ScreenManager:
 					self.pc.control_player("previous")
 					
 				# Top menu: Player selection
-				for i in range (0,len(self.topmenu)):
+				for i in range (0,len(self.topmenu)-1):
+					index = i if i < self.pc.get_current() else i+1
+
 					if self.draw_offset[1] == (i+1)*size["topmenu"]:
-						self.pc.control_player("switch", i)
+						self.pc.control_player("switch", index)
 						
 				# Bottom menu
 				for i in range (0,len(self.bottommenu)):

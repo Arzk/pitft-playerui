@@ -9,11 +9,13 @@ class SpotifyControl:
 	def __init__(self):
 		self.logger = logging.getLogger("PiTFT-Playerui.Spotify")
 		self.client = httplib.HTTPConnection(config.spotify_host, config.spotify_port)
+			
 		self.coverartThread = None
 
 		# Capabilities
 		self.capabilities = {}
 		self.capabilities["name"]            = "spotify"
+		self.capabilities["connected"]       = False
 		self.capabilities["volume_enabled"]  = True
 		self.capabilities["seek_enabled"]    = False
 		self.capabilities["random_enabled"]  = True 
@@ -169,6 +171,7 @@ class SpotifyControl:
 
 		except Exception as e:
 			self.logger.debug(e)
+			raise
 					
 	def update_ack(self, updated):
 		self.data["update"][updated] = False

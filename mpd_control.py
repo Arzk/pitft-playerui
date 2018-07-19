@@ -29,6 +29,7 @@ class MPDControl:
 		# Capabilities
 		self.capabilities = {}
 		self.capabilities["name"]            = "mpd"
+		self.capabilities["connected"]       = False
 		self.capabilities["volume_enabled"]  = config.volume_enabled
 		self.capabilities["seek_enabled"]    = True
 		self.capabilities["random_enabled"]  = True 
