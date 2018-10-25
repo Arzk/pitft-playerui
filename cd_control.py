@@ -1,72 +1,33 @@
 # -*- coding: utf-8 -*-
+import subprocess
+from threading import Thread
 import time
-import logging
 import DiscID
 import CDDB
-from threading import Thread
-import subprocess
 import pylast
+
+from player_base import PlayerBase
 import config
 
-class CDControl:
+class CDControl (PlayerBase):
 	def __init__(self):
-
-		self.logger = logging.getLogger("PiTFT-Playerui.CD")
-		self.coverartThread = None
-
-		# Pylast
-		self.lfm_connected = False
-		self.connect()
-
-		# Capabilities
-		self.capabilities = {}
-		self.capabilities["name"]            = "cd"
-		self.capabilities["connected"]       = False
+		super(CDControl, self).__init__("cd")
+		
+		self.capabilities["connected"]       = True
 		self.capabilities["volume_enabled"]  = False
 		self.capabilities["seek_enabled"]    = False
 		self.capabilities["random_enabled"]  = False 
 		self.capabilities["repeat_enabled"]  = False
 		self.capabilities["elapsed_enabled"] = False
 		self.capabilities["library_enabled"] = False
+		self.capabilities["logopath"]        = "pics/logo/cd.png"
 
-		# Things to remember
-		self.data = {}
-		self.data["status"] = {}
-		self.data["status"]["state"]     = ""
-		self.data["status"]["elapsed"]   = ""
-		self.data["status"]["repeat"]    = ""
-		self.data["status"]["random"]    = ""
-		self.data["status"]["volume"]    = ""
-                                      
-		self.data["song"]  = {}         
-		self.data["song"]["artist"]      = ""
-		self.data["song"]["album"]       = ""
-		self.data["song"]["date"]        = ""
-		self.data["song"]["track"]       = ""
-		self.data["song"]["title"]       = ""
-		self.data["song"]["time"]        = ""
-                                      
-		self.data["cover"]               = False
-		self.data["coverartfile"]        = ""
-                                      
-		self.data["update"] = {}         
-		self.data["update"]["active"]    = False
-		self.data["update"]["state"]     = False
-		self.data["update"]["elapsed"]   = False
-		self.data["update"]["random"]    = False
-		self.data["update"]["repeat"]    = False
-		self.data["update"]["volume"]    = False
-		self.data["update"]["trackinfo"] = False
-		self.data["update"]["coverart"]  = False
+		# Pylast
+		self.lfm_connected = False
+		self.connect()
 		
 		self.cd_inserted = True
 		self.cdinfo = {}
-
-	def __getitem__(self, item):
-		return self.data[item]
-		
-	def __call__(self, item):
-		return self.capabilities[item]
 
 	def refresh(self, active=False):
 		status = {}
@@ -130,15 +91,6 @@ class CDControl:
 		except Exception as e:
 			self.logger.debug(e)
 			
-	def force_update (self,item="all"):
-		if item == "all":
-			self.data["update"] = dict.fromkeys(self.data["update"], True)
-		else:
-			self.data["update"][item] = True
-
-	def update_ack(self, updated):
-		self.data["update"][updated] = False
-
 	def connect(self):
 		# (re)connect to last.fm
 		if not self.lfm_connected and config.API_KEY and config.API_SECRET:
@@ -149,7 +101,6 @@ class CDControl:
 		self.cdinfo = {}
 		self.data["cover"] = False
 		self.data["coverartfile"] = ""
-		self.force_update()
 		
 	def load_cd(self):
 		self.cd_inserted = True
@@ -294,11 +245,7 @@ class CDControl:
 				except Exception, e:
 					self.logger.exception(e)
 					pass
-					
-	# Direction: +, -
-	def set_volume(self, volume):
-		pass
-		
+							
 	def control(self, command, parameter=-1):
 		pass
 

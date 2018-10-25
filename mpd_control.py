@@ -1,34 +1,20 @@
 # -*- coding: utf-8 -*-
+import subprocess
+from threading import Thread
 import time
-import logging
 import os
 import glob
-from threading import Thread
-import subprocess
+
 from mpd import MPDClient
 import pylast
+
 import config
+from player_base import PlayerBase
 
-class MPDControl:
+class MPDControl (PlayerBase):
 	def __init__(self):
-
-		self.logger = logging.getLogger("PiTFT-Playerui.MPD")
-		self.coverartThread = None
-
-		self.mpdc = None
-		self.noConnection = False
-		# Pylast
-		self.lfm_connected = False
-
-		# MPD Client
-		self.connect()
+		super(MPDControl, self).__init__("mpd")
 		
-		if self.mpdc:
-			self.logger.info("MPD server version: %s" % self.mpdc.mpd_version)
-
-		# Capabilities
-		self.capabilities = {}
-		self.capabilities["name"]            = "mpd"
 		self.capabilities["connected"]       = False
 		self.capabilities["volume_enabled"]  = config.volume_enabled
 		self.capabilities["seek_enabled"]    = True
@@ -36,49 +22,26 @@ class MPDControl:
 		self.capabilities["repeat_enabled"]  = True
 		self.capabilities["elapsed_enabled"] = True
 		self.capabilities["library_enabled"] = False
+		self.capabilities["logopath"]        = "pics/logo/mpd.png"
 
-		# Things to remember
-		self.data = {}
-		self.data["status"] = {}
-		self.data["status"]["state"]     = ""
-		self.data["status"]["elapsed"]   = ""
-		self.data["status"]["repeat"]    = ""
-		self.data["status"]["random"]    = ""
-		self.data["status"]["volume"]    = ""
-                                      
-		self.data["song"]  = {}         
-		self.data["song"]["artist"]      = ""
-		self.data["song"]["album"]       = ""
-		self.data["song"]["date"]        = ""
-		self.data["song"]["track"]       = ""
-		self.data["song"]["title"]       = ""
-		self.data["song"]["time"]        = ""
-                                      
-		self.data["cover"]               = False
-		self.data["coverartfile"]        = ""
-                                      
-		self.data["update"] = {}         
-		self.data["update"]["active"]    = False
-		self.data["update"]["state"]     = False
-		self.data["update"]["elapsed"]   = False
-		self.data["update"]["random"]    = False
-		self.data["update"]["repeat"]    = False
-		self.data["update"]["volume"]    = False
-		self.data["update"]["trackinfo"] = False
-		self.data["update"]["coverart"]  = False
-
-						
-	def __getitem__(self, item):
-		return self.data[item]
+	
+		self.mpdc = None
+		self.noConnection = False
+		# Pylast
+		self.lfm_connected = False
+		# MPD Client
+		self.connect()
 		
-	def __call__(self, item):
-		return self.capabilities[item]
+		if self.mpdc:
+			self.logger.info("MPD server version: %s" % self.mpdc.mpd_version)
 
 	def refresh(self, active=False):
 		status = {}
 		song = {}
+		
 		if not self.mpdc:
 			self.connect()
+			
 		else:
 			try:
 				status = self.mpdc.status()
@@ -103,12 +66,16 @@ class MPDControl:
 						
 					# Save new status
 					self.data["status"] = status
+						
 	
 			except Exception as e:
 				self.logger.debug(e)
-				self.mpdc = None
-				if not self.noConnection:
-					self.logger.info("Lost connection to MPD server")
+				self._disconnected()
+				self.data["status"]["state"]     = ""
+				self.data["status"]["elapsed"]   = ""
+				self.data["status"]["repeat"]    = ""
+				self.data["status"]["random"]    = ""
+				self.data["status"]["volume"]    = ""					
 	
 			try:
 				# Fetch song info 
@@ -171,19 +138,16 @@ class MPDControl:
 						self.data["song"] = song
 			except Exception as e:
 				self.logger.debug(e)
-				self.mpdc = None
-				if not self.noConnection:
-					self.logger.info("Lost connection to MPD server")
-
-	def force_update (self,item="all"):
-		if item == "all":
-			self.data["update"] = dict.fromkeys(self.data["update"], True)
-		else:
-			self.data["update"][item] = True
-
-	def update_ack(self, updated):
-		self.data["update"][updated] = False
-		
+				self._disconnected()
+				self.data["song"]["artist"]      = ""
+				self.data["song"]["album"]       = ""
+				self.data["song"]["date"]        = ""
+				self.data["song"]["track"]       = ""
+				self.data["song"]["title"]       = ""
+				self.data["song"]["time"]        = ""
+				self.data["cover"]               = False
+				self.data["coverartfile"]        = ""
+	
 	def connect(self):
 		if not self.noConnection:
 			self.logger.info("Trying to connect to MPD server")
@@ -197,15 +161,24 @@ class MPDControl:
 				self.mpdc = client
 				self.logger.info("Connection to MPD server established.")
 				self.noConnection = False
+				self.capabilities["connected"]   = True
 			 except Exception, e:
-				self.noConnection = True
 				if not self.noConnection:
 					self.logger.info(e)
-				self.mpdc = None
+				self._disconnected()
+				self.noConnection = True
+				self.capabilities["connected"]   = False
 
 		# (re)connect to last.fm
 		if not self.lfm_connected and config.API_KEY and config.API_SECRET:
 			self.connect_lfm()
+
+	def _disconnected(self):
+		# Only print once
+		if not self.noConnection:
+			self.logger.info("Lost connection to MPD server")
+		self.capabilities["connected"]   = False
+		self.mpdc = None
 
 	def disconnect(self):
 		# Close MPD connection
@@ -214,79 +187,70 @@ class MPDControl:
 			self.mpdc.disconnect()
 			self.logger.debug("Disconnected from MPD")
 
-	# Direction: +, -
-	def set_volume(self, volume):
-		self.mpdc.control("volume", volume)
-
 	def control(self, command, parameter=-1):
 		try:
-			if command == "next":
-				self.mpdc.next()
-			elif command == "previous":
-				self.mpdc.previous()
-			elif command == "pause":
-				self.mpdc.pause()
-			elif command == "play":
-				self.mpdc.play()
-			elif command == "stop":
-				self.mpdc.stop()
-			elif command == "rwd":
-				self.mpdc.seekcur("-10")
-			elif command == "ff":
-				self.mpdc.seekcur("+10")
-			elif command == "seek" and parameter != -1:
-				seektime = parameter*float(self.data["song"]["time"])
-				self.mpdc.seekcur(seektime)
-			elif command == "repeat":
-				repeat = (int(self.data["status"]["repeat"]) + 1) % 2
-				self.mpdc.repeat(repeat)
-			elif command == "random":
-				random = (int(self.data["status"]["random"]) + 1) % 2
-				self.mpdc.random(random)
-			elif command == "volume" and parameter != -1:
-				self.mpdc.setvol(parameter)
+			if self.mpdc:
+				if command == "next":
+					self.mpdc.next()
+				elif command == "previous":
+					self.mpdc.previous()
+				elif command == "pause":
+					self.mpdc.pause()
+				elif command == "play":
+					self.mpdc.play()
+				elif command == "stop":
+					self.mpdc.stop()
+				elif command == "rwd":
+					self.mpdc.seekcur("-10")
+				elif command == "ff":
+					self.mpdc.seekcur("+10")
+				elif command == "seek" and parameter != -1:
+					seektime = parameter*float(self.data["song"]["time"])
+					self.mpdc.seekcur(seektime)
+				elif command == "repeat":
+					repeat = (int(self.data["status"]["repeat"]) + 1) % 2
+					self.mpdc.repeat(repeat)
+				elif command == "random":
+					random = (int(self.data["status"]["random"]) + 1) % 2
+					self.mpdc.random(random)
+				elif command == "volume" and parameter != -1:
+					self.mpdc.setvol(parameter)
 		except Exception, e:
 			self.logger.info(e)
-			self.mpdc = None
-			if not self.noConnection:
-				self.logger.info("Lost connection to MPD server")
+			self._disconnected()
 
 	def load_playlist(self, command):
 		try:
-			self.mpdc.clear()
-			self.mpdc.load(command)
+			if self.mpdc:
+				self.mpdc.clear()
+				self.mpdc.load(command)
 		except Exception, e:
 			self.logger.info(e)
-			self.mpdc = None
-			if not self.noConnection:
-				self.logger.info("Lost connection to MPD server")
+			self._disconnected()
 
 	def get_playlists(self):
 		try:
-			return self.mpdc.listplaylists()
+			if self.mpdc:
+				return self.mpdc.listplaylists()
 		except Exception, e:
 			self.logger.info(e)
-			self.mpdc = None
-			if not self.noConnection:
-				self.logger.info("Lost connection to MPD server")
+			self._disconnected()
 
 	def get_playlist(self):
 		try:
-			return self.mpdc.playlistinfo()
+			if self.mpdc:
+				return self.mpdc.playlistinfo()
 		except Exception, e:
 			self.logger.info(e)
-			self.mpdc = None
-			if not self.noConnection:
-				self.logger.info("Lost connection to MPD server")
+			self._disconnected()
 
 	def play_item(self, number):
 		try:
-			self.mpdc.play(number)
+			if self.mpdc:
+				self.mpdc.play(number)
 		except Exception, e:
 			self.logger.info(e)
-			self.mpdc = None
-			if not self.noConnection:
-				self.logger.info("Lost connection to MPD server")
+			self._disconnected()
 
 	def fetch_coverart(self, song):
 		self.data["cover"] = False
