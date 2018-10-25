@@ -362,10 +362,9 @@ class ScreenManager:
 			self.force_update()
 		
 			# Bottom menu
-			for item in self.bottommenu:
-				index = self.bottommenu.index(item)
+			for index, item in enumerate(self.bottommenu):
 				color = "text" if self.draw_offset[1] == -(index+1)*size["bottommenu"] else "inactive"
-				text = render_text(self.bottommenu[index]["name"], self.font["menuitem"], color)			
+				text = render_text(item["name"], self.font["menuitem"], color)			
 				text_rect = text.get_rect(center=(config.resolution[0]/2, 0))
 				surface.blit(text,
 							menupos("bottommenu", index, (text_rect[0],self.draw_offset[1]))) 

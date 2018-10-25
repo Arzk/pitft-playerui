@@ -169,15 +169,6 @@ class SpotifyControl (PlayerBase):
 				self.data["cover"]               = False
 				self.data["coverartfile"]        = ""
 				
-	def force_update (self,item="all"):
-		if item == "all":
-			self.data["update"] = dict.fromkeys(self.data["update"], True)
-		else:
-			self.data["update"][item] = True
-				
-	def update_ack(self, updated):
-		self.data["update"][updated] = False
-
 	def connect (self):
 		if not self.noConnection:
 			self.logger.info("Trying to connect to Spotify server")
