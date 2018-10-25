@@ -62,7 +62,14 @@ class ScreenManager:
 			self.image["button_random_off"]	     = pygame.image.load("pics/" + "button-random-off.png")
 			self.image["button_random_on"]	     = pygame.image.load("pics/" + "button-random-on.png")
 			self.image["button_random"]	         = self.image["button_repeat_off"]
-			
+
+			#TESTING
+			self.image["spotifylogo"]	         = pygame.image.load("pics/logo/" + "spotify.png")
+			self.image["spotifylogo"]            = pygame.transform.scale(self.image["spotifylogo"], size["logo"])
+
+			self.image["mpdlogo"]	             = pygame.image.load("pics/logo/" + "mpd.png")
+			self.image["mpdlogo"]            = pygame.transform.scale(self.image["mpdlogo"], size["logo"])
+
 		except Exception, e:
 			self.logger.debug(e)
 			raise
@@ -363,6 +370,7 @@ class ScreenManager:
 				surface.blit(text,
 							menupos("bottommenu", index, (text_rect[0],self.draw_offset[1]))) 
 			# Top menu
+			self.topmenu = self.pc.get_player_names()
 			for i in range (0,len(self.topmenu)-1):
 				index = i if i < self.pc.get_current() else i+1
 				color = "text" if self.draw_offset[1] == (i+1)*size["topmenu"] else "inactive"
@@ -381,6 +389,8 @@ class ScreenManager:
 						size["trackinfobackground"]))
 			surface.blit(self.image["progress_bg"], 
 						pos("progressbar", (0,self.draw_offset[1])))
+			surface.blit(self.image["mpdlogo"], 
+						pos("logo",(0,self.draw_offset[1])))
 
 			# Artist - Album (date)
 			surface.blit(render_text(self.status["artistalbum"], self.font["details"]),

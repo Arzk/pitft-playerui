@@ -37,6 +37,7 @@ size["progressbar_click"]    = size["progressbar"][0], 60
 size["volume_click"]		 = 80,260
 size["volume_slider"]		 = 20,180
 size["listitem_height"]      = 30
+size["logo"]                 = 34, 34
 
 
 ###################
@@ -95,6 +96,9 @@ _pos["icon_screenoff"]       = config.resolution[0] - size["icon_screenoff"][0]-
 
 # Cover art
 _pos["coverart"]      = (config.resolution[0] - size["coverart"][0])/2, _pos["top"] #4
+
+# Player icon
+_pos["logo"]      = _pos["paddedright"] - size["logo"][0], _pos["paddedbottom"] - size["logo"][1]
 
 ###########################
 # Helper functions

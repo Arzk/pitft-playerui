@@ -49,13 +49,14 @@ class PlayerControl:
 	def get_player_names(self):
 		playerlist = []
 		for player in self.players:
-			playerlist.append(player("name").upper())
+			if player("connected"):
+				playerlist.append(player("name").upper())
 		return playerlist
 		
 	def get_current(self):
 		return self.current
 		
-	def determine_active_player(self):	
+	def determine_active_player(self):
 		active = -1
 		# Find changes in activity
 		for id, player in enumerate(self.players):
@@ -73,11 +74,14 @@ class PlayerControl:
 						self.control_player("pause", 0, id)
 
 
-	# force (bool): update all players if true
+	# force (bool): update all players
 	def refresh(self, force=False):
 		# Update all for active, only status for rest
 		for id, player in enumerate(self.players):
-			player.refresh(self.current == id or force)
+			try:
+				player.refresh(self.current == id or force)
+			except Exception, e:
+				self.logger.debug(e)
 
 		# Get active player
 		self.determine_active_player()
@@ -85,20 +89,6 @@ class PlayerControl:
 	def update_ack(self, updated):
 		self.players[self.current].update_ack(updated)
 		
-	# Direction: +, -
-	def set_volume(self, amount, direction=""):
-		if self.players[self.current]("volume_enabled"):
-			if direction == "+":
-				volume = int(self.players[self.current]["status"]["volume"]) + amount
-			elif direction == "-":
-				volume = int(self.players[self.current]["status"]["volume"]) - amount
-			else:
-				volume = amount
-
-			volume = 100 if volume > 100 else volume
-			volume = 0 if volume < 0 else volume
-			self.players[self.current].set_volume(volume)
-
 	def control_player(self, command, parameter=0, id=-1):
 		# Translate
 		if self.players[self.current]["status"]:
