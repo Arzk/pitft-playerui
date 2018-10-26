@@ -99,8 +99,8 @@ class MPDControl (PlayerBase):
 					if "time" not in song:
 						song["time"] = ""
 
-					# Fetch coverart
-					if self.data["song"]["album"] != song["album"]:
+					# Fetch coverart, but only if we have an album
+					if song["album"] and (self.data["song"]["album"] != song["album"]):
 						self.logger.debug("MPD coverart changed, fetching...")
 						self.data["cover"] = False
 		
