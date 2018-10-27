@@ -15,23 +15,36 @@ class MPDControl (PlayerBase):
 	def __init__(self):
 		super(MPDControl, self).__init__("mpd")
 		
-		self.capabilities["connected"]       = False
-		self.capabilities["volume_enabled"]  = config.volume_enabled
-		self.capabilities["seek_enabled"]    = True
-		self.capabilities["random_enabled"]  = True 
-		self.capabilities["repeat_enabled"]  = True
-		self.capabilities["elapsed_enabled"] = True
-		self.capabilities["library_enabled"] = False
-		self.capabilities["logopath"]        = "pics/logo/mpd.png"
+		self.capabilities["volume_enabled"]    = config.volume_enabled
+		self.capabilities["seek_enabled"]      = True
+		self.capabilities["random_enabled"]    = True 
+		self.capabilities["repeat_enabled"]    = True
+		self.capabilities["elapsed_enabled"]   = True
+		self.capabilities["playlist_enabled"]  = True
+		self.capabilities["playlists_enabled"] = True
+		self.capabilities["library_enabled"]   = True
+		self.capabilities["logopath"]          = "pics/logo/mpd.png"
+		
+		self.playlist = []
+		self.playlists = []
 	
 		self.client = None
 		self.noConnection = False		
 		self.lfm_connected = False
 		
 		self.connect()
+		self.updatelists()
+		# Todo:  Find out some nice way to update the lists without hanging everything - Long playlists are slooow
+		self.menu.append ({"name": "PLAYLIST",  "content": self.playlist, "clickfunc": self.playlist_click})
+		self.menu.append ({"name": "PLAYLISTS", "content": self.playlists, "clickfunc": self.playlists_click})
+#		self.menu.append ({"name": "LIBRARY", "getfunc": self.get_library})
 		
 		if self.client:
 			self.logger.info("MPD server version: %s" % self.client.mpd_version)
+			
+	def updatelists(self):
+		self.playlist = self.get_playlist()
+		self.playlists = self.get_playlists()
 
 	def refresh(self, active=False):
 		status = {}
@@ -81,6 +94,9 @@ class MPDControl (PlayerBase):
 					song = self.client.currentsong()
 					
 					# Sanity check
+					if "pos" not in song:
+						song["pos"] = ""
+						
 					if "artist" not in song:
 						song["artist"] = ""
 						
@@ -119,6 +135,7 @@ class MPDControl (PlayerBase):
 					# Check for changes in song
 					if song != self.data["song"]:
 						if (
+								song["pos"]    != self.data["song"]["pos"]    or
 								song["artist"] != self.data["song"]["artist"] or
 								song["album"]  != self.data["song"]["album"]  or
 								song["date"]   != self.data["song"]["date"]   or
@@ -137,6 +154,7 @@ class MPDControl (PlayerBase):
 			except Exception as e:
 				self.logger.debug(e)
 				self._disconnected()
+				self.data["song"]["pos"]         = ""
 				self.data["song"]["artist"]      = ""
 				self.data["song"]["album"]       = ""
 				self.data["song"]["date"]        = ""
@@ -225,22 +243,42 @@ class MPDControl (PlayerBase):
 		except Exception, e:
 			self.logger.info(e)
 			self._disconnected()
-
+			
+	# Format should be something like this.
+    #{'last-modified': '2016-05-21T00:09:35Z'
+    # 'playlist': 'Blues'}
+			
 	def get_playlists(self):
+		list = []
 		try:
 			if self.client:
-				return self.client.listplaylists()
+				list = self.client.listplaylists()
 		except Exception, e:
 			self.logger.info(e)
 			self._disconnected()
-
+		return list
+			
+	# Format should be something like this.
+	#{'album': "What's Good For You"
+	# 'date': '1991'
+	# 'title': "I'm Here To Get My Baby Out Of Jail"
+	# 'track': '5/11'
+	# 'artist': 'Treat Her Right'
+	# 'pos': '2619'
+	# 'last-modified': '2016-05-22T22:03:19Z'
+	# 'file': "Blues/Modern Blues/Treat Her Right/1991 - What's Good For You/05 - I'm Here To Get My Baby Out Of Jail.mp3"
+	# 'time': '119'
+	# 'genre': 'Blues'
+	# 'id': '3292'}
 	def get_playlist(self):
+		list = []
 		try:
 			if self.client:
-				return self.client.playlistinfo()
+				list = self.client.playlistinfo()
 		except Exception, e:
 			self.logger.info(e)
 			self._disconnected()
+		return list
 
 	def play_item(self, number):
 		try:
@@ -250,6 +288,12 @@ class MPDControl (PlayerBase):
 			self.logger.info(e)
 			self._disconnected()
 
+	def playlist_click(self, item=-1):
+		self.logger.debug("playlist click %s" % str(item))
+		
+	def playlists_click(self, item=-1):
+		self.logger.debug("playlists click %s" % str(item))
+		
 	def fetch_coverart(self, song):
 		self.data["cover"] = False
 		self.data["coverartfile"]=""

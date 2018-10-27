@@ -14,13 +14,7 @@ class CDControl (PlayerBase):
 		super(CDControl, self).__init__("cd")
 		
 		self.capabilities["connected"]       = True
-		self.capabilities["volume_enabled"]  = False
-		self.capabilities["seek_enabled"]    = False
-		self.capabilities["random_enabled"]  = False 
-		self.capabilities["repeat_enabled"]  = False
-		self.capabilities["elapsed_enabled"] = False
-		self.capabilities["library_enabled"] = False
-		self.capabilities["logopath"]        = "pics/logo/cd.png"
+		self.capabilities["logopath"]        = ""
 
 		# Pylast
 		self.lfm_connected = False

@@ -13,13 +13,9 @@ class SpotifyControl (PlayerBase):
 		self.client = None		
 		self.noConnection = False
 
-		self.capabilities["connected"]       = False
 		self.capabilities["volume_enabled"]  = config.volume_enabled
-		self.capabilities["seek_enabled"]    = False
 		self.capabilities["random_enabled"]  = True
 		self.capabilities["repeat_enabled"]  = True
-		self.capabilities["elapsed_enabled"] = False
-		self.capabilities["library_enabled"] = False
 		self.capabilities["logopath"]        = "pics/logo/spotify.png"
 		
 		# Helper variable for old volume data 
@@ -192,7 +188,6 @@ class SpotifyControl (PlayerBase):
 		self.capabilities["connected"] = False
 		self.client = None
 		self.noConnection = True
-					
 
 	def control(self, command, parameter=-1):
 		# Translate commands

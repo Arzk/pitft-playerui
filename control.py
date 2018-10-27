@@ -37,6 +37,9 @@ class PlayerControl:
 					
 		self.logger.debug("Player control set")
 		
+	def get_menu(self):
+		return self.players[self.current].get_menu()
+		
 	def __getitem__(self, item):
 		if self.players[self.current]:
 			return self.players[self.current][item]
@@ -46,11 +49,11 @@ class PlayerControl:
 	def __call__(self, item):
 		return self.players[self.current](item)
 		
-	def get_player_names(self):
+	def get_players(self):
 		playerlist = []
 		for player in self.players:
 			if player("connected"):
-				playerlist.append(player("name").upper())
+				playerlist.append({'name': player("name").upper(), 'logopath': player("logopath")})
 		return playerlist
 		
 	def get_current(self):

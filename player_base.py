@@ -7,17 +7,21 @@ class PlayerBase(object):
 		self.coverartThread = None
 
 		# Capabilities
+		
 		self.capabilities = {
-					"name"            : name,
-					"connected"       : False,
-					"volume_enabled"  : False,
-					"seek_enabled"    : False,
-					"random_enabled"  : False, 
-					"repeat_enabled"  : False,
-					"elapsed_enabled" : False,
-					"library_enabled" : False,
-					"logopath"        : ""
+					"name"              : name,
+					"connected"         : False,
+					"volume_enabled"    : False,
+					"seek_enabled"      : False,
+					"random_enabled"    : False, 
+					"repeat_enabled"    : False,
+					"elapsed_enabled"   : False,
+					"playlist_enabled"  : False,
+					"playlists_enabled" : False,
+					"library_enabled"   : False,
+					"logopath"          : ""
 					}
+		self.menu = []
 
 		# Things to remember
 		self.data = {
@@ -29,6 +33,7 @@ class PlayerBase(object):
 					           "volume"      : ""
 							   },
 					"song" :   {
+		                       "pos"         : "",
 		                       "artist"      : "",
 		                       "album"       : "",
 		                       "date"        : "",
@@ -54,6 +59,9 @@ class PlayerBase(object):
 		
 	def __getitem__(self, item):
 		return self.data[item]
+		
+	def get_menu(self):
+		return self.menu
 		
 	def __call__(self, item):
 		return self.capabilities[item]

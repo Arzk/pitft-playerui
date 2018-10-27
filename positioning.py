@@ -38,6 +38,9 @@ size["volume_click"]		 = 80,260
 size["volume_slider"]		 = 20,180
 size["listitem_height"]      = 30
 size["logo"]                 = 34, 34
+size["logoback"]             = size["logo"][0]+2*size["margin"][0]+2*size["padding"][0] , size["logo"][1]+2*size["margin"][1]+2*size["padding"][1]
+size["screen"]				 = config.resolution[0] - 2*size["margin"][0], config.resolution[1]-2*size["margin"][1]
+size["paddedscreen"]		 = size["screen"][0] - 2*size["padding"][0], size["screen"][1] - 2*size["padding"][1]
 
 
 ###################
@@ -62,7 +65,7 @@ _pos["bottommenu"]   = 0, _pos["bottom"]+20
 
 _pos["MAIN"]         = _pos["center"][0], _pos["top"]-30
 _pos["testtext"]     = _pos["center"][0], _pos["bottom"]
-_pos["playlist"]     = _pos["paddedleft"], _pos["paddedtop"]
+_pos["listview"]     = _pos["paddedleft"], _pos["paddedtop"]
 
 # Track info
 _pos["track"]              = _pos["left"] + size["elapsedmargin"], _pos["bottom"] - size["trackinfo_height"]
@@ -99,6 +102,7 @@ _pos["coverart"]      = (config.resolution[0] - size["coverart"][0])/2, _pos["to
 
 # Player icon
 _pos["logo"]      = _pos["paddedright"] - size["logo"][0], _pos["paddedbottom"] - size["logo"][1]
+_pos["logoback"]      = _pos["logo"][0] - size["padding"][0], _pos["logo"][1] - size["padding"][1]
 
 ###########################
 # Helper functions

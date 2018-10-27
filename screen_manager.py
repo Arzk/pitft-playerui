@@ -31,7 +31,7 @@ class ScreenManager:
 			self.font["menuitem"]    = pygame.font.Font(self.fontfile, 20)
 			self.font["details"]     = pygame.font.Font(self.fontfile, 16)
 			self.font["elapsed"]     = pygame.font.Font(self.fontfile, 16)
-			self.font["playlist"]    = pygame.font.Font(self.fontfile, 20)
+			self.font["listview"]    = pygame.font.Font(self.fontfile, 20)
 			self.font["field"]       = pygame.font.Font(self.fontfile, 20)
 		except Exception, e:
 			self.logger.debug(e)
@@ -63,13 +63,6 @@ class ScreenManager:
 			self.image["button_random_on"]	     = pygame.image.load("pics/" + "button-random-on.png")
 			self.image["button_random"]	         = self.image["button_repeat_off"]
 
-			#TESTING
-			self.image["spotifylogo"]	         = pygame.image.load("pics/logo/" + "spotify.png")
-			self.image["spotifylogo"]            = pygame.transform.scale(self.image["spotifylogo"], size["logo"])
-
-			self.image["mpdlogo"]	             = pygame.image.load("pics/logo/" + "mpd.png")
-			self.image["mpdlogo"]            = pygame.transform.scale(self.image["mpdlogo"], size["logo"])
-
 		except Exception, e:
 			self.logger.debug(e)
 			raise
@@ -100,26 +93,41 @@ class ScreenManager:
 		self.status["update"]["volume"]    = True
 		self.status["update"]["trackinfo"] = True
 		self.status["update"]["coverart"]  = True
+
+		self.listcontent = None
+		self.listclick   = None
 		
 		# Visual indicators when scrolling on sliders
 		self.seekpos = -1.0
 		self.volumepos = -1
 		
-		self.screen = "main"
+		self.view = "main"
 		self.offset             = 0,0
 		self.draw_offset        = 0,0
+		self.list_offset        = 0
 		self.turn_backlight_on()
 
-		self.topmenu = self.pc.get_player_names()
-
-		self.bottommenu = []
-		self.bottommenu.append ({"name": "PLAYLIST", "func": self.show_playlist})
-		self.bottommenu.append ({"name": "PLAYLISTS", "func": self.show_playlists})
-		self.bottommenu.append ({"name": "LIBRARY", "func": self.show_library})
+		self.populate_players()
 		
 		self.logger.debug("Init done")
 
 		self.first_refresh_done = False
+		
+	def populate_players(self):
+		self.topmenu = []
+		self.playerlogos = []
+		players = self.pc.get_players()
+		for player in players:
+			try:
+				self.topmenu.append(player.get('name'))
+				logopath = player.get('logopath')
+				if logopath:
+					self.playerlogos.append(pygame.transform.scale(pygame.image.load(logopath), size["logo"]))
+					self.logger.debug(logopath)
+				else: 
+					self.playerlogos.append(None)
+			except Exception, e:
+				self.logger.debug(e)
 
 	def refresh(self, active):
 
@@ -190,7 +198,12 @@ class ScreenManager:
 			
 		if self.pc["update"]["trackinfo"]:
 		
-			# Artist
+			# Position
+			try:
+				self.status["pos"] = self.pc["song"]["pos"]
+			except:
+				self.status["pos"] = ""
+				
 			try:
 				self.status["artist"] = self.pc["song"]["artist"].decode('utf-8')
 			except:
@@ -311,10 +324,10 @@ class ScreenManager:
 			surface.blit(self.image["background"], (0,0))
 
 		try:
-			if self.screen == "main":
+			if self.view == "main":
 				self.render_mainscreen(surface)
-			elif self.screen == "playlist":
-				self.render_playlist(surface)
+			elif self.view == "listview":
+				self.render_listview(surface)
 		except Exception, e:
 			self.logger.debug(e)
 			pass
@@ -322,10 +335,10 @@ class ScreenManager:
 	def on_click(self, mousebutton, clickpos):
 		try:
 			self.logger.debug("Click: " + str(mousebutton) + " X: " + str(clickpos[0]) + " Y: " + str(clickpos[1]))
-			if self.screen == "main":
+			if self.view == "main":
 				allow_repeat = self.on_click_mainscreen(mousebutton, clickpos)
-			elif self.screen == "playlist":
-				allow_repeat = self.on_click_playlist(mousebutton, clickpos)
+			elif self.view == "listview":
+				allow_repeat = self.on_click_listview(mousebutton, clickpos)
 		except Exception, e:
 			self.logger.debug(e)
 			allow_repeat = False
@@ -337,10 +350,10 @@ class ScreenManager:
 		self.offset = (self.offset[0] + x, self.offset[1] + y)
 		
 		# Screen specific
-		if self.screen == "main":
+		if self.view == "main":
 			self.scroll_mainscreen(start, self.offset[0], self.offset[1], end)
-		elif self.screen == "playlist":
-			self.scroll_playlist(start, self.offset[0], self.offset[1], end)
+		elif self.view == "listview":
+			self.scroll_listview(start, self.offset[0], self.offset[1], end)
 			
 		# Scroll ended
 		if end:
@@ -349,8 +362,15 @@ class ScreenManager:
 		# Redraw screen
 		self.force_update("screen")
 			
-	def switch_screen(self,screen):
-		self.screen=screen
+	def switch_view(self, view, items=None):
+		# Ensure that tha pointers are ok for lists
+		if view == "listview":
+			self.listcontent = items.get("content", None)
+			self.listclick = items.get("clickfunc", None)
+			if self.listcontent and self.listclick:
+				self.view=view
+		else:
+			self.view=view
 		self.force_update()
 
 	def render_mainscreen(self,surface):
@@ -362,14 +382,15 @@ class ScreenManager:
 			self.force_update()
 		
 			# Bottom menu
-			for index, item in enumerate(self.bottommenu):
+			for index, item in enumerate(self.pc.get_menu()):
 				color = "text" if self.draw_offset[1] == -(index+1)*size["bottommenu"] else "inactive"
 				text = render_text(item["name"], self.font["menuitem"], color)			
 				text_rect = text.get_rect(center=(config.resolution[0]/2, 0))
 				surface.blit(text,
 							menupos("bottommenu", index, (text_rect[0],self.draw_offset[1]))) 
 			# Top menu
-			self.topmenu = self.pc.get_player_names()
+			# TODO: Don't refresh every cycle, but find a way to skip disconnected players
+			# self.topmenu = self.pc.get_player_names()
 			for i in range (0,len(self.topmenu)-1):
 				index = i if i < self.pc.get_current() else i+1
 				color = "text" if self.draw_offset[1] == (i+1)*size["topmenu"] else "inactive"
@@ -388,8 +409,6 @@ class ScreenManager:
 						size["trackinfobackground"]))
 			surface.blit(self.image["progress_bg"], 
 						pos("progressbar", (0,self.draw_offset[1])))
-			surface.blit(self.image["mpdlogo"], 
-						pos("logo",(0,self.draw_offset[1])))
 
 			# Artist - Album (date)
 			surface.blit(render_text(self.status["artistalbum"], self.font["details"]),
@@ -404,6 +423,15 @@ class ScreenManager:
 				
 				surface.blit(render_text(self.status["timeTotal"], self.font["elapsed"]),
 							pos("track_length", (0,self.draw_offset[1])))
+							
+			# Draw player logo if it exists
+			logo = self.playerlogos[self.pc.get_current()]
+			if logo:
+				surface.blit(self.image["background"], 
+							pos("logoback",(0,self.draw_offset[1])), 
+							(pos("logoback",(0,self.draw_offset[1])),
+							size["logoback"]))
+				surface.blit(logo, pos("logo",(0,self.draw_offset[1])))
 
 			self.update_ack("trackinfo")
 						
@@ -497,9 +525,9 @@ class ScreenManager:
 			
 		# Return value: allow repeat
 		return allow_repeat
-		
+
 	def scroll_mainscreen(self, start, x, y, end=False):
-	
+
 		# scrolling progress bar
 		if self.pc("seek_enabled") and \
                   (clicked(start, pos("progressbar"), size["progressbar_click"]) or \
@@ -530,8 +558,8 @@ class ScreenManager:
 				y = 0 if y < size["topmenu"] else y-y%size["topmenu"]
 			else:
 				y = 0 if abs(y) < size["bottommenu"] else y-y%size["bottommenu"]+size["bottommenu"]
-			self.draw_offset = (x,y)
-			self.draw_offset = limit_offset(self.draw_offset,(-108,-len(self.bottommenu)*size["bottommenu"], 108, (len(self.topmenu)-1)*size["topmenu"]))
+			self.draw_offset = limit_offset((x,y),(-108, -len(self.pc.get_menu())*size["bottommenu"], 
+			                                        108, (len(self.topmenu)-1)*size["topmenu"]))
 	
 			if x > 0:
 				self.image["coverart_border"] = self.image["coverart_border_next"]
@@ -558,9 +586,22 @@ class ScreenManager:
 						self.pc.control_player("switch", index)
 						
 				# Bottom menu
-				for i in range (0,len(self.bottommenu)):
-					if self.draw_offset[1] == -(i+1)*size["bottommenu"]:
-						self.bottommenu[i]["func"]()
+				# 0: self.draw_offset[1] == -(0+1)*size["bottommenu"] == -size["bottommenu"]
+				# 1: self.draw_offset[1] == -(1+1)*size["bottommenu"] == -2*size["bottommenu"]
+				# 2: self.draw_offset[1] == -(2+1)*size["bottommenu"] == -3*size["bottommenu
+				# i = -self.draw_offset[1]/size["bottommenu"] - 1
+				# -40/40 
+				
+				i = -self.draw_offset[1]//size["bottommenu"] - 1
+				# Scroll limited to list length, but still check for fun
+				if i > -1 and len(self.pc.get_menu()) >= i:
+					self.logger.debug(i)
+					menuitem = self.pc.get_menu()[i]
+					self.logger.debug(menuitem)
+					self.switch_view("listview", menuitem)
+		#for i in range (0,len(self.pc.get_menu())):
+#					if self.draw_offset[1] == -(i+1)*size["bottommenu"]:
+						
 						
 				# Reset offset
 				self.draw_offset = (0,0)
@@ -570,22 +611,69 @@ class ScreenManager:
 				else:
 					self.image["coverart_border"] = self.image["coverart_border_paused"]		
 
-	def render_playlist(self,surface):
-		self.offset = limit_offset(self.offset)
-		surface.blit(render_text("testingtestingtestingtestingtestingtesting", self.font["details"], "text"),
-                        pos("playlist", (self.offset[0],0))) # Title
+	def render_listview(self,surface):
+#		self.list_offset = limit_offset(self.list_offset)
+#		surface.blit(render_text("testingtestingtestingtestingtestingtesting", self.font["details"], "text"), pos("listview", (self.list_offset[0],0))) # Title
+		if self.listcontent:
+
+			for i in range(0,size["paddedscreen"][1]//size['listitem_height']):
+				try:
+					# Parse information
+					if "title" in self.listcontent[i+self.list_offset]:
+						playlistitem = self.listcontent[i+self.list_offset]["title"]
+						if "artist" in self.listcontent[i+self.list_offset]:
+							playlistitem = self.listcontent[i+self.list_offset]["artist"] + " - " + playlistitem
+						if "pos" in self.listcontent[i+self.list_offset]:
+							position = int(self.listcontent[i+self.list_offset]["pos"]) + 1
+							position = str(position).rjust(4, ' ')
+							playlistitem = position + ". " + playlistitem
+
+					# No title, get filename
+					elif "file" in self.playlist[i+self.list_offset]:
+						playlistitem = self.listcontent[i+self.list_offset]["file"].split("/")[-1]
+				except:
+					playlistitem = ""
+
+				# Highlight currently playing item
+#					try:
+#						if self.playlist[i+self.list_offset]["pos"] == self.pc.song["pos"]:
+#							text = self.font["playlist"].render(playlistitem, 1,(self.color['highlight']))
+#						else: 
+#							text = self.font["playlist"].render(playlistitem, 1,(self.color['font']))
+#
+#					except:
+#						text = self.font["playlist"].render(playlistitem, 1,(self.color['font']))
+				text = render_text(playlistitem, self.font["details"], "text")
+				surface.blit(text, pos("listview", (0,self.list_offset+size['listitem_height']*i))) # Title
+
+
+
+
+#				surface.blit(text, (self.pos['list_left'],self.pos['list_top'] + self.size['listitem_height']*int(i)),(0,0, self.pos['list_width'],self.size['listitem_height']))
+
+#				text = render_text(playlistitem, self.font["listview"], "text")				
+#				surface.blit(text, pos("listview", (self.list_offset[0],0))) # Title
+#			surface.blit(render_text("testingtestingtestingtestingtestingtesting", self.font["details"], "text"), pos("listview", (self.list_offset[0],0))) # Title
+
 		
-	def on_click_playlist(self, mousebutton, clickpos):
+		else: 
+			switch_view("main")
+			
+	def on_click_listview(self, mousebutton, clickpos):
 		if clicked(clickpos, (0,0), config.resolution):
 			return False
-					
+
 		# Return value: allow repeat
 		return False
 
-	def scroll_playlist(self, start, x, y, end=False):
+	def scroll_listview(self, start, x, y, end=False):
 		if end:
 			if abs(x) > 30:
-				self.switch_screen("main")
+				self.switch_view("main")
+#			elif abs(y) > size["listitem_height"]:
+#				y = 0 if abs(y) < 0 else y-y%size["listitem_height"]+size["listitem_height"]
+					
+#			self.list_offset = limit_offset((x,y),(-108, 0, 108, len(self.listcontent)*size["listitem_height"]))
 				
 	def update_ack(self, updated):
 		self.status["update"][updated] = False
@@ -630,23 +718,3 @@ class ScreenManager:
 			self.screen_timeout_time = datetime.datetime.now() + timedelta(seconds=config.screen_timeout)
 		else:
 			self.turn_backlight_on()
-
-	# Menu functions
-	def show_playlist(self):
-		self.switch_screen("playlist")
-		
-	def show_playlists(self):
-		self.switch_screen("playlist")
-
-	def switch_mpd(self):
-		self.pc.control_player("switch", 1)
-
-	def switch_spotify(self):
-		self.pc.control_player("switch", 0)
-
-	def switch_cd(self):
-		self.pc.control_player("switch", 2)
-		
-	def show_library(self):
-		self.logger.debug("Bottommenu3")
-
