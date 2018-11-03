@@ -40,7 +40,6 @@ Things you need:
 =================
 - Raspberry pi (I am using model 3)
 - Adafruit PiTFT+ 3.5" with Resistive Touchscreen ( https://www.adafruit.com/product/2441 )
-- Touchscreen calibration ( https://github.com/raysan5/raylib/wiki/Install-and-configure-Touchscreen-Drivers-(RPi) )
 - Internet connection for Pi
 - Raspbian running on the Pi
 - [Optional] MPD configured
@@ -53,7 +52,7 @@ Known issues:
 - Doesn't check if players are available when using CLI commands
 - Requires all the python modules even though features are disabled in config
 - Cover art is not saved separately for each player, has to be refetched when the player is changed
-- Inacurrate touchscreen calibration/detection using Raspbian Jessie/Stretch with sdl2, need to force downgrage sdl to 1.2 version (script provided in repo forcesdl_1.2)
+- Inaccurate touchscreen calibration/detection using Raspbian Jessie/Stretch with sdl2, need to force downgrade sdl to 1.2 version (script provided in repo scripts/forcesdl_1.2, modify to your liking)
 
 Installing:
 ===========
@@ -112,6 +111,7 @@ apt-get install evtest tslib libts-bin
 
 For CD support install the cddb-py module:
 http://cddb-py.sourceforge.net/
+<pre>apt-get install python-cddb</pre>
 
 For Spotify support install spotify-connect-web:
 https://github.com/Fornoth/spotify-connect-web
@@ -147,7 +147,7 @@ Use the following command to start ui:
 
 To run the script as a service, copy the systemd service file to /etc/systemd/system:
 
-<code>sudo cp systemd/pitft-playerui.service /etc/systemd/system/</code>
+<code>sudo cp scripts/pitft-playerui.service /etc/systemd/system/</code>
 
 Note that using the framebuffer requires root access. The script can also be run in X window, for example via X forwarding in PuTTY, without sudo (but give your user write permission to the logs).
 

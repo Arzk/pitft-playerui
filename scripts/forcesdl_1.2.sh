@@ -6,7 +6,7 @@ echo "deb http://archive.raspbian.org/raspbian wheezy main" > /etc/apt/sources.l
 #set stable as default package source (currently jessie)
 echo "APT::Default-release "stable";" > /etc/apt/apt.conf.d/10defaultRelease
 
-#set the priority for libsdl from wheezy higher then the jessie package
+#set the priority for libsdl from wheezy higher than the jessie package
 echo "Package: libsdl1.2debian
 Pin: release n=jessie
 Pin-Priority: -10
