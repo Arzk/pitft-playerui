@@ -51,6 +51,7 @@ Known issues:
 ==============
 - Hugely in progress
 - Requires all the python modules even though features are disabled in config
+- Inaccurate touchscreen calibration/detection using Raspbian Jessie/Stretch with sdl2, need to force downgrade sdl to 1.2 version (script provided in repo scripts/forcesdl_1.2, modify to your liking)
 
 Installing:
 ===========
@@ -122,6 +123,7 @@ apt-get install evtest tslib libts-bin
 
 For CD support install the cddb-py module:
 http://cddb-py.sourceforge.net/
+<pre>apt-get install python-cddb</pre>
 
 For Spotify support install spotify-connect-web:
 https://github.com/Fornoth/spotify-connect-web
@@ -157,7 +159,7 @@ Use the following command to start ui:
 
 To run the script as a service, copy the systemd service file to /etc/systemd/system:
 
-<code>sudo cp systemd/pitft-playerui.service /etc/systemd/system/</code>
+<code>sudo cp scripts/pitft-playerui.service /etc/systemd/system/</code>
 
 Note that using the framebuffer requires root access. The script can also be run in X window, for example via X forwarding in PuTTY, without sudo (but give your user write permission to the logs).
 
