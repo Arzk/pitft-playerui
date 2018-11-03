@@ -83,8 +83,8 @@ class SpotifyControl (PlayerBase):
 			try:	
 				if active:
 					# Fetch song info
-					sp_metadata = self._api("info","metadata")
-		
+					sp_metadata       = self._api("info","metadata")
+					
 					# Parse multiline string of type
 					# '  "album_name": "Album", '
 					# Split lines and remove leading '"' + ending '", '

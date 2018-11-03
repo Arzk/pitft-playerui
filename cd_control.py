@@ -239,7 +239,7 @@ class CDControl (PlayerBase):
 				except Exception, e:
 					self.logger.exception(e)
 					pass
-							
+
 	def control(self, command, parameter=-1):
 		pass
 

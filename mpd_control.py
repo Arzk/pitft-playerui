@@ -8,25 +8,26 @@ import glob
 from mpd import MPDClient
 import pylast
 
-import config
 from player_base import PlayerBase
 
 class MPDControl (PlayerBase):
-	def __init__(self):
+	def __init__(self, config):
 		super(MPDControl, self).__init__("mpd")
+		self.config = config
 		
-		self.capabilities["volume_enabled"]    = config.volume_enabled
+		self.capabilities["volume_enabled"]    = True
 		self.capabilities["seek_enabled"]      = True
 		self.capabilities["random_enabled"]    = True 
 		self.capabilities["repeat_enabled"]    = True
 		self.capabilities["elapsed_enabled"]   = True
-		self.capabilities["playlist_enabled"]  = True
-		self.capabilities["playlists_enabled"] = True
-		self.capabilities["library_enabled"]   = True
 		self.capabilities["logopath"]          = "pics/logo/mpd.png"
 		
 		self.playlist = []
 		self.playlists = []
+		self.genrelist = []
+		self.artistlist = []
+		self.albumlist = []
+		self.songlist = []
 	
 		self.client = None
 		self.noConnection = False		
@@ -37,7 +38,8 @@ class MPDControl (PlayerBase):
 		# Todo:  Find out some nice way to update the lists without hanging everything - Long playlists are slooow
 		self.menu.append ({"name": "PLAYLIST",  "content": self.playlist, "clickfunc": self.playlist_click})
 		self.menu.append ({"name": "PLAYLISTS", "content": self.playlists, "clickfunc": self.playlists_click})
-#		self.menu.append ({"name": "LIBRARY", "getfunc": self.get_library})
+		self.menu.append ({"name": "GENRES", "content": self.genres, "clickfunc": self.library_click})
+		#self.menu.append ({"name": "ARTISTS", "content": self.artists, "clickfunc": self.artists_click})
 		
 		if self.client:
 			self.logger.info("MPD server version: %s" % self.client.mpd_version)
@@ -45,6 +47,9 @@ class MPDControl (PlayerBase):
 	def updatelists(self):
 		self.playlist = self.get_playlist()
 		self.playlists = self.get_playlists()
+		self.artists = self.list_library("artist")
+		self.genres = self.list_library("genre")
+		
 
 	def refresh(self, active=False):
 		status = {}
@@ -89,7 +94,7 @@ class MPDControl (PlayerBase):
 				self.data["status"]["volume"]    = ""					
 	
 			try:
-				# Fetch song info 
+				# Fetch song info
 				if active:
 					song = self.client.currentsong()
 					
@@ -151,6 +156,7 @@ class MPDControl (PlayerBase):
 		
 						# Save new song info
 						self.data["song"] = song
+						
 			except Exception as e:
 				self.logger.debug(e)
 				self._disconnected()
@@ -173,7 +179,7 @@ class MPDControl (PlayerBase):
 		client.idletimeout = None
 		if not self.client:
 			 try:
-				client.connect(config.mpd_host, config.mpd_port)
+				client.connect(self.config.mpd_host, self.config.mpd_port)
 				self.client = client
 				self.logger.info("Connection to MPD server established.")
 				self.noConnection = False
@@ -186,7 +192,7 @@ class MPDControl (PlayerBase):
 				self.capabilities["connected"]   = False
 
 		# (re)connect to last.fm
-		if not self.lfm_connected and config.API_KEY and config.API_SECRET:
+		if not self.lfm_connected and self.config.API_KEY and self.config.API_SECRET:
 			self.connect_lfm()
 
 	def _disconnected(self):
@@ -270,11 +276,27 @@ class MPDControl (PlayerBase):
 	# 'time': '119'
 	# 'genre': 'Blues'
 	# 'id': '3292'}
+	# We might want: 'pos': N, 'name': 'artist' - 'track'
+	# Or some grouping: 'artist' - 'album' ('date')
+	#                   -'track': 'title'
 	def get_playlist(self):
 		list = []
 		try:
 			if self.client:
 				list = self.client.playlistinfo()
+		except Exception, e:
+			self.logger.info(e)
+			self._disconnected()
+		return list
+
+	def list_library(self, type, filtertype="", filter=""):
+		list = []
+		try:
+			if self.client:
+				if filtertype and filter:
+					list = self.client.list(type, filtertype, filter)
+				else:
+					list = self.client.list(type)
 		except Exception, e:
 			self.logger.info(e)
 			self._disconnected()
@@ -287,21 +309,45 @@ class MPDControl (PlayerBase):
 		except Exception, e:
 			self.logger.info(e)
 			self._disconnected()
-
-	def playlist_click(self, item=-1):
-		self.logger.debug("playlist click %s" % str(item))
 		
-	def playlists_click(self, item=-1):
+	def playlists_click(self, item=-1, button=1):
 		self.logger.debug("playlists click %s" % str(item))
+		if button == 1 and item > -1:
+			try: 
+				list = self.playlists[item].get('playlist')
+				self.load_playlist(list)
+				self.control(play)
+			except Exception, e:
+				self.logger.info("No playlist %s" % item)
+		return None
 		
+	def playlist_click(self, item=-1, button=1):
+		self.logger.debug("playlist click %s" % str(item))
+		if button == 1 and item > -1:
+			self.play_item(item)
+		return None
+		
+	def library_click(self, item=-1, button=1):
+#		self.libraryview = {'list': self.genres, 'name':"genres", 
+#		self.libraryview = self.genres
+		if item > -1:
+			if button == 1:
+				libraryartists = self.list_library("artist", "genre", self.genres[item])
+				return {"name": "library", "content": libraryartists, "clickfunc": self.library_click}
+			if button == 2:
+				self.client.clear()
+				self.client.findadd("genre", self.genres[item])
+				self.client.play()
+		return None	
+
 	def fetch_coverart(self, song):
 		self.data["cover"] = False
 		self.data["coverartfile"]=""
 
 		# Search for local coverart
-		if "file" in song and config.library_path:
+		if "file" in song and self.config.library_path:
 
-			folder = os.path.dirname(config.library_path + "/" + song["file"])
+			folder = os.path.dirname(self.config.library_path + "/" + song["file"])
 			coverartfile = ""
 
 			# Get all folder.* files from album folder
@@ -355,11 +401,11 @@ class MPDControl (PlayerBase):
 
 	def connect_lfm(self):
 		self.logger.info("Setting Pylast")
-		username = config.username
-		password_hash = pylast.md5(config.password_hash)
+		#username = self.config.username
+		#password_hash = pylast.md5(self.config.password_hash)
 		self.lfm_connected = False
 		try:
-			self.lfm = pylast.LastFMNetwork(api_key = config.API_KEY, api_secret = config.API_SECRET)
+			self.lfm = pylast.LastFMNetwork(api_key = self.config.API_KEY, api_secret = self.config.API_SECRET)
 			self.lfm_connected = True
 			self.logger.debug("Connected to Last.fm")
 		except:

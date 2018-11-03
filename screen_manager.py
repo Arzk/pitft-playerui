@@ -105,12 +105,11 @@ class ScreenManager:
 		self.offset             = 0,0
 		self.draw_offset        = 0,0
 		self.list_offset        = 0
-		self.turn_backlight_on()
-
-		self.populate_players()
+		self.num_listitems = config.resolution[1]//size["listitem_height"]
 		
+		self.turn_backlight_on()
+		self.populate_players()
 		self.logger.debug("Init done")
-
 		self.first_refresh_done = False
 		
 	def populate_players(self):
@@ -363,14 +362,17 @@ class ScreenManager:
 		self.force_update("screen")
 			
 	def switch_view(self, view, items=None):
-		# Ensure that tha pointers are ok for lists
+		# Update everything
+		self.status["update"]["screen"]    = True
+		# Ensure that the pointers are ok for lists
 		if view == "listview":
+			self.list_offset = 0
 			self.listcontent = items.get("content", None)
 			self.listclick = items.get("clickfunc", None)
 			if self.listcontent and self.listclick:
 				self.view=view
 		else:
-			self.view=view
+			self.view="main"
 		self.force_update()
 
 	def render_mainscreen(self,surface):
@@ -584,24 +586,13 @@ class ScreenManager:
 
 					if self.draw_offset[1] == (i+1)*size["topmenu"]:
 						self.pc.control_player("switch", index)
-						
-				# Bottom menu
-				# 0: self.draw_offset[1] == -(0+1)*size["bottommenu"] == -size["bottommenu"]
-				# 1: self.draw_offset[1] == -(1+1)*size["bottommenu"] == -2*size["bottommenu"]
-				# 2: self.draw_offset[1] == -(2+1)*size["bottommenu"] == -3*size["bottommenu
-				# i = -self.draw_offset[1]/size["bottommenu"] - 1
-				# -40/40 
-				
+										
 				i = -self.draw_offset[1]//size["bottommenu"] - 1
+				
 				# Scroll limited to list length, but still check for fun
 				if i > -1 and len(self.pc.get_menu()) >= i:
-					self.logger.debug(i)
 					menuitem = self.pc.get_menu()[i]
-					self.logger.debug(menuitem)
 					self.switch_view("listview", menuitem)
-		#for i in range (0,len(self.pc.get_menu())):
-#					if self.draw_offset[1] == -(i+1)*size["bottommenu"]:
-						
 						
 				# Reset offset
 				self.draw_offset = (0,0)
@@ -612,69 +603,97 @@ class ScreenManager:
 					self.image["coverart_border"] = self.image["coverart_border_paused"]		
 
 	def render_listview(self,surface):
-#		self.list_offset = limit_offset(self.list_offset)
-#		surface.blit(render_text("testingtestingtestingtestingtestingtesting", self.font["details"], "text"), pos("listview", (self.list_offset[0],0))) # Title
+		list_draw_offset = self.list_offset%size['listitem_height']
 		if self.listcontent:
-
-			for i in range(0,size["paddedscreen"][1]//size['listitem_height']):
-				try:
-					# Parse information
-					if "title" in self.listcontent[i+self.list_offset]:
-						playlistitem = self.listcontent[i+self.list_offset]["title"]
-						if "artist" in self.listcontent[i+self.list_offset]:
-							playlistitem = self.listcontent[i+self.list_offset]["artist"] + " - " + playlistitem
-						if "pos" in self.listcontent[i+self.list_offset]:
-							position = int(self.listcontent[i+self.list_offset]["pos"]) + 1
-							position = str(position).rjust(4, ' ')
-							playlistitem = position + ". " + playlistitem
-
-					# No title, get filename
-					elif "file" in self.playlist[i+self.list_offset]:
-						playlistitem = self.listcontent[i+self.list_offset]["file"].split("/")[-1]
-				except:
-					playlistitem = ""
-
-				# Highlight currently playing item
-#					try:
-#						if self.playlist[i+self.list_offset]["pos"] == self.pc.song["pos"]:
-#							text = self.font["playlist"].render(playlistitem, 1,(self.color['highlight']))
-#						else: 
-#							text = self.font["playlist"].render(playlistitem, 1,(self.color['font']))
-#
-#					except:
-#						text = self.font["playlist"].render(playlistitem, 1,(self.color['font']))
-				text = render_text(playlistitem, self.font["details"], "text")
-				surface.blit(text, pos("listview", (0,self.list_offset+size['listitem_height']*i))) # Title
-
-
-
-
-#				surface.blit(text, (self.pos['list_left'],self.pos['list_top'] + self.size['listitem_height']*int(i)),(0,0, self.pos['list_width'],self.size['listitem_height']))
-
-#				text = render_text(playlistitem, self.font["listview"], "text")				
-#				surface.blit(text, pos("listview", (self.list_offset[0],0))) # Title
-#			surface.blit(render_text("testingtestingtestingtestingtestingtesting", self.font["details"], "text"), pos("listview", (self.list_offset[0],0))) # Title
-
-		
+			for i in range(-self.num_listitems,2*self.num_listitems):
+				list_index = i+self.list_offset//size['listitem_height']
+				list_length = len(self.listcontent)
+				if list_index in range(0, list_length):
+					try:
+						# Parse information 
+						# TODO: Do this more general
+						if "title" in self.listcontent[list_index]:
+							listitem = self.listcontent[list_index]["title"]
+							if "artist" in self.listcontent[list_index]:
+								listitem = self.listcontent[list_index]["artist"] + " - " + listitem
+							if "pos" in self.listcontent[list_index]:
+								position = int(self.listcontent[list_index]["pos"]) + 1
+								position = str(position).rjust(4, ' ')
+								listitem = position + ". " + listitem
+								
+						# No title, get filename
+						elif "file" in self.listcontent[list_index]:
+							listitem = self.listcontent[list_index]["file"].split("/")[-1]
+							
+						# PLaylists view
+						elif "playlist" in self.listcontent[list_index]:
+							listitem = self.listcontent[list_index]["playlist"]
+						else: 
+							listitem = self.listcontent[list_index]
+						
+					except Exception, e:
+						listitem = ""
+						self.logger.debug(e)
+	
+					text = render_text(listitem, self.font["details"], "text")
+					# Highlight currently playing item
+#					if self.listcontent[list_index].get("pos") == self.status["pos"]:
+#						text = render_text(listitem, self.font["details"], "highlight")
+					surface.blit(text, pos("listview", (self.draw_offset[0],self.draw_offset[1]-list_draw_offset+size['listitem_height']*i)))
 		else: 
-			switch_view("main")
+			self.switch_view("main")
 			
 	def on_click_listview(self, mousebutton, clickpos):
-		if clicked(clickpos, (0,0), config.resolution):
-			return False
+		if clicked(clickpos, pos("scrollbar"), size["scrollbar_click"]):
+			ratio = float(clickpos[1])/float(config.resolution[1])
+			self.list_offset = int(ratio*size["listitem_height"]*(len(self.listcontent)))
+			self.list_offset = limit_offset((0,self.list_offset),(0, 0, 0, size["listitem_height"]*(len(self.listcontent)-self.num_listitems)))[1]
 
+		# Normal click
+		elif clicked(clickpos, (0,0), config.resolution):
+			# Get index of item clicked
+#				list_index = i+self.list_offset//size['listitem_height']
+			click_index = (clickpos[1] + self.list_offset)//size["listitem_height"]
+			if click_index > len(self.listcontent):
+				click_index = len(self.listcontent)
+			# Check return value: new list returned if something
+			new_list = self.listclick(click_index, mousebutton)
+			self.logger.debug(new_list)
+			if not new_list:
+				self.switch_view("main")
+			else:
+				self.switch_view("listview", new_list)
+			
 		# Return value: allow repeat
 		return False
 
 	def scroll_listview(self, start, x, y, end=False):
+		# Prevent negative offset for short lists that fit on the screen
+		if len(self.listcontent) > self.num_listitems:
+			max_offset = size["listitem_height"]*(len(self.listcontent)-self.num_listitems)
+		else:
+			max_offset = 0
+
+		# Scrollbar: fast scroll
+		if clicked(start, pos("scrollbar"), size["scrollbar_click"]):
+			ratio = float(start[1] + y)/float(config.resolution[1])
+			self.list_offset = int(ratio*size["listitem_height"]*(len(self.listcontent)))
+			self.list_offset = limit_offset((0,self.list_offset),(0, 0, 0, max_offset))[1]
+			self.logger.debug("Scrollbar scroll")
+			
+		# Normal scroll
+		else:
+			self.draw_offset = limit_offset((x,y),(-config.resolution[0], -config.resolution[1], 
+			                                        config.resolution[0],  config.resolution[1]))
 		if end:
+			self.list_offset = self.list_offset - self.draw_offset[1]
+			self.list_offset = limit_offset((0,self.list_offset),(0, 0, 0, max_offset))[1]
+			self.draw_offset = (0,0)
+
+			# Horizontal scroll exits
 			if abs(x) > 30:
-				self.switch_view("main")
-#			elif abs(y) > size["listitem_height"]:
-#				y = 0 if abs(y) < 0 else y-y%size["listitem_height"]+size["listitem_height"]
-					
-#			self.list_offset = limit_offset((x,y),(-108, 0, 108, len(self.listcontent)*size["listitem_height"]))
-				
+					self.switch_view("main")
+
 	def update_ack(self, updated):
 		self.status["update"][updated] = False
 		
@@ -686,7 +705,7 @@ class ScreenManager:
 			self.status["update"] = dict.fromkeys(self.status["update"], True)
 		else:
 			self.status["update"][item] = True
-		
+
 	def get_backlight_status(self):
 		return self.backlight
 

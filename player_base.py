@@ -16,9 +16,6 @@ class PlayerBase(object):
 					"random_enabled"    : False, 
 					"repeat_enabled"    : False,
 					"elapsed_enabled"   : False,
-					"playlist_enabled"  : False,
-					"playlists_enabled" : False,
-					"library_enabled"   : False,
 					"logopath"          : ""
 					}
 		self.menu = []
@@ -59,10 +56,7 @@ class PlayerBase(object):
 		
 	def __getitem__(self, item):
 		return self.data[item]
-		
-	def get_menu(self):
-		return self.menu
-		
+			
 	def __call__(self, item):
 		return self.capabilities[item]
 		
@@ -81,3 +75,5 @@ class PlayerBase(object):
 	def control(self, command, parameter=-1):
 		pass
 		
+	def get_menu(self):
+		return self.menu

@@ -20,7 +20,7 @@ class PlayerControl:
 		try:
 			self.logger.debug("Setting MPD")
 			if config.mpd_host and config.mpd_port:
-				self.players.append(MPDControl())
+				self.players.append(MPDControl(config))
 		except Exception, e:
 			self.logger.debug(e)
 		try:
@@ -114,26 +114,6 @@ class PlayerControl:
 		else:
 			self.players[self.current].control(command, parameter)
 			
-	def load_playlist(self, command):
-		if self.players[self.current]("library_enabled"):
-			self.players[self.current].load_playlist(command)
-
-	def get_playlists(self):
-		playlists = []
-		if self.players[self.current]("library_enabled"): 
-			playlists = self.players[self.current].get_playlists()
-		return playlists
-		
-	def get_playlist(self):
-		playlist = []
-		if self.players[self.current]("library_enabled"): 
-			playlist = self.players[self.current].get_playlist()
-		return playlist
-
-	def play_item(self, number):
-		if self.players[self.current]("library_enabled"): 
-			self.players[self.current].play_item(number)
-
 	def switch_active_player(self, id):
 		player_changed = False
 		if self.current != id:

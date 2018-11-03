@@ -126,14 +126,8 @@ class Daemon:
 		Restart the daemon
 		"""
 		self.stop()
+		time.sleep(0.01)
 		self.start()
-
-	def control(self, command):
-		"""
-		Control playback
-		"""
-		shared = memcache.Client(['127.0.0.1:11211'], debug=0)
-		shared.set('command', command)
 
 	def run(self):
 		"""

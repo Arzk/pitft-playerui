@@ -201,8 +201,8 @@ class PitftDaemon(Daemon):
 
 			if event.type == pygame.MOUSEBUTTONUP:
 				userevents = True
-				# Not a long click or scroll: click
 				if self.mousebutton_down and not self.longpress:
+					# Not a long click or scroll: click
 					if not self.mouse_scroll:
 						self.sm.on_click(1, self.start_pos)
 					else:
@@ -234,6 +234,7 @@ class PitftDaemon(Daemon):
 				logger.debug(command)
 			return True
 		return False
+
 
 if __name__ == "__main__":
 	daemon = PitftDaemon('/tmp/pitft-playerui-daemon.pid')
