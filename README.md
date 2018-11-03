@@ -51,7 +51,6 @@ Known issues:
 ==============
 - Hugely in progress
 - Requires all the python modules even though features are disabled in config
-- python-lirc doesn't seem to work with the new lirc in Raspbian Stretch?
 
 Installing:
 ===========
@@ -116,7 +115,7 @@ This should set MPD and Spotify to use the same softvol volume slider. To set th
 
 Install dependencies:
 <pre>apt-get update
-apt-get install python-pygame python-lirc
+apt-get install python-pygame python-lirc python-cddb
 pip install python-mpd2 mplayer.py
 apt-get install evtest tslib libts-bin
 </pre>

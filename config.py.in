@@ -2,48 +2,52 @@
 # Settings
 ###############
 
-# Resolution. Don't use any other resolution than these two
+""" Resolution. Don't use any other resolution than these two """
 #resolution = 320,240
 resolution = 480,320
 
-# Font file. Has to be in this folder
+""" Font file. Has to be in this folder """
 fontfile = "helvetica-neue-bold.ttf"
 
-# Log level, valid values INFO and DEBUG
+""" Log level, valid values INFO and DEBUG """
 loglevel = "INFO"
 
-# time in seconds before the screen turns off if not playing
+""" Path to log files. /dev/shm is written to the memory but disappears on boot """
+logpath = "/dev/shm/pitft-playerui"
+#logpath = "/var/log/pitft-playerui"
+
+""" time in seconds before the screen turns off if not playing """
 # 0: disabled
 screen_timeout = 0
 
-# Enable volume control. True/False
-volume_enabled = False
+""" Enable volume control. True/False """
+volume_enabled = True
+
+""" The sysfs file for display backlight """
+backlight_sysfs = "/sys/class/backlight/soc\:backlight/brightness"
+# If you are using the old kernel drivers for the display
+#backlight_sysfs = "/sys/class/gpio/gpio508/value"
 
 ###############
 # MPD
 ###############
 
-# Path to MPD
+""" Path to MPD """
 mpd_host = "localhost"
 mpd_port = "6600"
 
-# Music library location as set in MPD
+""" Music library location as set in MPD """
 # Leave empty to disable local coverart fetching
 library_path = ""
 
-# Radio playlist name in MPD
-# This playlist is toggled by a specific button and hidden from the playlists
-# Leave empty to disable the button
-radio_playlist = "Radio"
-
-# Enable audio CD support via cdio_paranoia plugin and cddb-py. True/False
+""" Enable audio CD support via cdio_paranoia plugin and cddb-py. True/False """
 cdda_enabled = False
 
 ###############
 # Spotify
 ###############
 
-# Path to spotify-connect-web
+""" Path to spotify-connect-web """
 # Leave empty to disable
 spotify_host = "localhost"
 spotify_port = "4000"
@@ -52,11 +56,7 @@ spotify_port = "4000"
 # Last.FM
 ###############
 
-# You have to have your own unique two values for API_KEY and API_SECRET
+""" You have to have your own unique two values for API_KEY and API_SECRET """
 # Obtain yours from http://www.last.fm/api/account for Last.fm
 API_KEY = ""
 API_SECRET = ""
-
-# In order to perform a write operation you need to authenticate yourself
-username = ""
-password_hash = ""

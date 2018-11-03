@@ -16,13 +16,14 @@ from screen_manager import ScreenManager
 import config
 
 # OS enviroment variables for pitft
+os.putenv ("SDL_VIDEODRIVER" , "fbcon")
 os.environ["SDL_FBDEV"] = "/dev/fb1"
 os.environ["SDL_MOUSEDEV"] = "/dev/input/touchscreen"
 os.environ["SDL_MOUSEDRV"] = "TSLIB"
 
 # Logger config
-if not os.path.isdir ('/var/log/pitft-playerui'):
-	os.mkdir('/var/log/pitft-playerui')
+if not os.path.isdir (config.logpath):
+	os.mkdir(config.logpath)
 
 path = os.path.dirname(os.path.abspath(__file__)) + "/"
 
@@ -38,7 +39,7 @@ try:
 except:
 	logger.setLevel(logging.INFO)
 
-handler = TimedRotatingFileHandler('/var/log/pitft-playerui/pitft-playerui.log',when="midnight",interval=1,backupCount=14)
+handler = TimedRotatingFileHandler(config.logpath + '/pitft-playerui.log',when="midnight",interval=1,backupCount=14)
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
@@ -231,7 +232,7 @@ class PitftDaemon(Daemon):
 		if commands:
 			for command in commands:
 				self.sm.pc.control_player(command)
-				logger.debug(command)
+				logger.debug("LIRC: %s" % command)
 			return True
 		return False
 

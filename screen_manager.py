@@ -149,7 +149,7 @@ class ScreenManager:
 			pass
 		
 		# Something is playing - keep screen on
-		if self.pc["status"] and config.screen_timeout > 0 and not self.backlight_forced_off:
+		if self.pc["status"] and config.screen_timeout > 0:
 			if self.pc["status"]["state"] == "play":
 				self.update_screen_timeout()
 				active = True
@@ -715,18 +715,16 @@ class ScreenManager:
 		else:
 			self.turn_backlight_on()
 
-	def turn_backlight_off(self,forced=False):
+	def turn_backlight_off(self):
 		self.logger.debug("Backlight off")
-		subprocess.call("echo '0' > /sys/class/gpio/gpio508/value", shell=True)
+		subprocess.call("echo '0' > " + config.backlight_sysfs, shell=True)
 		self.backlight = False
-		self.backlight_forced_off = forced
 
 
 	def turn_backlight_on(self):
 		self.logger.debug("Backlight on")
-		subprocess.call("echo '1' > /sys/class/gpio/gpio508/value", shell=True)
+		subprocess.call("echo '1' > " + config.backlight_sysfs, shell=True)
 		self.backlight = True
-		self.backlight_forced_off = False
 
 		# Update screen timeout timer
 		if config.screen_timeout > 0:
