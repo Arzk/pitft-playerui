@@ -3,6 +3,7 @@ import sys, pygame
 from pygame.locals import *
 import time
 import os
+import subprocess
 import logging
 import datetime
 from math import ceil, floor
@@ -16,7 +17,7 @@ from screen_manager import ScreenManager
 import config
 
 # OS enviroment variables for pitft
-os.putenv ("SDL_VIDEODRIVER" , "fbcon")
+#os.putenv ("SDL_VIDEODRIVER" , "fbcon")
 os.environ["SDL_FBDEV"] = "/dev/fb1"
 os.environ["SDL_MOUSEDEV"] = "/dev/input/touchscreen"
 os.environ["SDL_MOUSEDRV"] = "TSLIB"
@@ -92,14 +93,14 @@ class PitftDaemon(Daemon):
 		# Hax end
 
 		logger.info("Display driver: %s" % pygame.display.get_driver())
-
+		
 		# Screen manager ###############
 		logger.info("Setting screen manager")
 		self.sm = ScreenManager(path)
 		logger.debug("Screen manager set")
 
 		# LIRC
-		lircrcfile = path + "pitft-playerui.lircrc"
+		lircrcfile = path + config.lircrcfile
 		self.lirc_enabled = False
 		if os.path.isfile(lircrcfile):
 			try:
@@ -118,13 +119,15 @@ class PitftDaemon(Daemon):
 		self.mousebutton_down   = False
 		self.longpress          = False
 		self.pos                = 0
-		self.userevents 		= True
 
 		# Times in milliseconds
 		self.screen_refreshtime = 50
 		self.player_refreshtime = 110
-		self.sleeptime = self.screen_refreshtime / 2.0
-	
+
+		#Backlight
+#		self.screen_timer = 0
+		self.backlight = False
+		self.update_screen_timeout(True)
 		logger.debug("Setup done")
 
 	def shutdown(self):
@@ -139,23 +142,26 @@ class PitftDaemon(Daemon):
 		refreshtime = datetime.datetime.now()
 
 		while 1:
-			# Check CLI and mouse events
-			self.userevents = self.userevents | self.read_mouse()
+			# Check mouse and LIRC events
+			active = self.read_mouse()
 			if self.lirc_enabled:
-				self.userevents = self.userevents | self.read_lirc()
+				active = active | self.read_lirc()
 			
 			# Refresh info
 			if refreshtime < datetime.datetime.now():
 				refreshtime = datetime.datetime.now() + timedelta(milliseconds=self.player_refreshtime)
-				active = self.sm.refresh(self.userevents)
-				self.userevents = False
-				
+				active = active | self.sm.refresh()
+			
+			# Update screen timeout, if there was any activity
+			if config.screen_timeout > 0:
+				self.update_screen_timeout(active)
+					
 			# Draw screen
 			if drawtime < datetime.datetime.now():
 				drawtime = datetime.datetime.now() + timedelta(milliseconds=self.screen_refreshtime)
 					
 				# Don't draw when display is off
-				if active:
+				if self.backlight:
 					self.sm.render(self.screen)
 					pygame.display.flip()
 
@@ -170,7 +176,7 @@ class PitftDaemon(Daemon):
 				self.pos = self.start_pos = pygame.mouse.get_pos()
 
 				# Instant click when backlight is off to wake
-				if not self.sm.get_backlight_status():
+				if not self.backlight:
 					self.mousebutton_down = False
 				else:
 					self.mousebutton_down = True
@@ -236,7 +242,19 @@ class PitftDaemon(Daemon):
 			return True
 		return False
 
-
+	def set_backlight(self, state):
+		logger.debug("Backlight %s" %state)
+		subprocess.call("echo '" + str(state*1) + "' > " + config.backlight_sysfs, shell=True)
+		self.backlight = state
+		
+	def update_screen_timeout(self, active):
+		if active:
+			self.screen_timer = datetime.datetime.now() + timedelta(seconds=config.screen_timeout)
+			if not self.backlight:
+				self.set_backlight(True)
+		elif self.screen_timer < datetime.datetime.now() and self.backlight:
+			self.set_backlight(False)
+			
 if __name__ == "__main__":
 	daemon = PitftDaemon('/tmp/pitft-playerui-daemon.pid')
 	if len(sys.argv) > 1:

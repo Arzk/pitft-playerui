@@ -6,10 +6,12 @@
 #resolution = 320,240
 resolution = 480,320
 
-""" Font file. Has to be in this folder """
+""" Font file """
+### Has to be in this folder
 fontfile = "helvetica-neue-bold.ttf"
 
-""" Log level, valid values INFO and DEBUG """
+""" Log level """
+### INFO or DEBUG
 loglevel = "INFO"
 
 """ Path to log files. /dev/shm is written to the memory but disappears on boot """
@@ -17,7 +19,7 @@ logpath = "/dev/shm/pitft-playerui"
 #logpath = "/var/log/pitft-playerui"
 
 """ time in seconds before the screen turns off if not playing """
-# 0: disabled
+### 0: disabled
 screen_timeout = 0
 
 """ Enable volume control. True/False """
@@ -25,19 +27,24 @@ volume_enabled = True
 
 """ The sysfs file for display backlight """
 backlight_sysfs = "/sys/class/backlight/soc\:backlight/brightness"
-# If you are using the old kernel drivers for the display
+### If you are using the old kernel drivers for the display
 #backlight_sysfs = "/sys/class/gpio/gpio508/value"
+
+""" Lircrc file for remote control """
+### Has to be in this folder
+lircrcfile = "pitft-playerui.lircrc"
 
 ###############
 # MPD
 ###############
 
 """ Path to MPD """
+### Leave empty to disable MPD support
 mpd_host = "localhost"
 mpd_port = "6600"
 
 """ Music library location as set in MPD """
-# Leave empty to disable local coverart fetching
+### Leave empty to disable local coverart fetching
 library_path = ""
 
 """ Enable audio CD support via cdio_paranoia plugin and cddb-py. True/False """
@@ -48,7 +55,7 @@ cdda_enabled = False
 ###############
 
 """ Path to spotify-connect-web """
-# Leave empty to disable
+### Leave empty to disable Spotify support
 spotify_host = "localhost"
 spotify_port = "4000"
 

@@ -245,8 +245,6 @@ class CDControl (PlayerBase):
 
 	def connect_lfm(self):
 		self.logger.info("Setting Pylast")
-		username = config.username
-		password_hash = pylast.md5(config.password_hash)
 		self.lfm_connected = False
 		try:
 			self.lfm = pylast.LastFMNetwork(api_key = config.API_KEY, api_secret = config.API_SECRET)

@@ -36,13 +36,15 @@ size["progressbar_height"]   = 16
 size["progressbar_click"]    = size["progressbar"][0], 60
 size["volume_click"]		 = 80,260
 size["volume_slider"]		 = 20,180
-size["listitem_height"]      = 36
+size["listitem_height"]      = 52
 size["logo"]                 = 34, 34
 size["logoback"]             = size["logo"][0]+2*size["margin"][0]+2*size["padding"][0] , size["logo"][1]+2*size["margin"][1]+2*size["padding"][1]
 size["screen"]				 = config.resolution[0] - 2*size["margin"][0], config.resolution[1]-2*size["margin"][1]
 size["paddedscreen"]		 = size["screen"][0] - 2*size["padding"][0], size["screen"][1] - 2*size["padding"][1]
-size["scrollbar_width"]      = 40
-size["scrollbar_click"]      = size["scrollbar_width"], config.resolution[1]
+size["scrollbar"]            = 20, size["screen"][1]
+size["scrollbar_click"]      = 60, config.resolution[1]
+size["scrollbar_slider"]	 = 20, size["scrollbar"][1]-28
+
 
 
 ###################
@@ -97,17 +99,19 @@ _pos["volume"]         = _pos["right"]-size["volume_click"][0]/2-15, 30
 _pos["volume_click"]   = _pos["volume"][0]-size["volume_click"][0]/2, _pos["volume"][1]-30
 _pos["volume_slider"]  = _pos["volume"][0]+2, _pos["volume"][1]+4
 
-_pos["icon_screenoff"]       = config.resolution[0] - size["icon_screenoff"][0]-5    , config.resolution[1] - size["icon_screenoff"][1]-5
+_pos["icon_screenoff"] = config.resolution[0] - size["icon_screenoff"][0]-5    , config.resolution[1] - size["icon_screenoff"][1]-5
 
 # Cover art
 _pos["coverart"]      = (config.resolution[0] - size["coverart"][0])/2, _pos["top"] #4
 
 # Player icon
-_pos["logo"]      = _pos["paddedright"] - size["logo"][0], _pos["paddedbottom"] - size["logo"][1]
+_pos["logo"]          = _pos["paddedright"] - size["logo"][0], _pos["paddedbottom"] - size["logo"][1]
 _pos["logoback"]      = _pos["logo"][0] - size["padding"][0], _pos["logo"][1] - size["padding"][1]
 
 # List view
-_pos["scrollbar"] = config.resolution[0]- size["scrollbar_width"], 0
+_pos["scrollbar"]        = _pos["right"] -size["scrollbar"][0]/2 - 2, _pos["top"]
+_pos["scrollbar_click"]  = _pos["scrollbar"][0]-size["scrollbar_click"][0], 0
+_pos["scrollbar_slider"] = _pos["scrollbar"][0]+4, _pos["scrollbar"][1]+12
 
 ###########################
 # Helper functions

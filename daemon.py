@@ -111,7 +111,7 @@ class Daemon:
 		try:
 			while 1:
 				os.kill(pid, SIGTERM)
-				time.sleep(0.01)
+				time.sleep(0.1)
 		except OSError, err:
 			err = str(err)
 			if err.find("No such process") > 0:
@@ -126,7 +126,7 @@ class Daemon:
 		Restart the daemon
 		"""
 		self.stop()
-		time.sleep(0.01)
+		time.sleep(0.1)
 		self.start()
 
 	def run(self):

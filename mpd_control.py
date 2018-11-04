@@ -21,35 +21,20 @@ class MPDControl (PlayerBase):
 		self.capabilities["repeat_enabled"]    = True
 		self.capabilities["elapsed_enabled"]   = True
 		self.capabilities["logopath"]          = "pics/logo/mpd.png"
-		
-		self.playlist = []
-		self.playlists = []
-		self.genrelist = []
-		self.artistlist = []
-		self.albumlist = []
-		self.songlist = []
-	
+			
 		self.client = None
 		self.noConnection = False		
 		self.lfm_connected = False
 		
 		self.connect()
-		self.updatelists()
-		# Todo:  Find out some nice way to update the lists without hanging everything - Long playlists are slooow
-		self.menu.append ({"name": "PLAYLIST",  "content": self.playlist, "clickfunc": self.playlist_click})
-		self.menu.append ({"name": "PLAYLISTS", "content": self.playlists, "clickfunc": self.playlists_click})
-		self.menu.append ({"name": "GENRES", "content": self.genres, "clickfunc": self.library_click})
-		#self.menu.append ({"name": "ARTISTS", "content": self.artists, "clickfunc": self.artists_click})
+		self.previouslibraryview = {"genre": "", "artist": ""}
+		
+		self.data["menu"].append ({"name": "PLAYLIST",  "type": "listview", "listcontent": self.get_playlist})
+		self.data["menu"].append ({"name": "PLAYLISTS", "type": "listview", "listcontent": self.get_playlists})
+		self.data["menu"].append ({"name": "LIBRARY",   "type": "listview", "listcontent": self.list_library})
 		
 		if self.client:
 			self.logger.info("MPD server version: %s" % self.client.mpd_version)
-			
-	def updatelists(self):
-		self.playlist = self.get_playlist()
-		self.playlists = self.get_playlists()
-		self.artists = self.list_library("artist")
-		self.genres = self.list_library("genre")
-		
 
 	def refresh(self, active=False):
 		status = {}
@@ -175,7 +160,7 @@ class MPDControl (PlayerBase):
 			self.logger.info("Trying to connect to MPD server")
 
 		client = MPDClient()
-		client.timeout = 10
+		client.timeout = 30
 		client.idletimeout = None
 		if not self.client:
 			 try:
@@ -241,66 +226,108 @@ class MPDControl (PlayerBase):
 			self.logger.info(e)
 			self._disconnected()
 
-	def load_playlist(self, command):
+	def load_playlist(self, playlist, clear=False):
 		try:
 			if self.client:
-				self.client.clear()
-				self.client.load(command)
+				if clear:
+					self.client.clear()
+				self.client.load(playlist)
+				if clear:
+					self.play_item(0)
 		except Exception, e:
 			self.logger.info(e)
 			self._disconnected()
-			
-	# Format should be something like this.
-    #{'last-modified': '2016-05-21T00:09:35Z'
-    # 'playlist': 'Blues'}
-			
+						
 	def get_playlists(self):
-		list = []
+		self.data["list"]["type"] = "playlists"
+		self.data["list"]["content"] = []
+		self.data["list"]["viewcontent"] = self.data["list"]["content"]
+		self.data["list"]["highlight"] = -1
+		self.data["list"]["position"]  = 0
+		self.data["list"]["click"] = self.playlists_click
+		self.data["list"]["buttons"] = ["","",""]
 		try:
 			if self.client:
-				list = self.client.listplaylists()
+				playlists = self.client.listplaylists()
+				for item in playlists:
+					listitem = ""
+					if "playlist" in item:
+						listitem = item["playlist"]
+					self.data["list"]["content"].append(listitem)
 		except Exception, e:
 			self.logger.info(e)
 			self._disconnected()
-		return list
 			
-	# Format should be something like this.
-	#{'album': "What's Good For You"
-	# 'date': '1991'
-	# 'title': "I'm Here To Get My Baby Out Of Jail"
-	# 'track': '5/11'
-	# 'artist': 'Treat Her Right'
-	# 'pos': '2619'
-	# 'last-modified': '2016-05-22T22:03:19Z'
-	# 'file': "Blues/Modern Blues/Treat Her Right/1991 - What's Good For You/05 - I'm Here To Get My Baby Out Of Jail.mp3"
-	# 'time': '119'
-	# 'genre': 'Blues'
-	# 'id': '3292'}
-	# We might want: 'pos': N, 'name': 'artist' - 'track'
-	# Or some grouping: 'artist' - 'album' ('date')
-	#                   -'track': 'title'
 	def get_playlist(self):
-		list = []
+		self.data["list"]["type"] = "playlist"
+		self.data["list"]["content"] = []
+		self.data["list"]["viewcontent"] = self.data["list"]["content"]
+		self.data["list"]["click"] = self.playlist_click
+		self.data["list"]["buttons"] = ["","",""]
+		try:
+			# Todo: not updating when list is shown
+			self.data["list"]["highlight"] = int(self.data["song"]["pos"])
+			self.data["list"]["position"]  = int(self.data["song"]["pos"])
+		except Exception, e:
+			self.data["list"]["highlight"] = -1
+			self.data["list"]["position"]  = 0			
+		
 		try:
 			if self.client:
-				list = self.client.playlistinfo()
+				playlist = self.client.playlistinfo()
+				
+				if playlist:
+					# Parse content
+					for item in playlist:
+						listitem = ""
+						if "title" in item:
+							listitem = str(item["title"])
+							if "artist" in item:
+								listitem = str(item["artist"]) + " - " + listitem
+							if "id" in item:
+								pos = str(int(item["pos"])+1).rjust(4, ' ')
+								listitem = pos + ". " + listitem
+						# No title, get filename
+						elif "file" in item:
+							listitem = item["file"].split("/")[-1]
+						self.data["list"]["content"].append(listitem)
+			
 		except Exception, e:
 			self.logger.info(e)
 			self._disconnected()
-		return list
 
-	def list_library(self, type, filtertype="", filter=""):
-		list = []
+	def list_library(self, type="genre", filtertype="", filter=""):
+
+		self.data["list"]["type"] = type
+		self.data["list"]["content"] = []
+		self.data["list"]["viewcontent"] = []
+		self.data["list"]["highlight"] = -1
+		self.data["list"]["position"]  = 0
+		self.data["list"]["click"] = self.library_click
+		self.data["list"]["buttons"] = ["","",""]
+					
 		try:
 			if self.client:
 				if filtertype and filter:
-					list = self.client.list(type, filtertype, filter)
+					self.data["list"]["content"] = self.client.list(type, filtertype, filter)
 				else:
-					list = self.client.list(type)
+					self.data["list"]["content"] = self.client.list(type)
+					
+				# Sorting alphabetically is fine
+				if type == "genre" or type == "artist":
+					self.data["list"]["viewcontent"] = self.data["list"]["content"]
+	
+				# TODO: Add date and sort by that. viewcontent "album (date)"
+				elif type == "album" and filtertype == "artist":
+					self.data["list"]["viewcontent"] = self.data["list"]["content"]
+	
+				# TODO: Add tracknumber and sort by that. viewcontent "track. title"
+				elif type == "title" and filtertype == "album":
+					self.data["list"]["viewcontent"] = self.data["list"]["content"]
+							
 		except Exception, e:
 			self.logger.info(e)
 			self._disconnected()
-		return list
 
 	def play_item(self, number):
 		try:
@@ -309,37 +336,139 @@ class MPDControl (PlayerBase):
 		except Exception, e:
 			self.logger.info(e)
 			self._disconnected()
-		
-	def playlists_click(self, item=-1, button=1):
-		self.logger.debug("playlists click %s" % str(item))
-		if button == 1 and item > -1:
-			try: 
-				list = self.playlists[item].get('playlist')
-				self.load_playlist(list)
-				self.control(play)
-			except Exception, e:
-				self.logger.info("No playlist %s" % item)
-		return None
+			
+	def findadd(self, type, item):
+		try:
+			if self.client:
+				self.client.findadd(type, item)
+		except Exception, e:
+			self.logger.info(e)
+			self._disconnected()
+					
+	def playlists_click(self, item=-1, button=1):	
+		playlist = self.data["list"]["content"][item]
+		try:
+			# Scrolled left
+			if button == -1: 
+				return ""
+
+			# No click
+			if item == -1: 
+				return "listview"
+			# Scroll
+			
+			elif button >= 3 and item > -1:
+				self.logger.debug("Playlists item scrolled: %s" % item)
+				return "listview"			
+				
+			# Long press: append to the current playlist
+			elif button == 2 and item > -1:
+				self.load_playlist(playlist, False)
+	
+			# Normal click: replace and play
+			elif button == 1 and item > -1:
+				self.load_playlist(playlist, True)
+				
+		except Exception, e:
+			self.logger.info("No playlist %s" % item)
+
+		return ""
 		
 	def playlist_click(self, item=-1, button=1):
-		self.logger.debug("playlist click %s" % str(item))
-		if button == 1 and item > -1:
-			self.play_item(item)
-		return None
+		try:
 		
-	def library_click(self, item=-1, button=1):
-#		self.libraryview = {'list': self.genres, 'name':"genres", 
-#		self.libraryview = self.genres
-		if item > -1:
-			if button == 1:
-				libraryartists = self.list_library("artist", "genre", self.genres[item])
-				return {"name": "library", "content": libraryartists, "clickfunc": self.library_click}
-			if button == 2:
-				self.client.clear()
-				self.client.findadd("genre", self.genres[item])
-				self.client.play()
-		return None	
+			# Scrolled left
+			if button == -1: 
+				return ""
 
+			# No click
+			if item == -1: 
+				return "listview"
+				
+			# Normal click: play
+			elif button == 1 and item > -1:
+				self.play_item(item)
+
+			# Long press
+			elif button == 2 and item > -1:
+				self.logger.debug("Playlist item longpressed: %s" % item)
+				
+			# Scroll
+			elif button >= 3 and item > -1:
+				self.logger.debug("Playlist item scrolled: %s" % item)
+				return "listview"
+				
+		except Exception, e:
+			self.logger.info(e)
+		return ""
+		
+	def library_click(self, item=-1, button=1):	
+		try:
+			selected = self.data["list"]["content"][item]
+			
+			# Scrolled left
+			if button == -1: 
+				if self.data["list"]["type"] == "title" and self.previouslibraryview["artist"]:
+					self.list_library("album", "artist", self.previouslibraryview["artist"])
+					return "listview"
+				elif self.data["list"]["type"] == "album" and self.previouslibraryview["genre"]:
+					self.list_library("artist", "genre", self.previouslibraryview["genre"])
+					return "listview"
+				elif self.data["list"]["type"] == "artist":
+					self.list_library("genre")
+					return "listview"
+				else:			
+					self.previouslibraryview["genre"] = ""
+					self.previouslibraryview["artist"] = ""
+					return ""
+				
+			# No click
+			elif item == -1: 
+				return "listview"
+				
+			# Scroll
+			elif button >= 3 and item > -1:
+				self.logger.debug("Library item scrolled: %s" % item)
+				return "listview"
+			
+			# Longpress: Replace in playlist
+			elif button == 2 and item > -1:
+				self.client.clear()
+				self.client.findadd(self.data["list"]["type"], selected)
+				self.play_item(0)
+								
+				if self.data["status"]["state"] != "play":
+					self.play_item(0)
+				return ""
+
+			# Normal click: navigate library
+			elif button == 1 and item > -1:
+				# Last view was genres -> show artists for genre
+				if self.data["list"]["type"] == "genre":
+					self.previouslibraryview["genre"] = selected
+					self.list_library("artist", "genre", selected)
+					return "listview"
+
+				# Last view was artists -> show albums for artist
+				elif self.data["list"]["type"] == "artist":
+					self.previouslibraryview["artist"] = selected
+					self.list_library("album", "artist", selected)
+					return "listview"
+
+				# Last view was albums -> show songs for album
+				elif self.data["list"]["type"] == "album":
+					self.list_library("title", "album", selected)
+					return "listview"
+
+				# Last view was songs -> play item
+				elif self.data["list"]["type"] == "title":
+					self.client.findadd(self.data["list"]["type"], selected)
+					return ""
+
+		except Exception, e:
+			self.logger.info(e)
+			return ""
+					
 	def fetch_coverart(self, song):
 		self.data["cover"] = False
 		self.data["coverartfile"]=""
@@ -401,8 +530,6 @@ class MPDControl (PlayerBase):
 
 	def connect_lfm(self):
 		self.logger.info("Setting Pylast")
-		#username = self.config.username
-		#password_hash = pylast.md5(self.config.password_hash)
 		self.lfm_connected = False
 		try:
 			self.lfm = pylast.LastFMNetwork(api_key = self.config.API_KEY, api_secret = self.config.API_SECRET)

@@ -34,12 +34,9 @@ class PlayerControl:
 		if not len(self.players):
 			self.logger.debug("No players defined! Quitting")
 			raise
-					
+
 		self.logger.debug("Player control set")
-		
-	def get_menu(self):
-		return self.players[self.current].get_menu()
-		
+				
 	def __getitem__(self, item):
 		if self.players[self.current]:
 			return self.players[self.current][item]
