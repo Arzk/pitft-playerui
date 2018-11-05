@@ -25,21 +25,21 @@ os.environ["SDL_MOUSEDRV"] = "TSLIB"
 
 # Logger config
 if not os.path.isdir (config.logpath):
-	os.mkdir(config.logpath)
+    os.mkdir(config.logpath)
 
 path = os.path.dirname(os.path.abspath(__file__)) + "/"
 
 logger = logging.getLogger("PiTFT-Playerui")
 try:
-	if config.loglevel == "DEBUG":
-		loglevel = logging.DEBUG
-		logger.setLevel(loglevel)
-		formatter = logging.Formatter("%(asctime)s %(levelname)-5s %(name)-32s %(lineno)-4d %(message)s")
-	else:
-		logger.setLevel(logging.INFO)
-		formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+    if config.loglevel == "DEBUG":
+        loglevel = logging.DEBUG
+        logger.setLevel(loglevel)
+        formatter = logging.Formatter("%(asctime)s %(levelname)-5s %(name)-32s %(lineno)-4d %(message)s")
+    else:
+        logger.setLevel(logging.INFO)
+        formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
 except:
-	logger.setLevel(logging.INFO)
+    logger.setLevel(logging.INFO)
 
 handler = TimedRotatingFileHandler(config.logpath + '/pitft-playerui.log',when="midnight",interval=1,backupCount=14)
 handler.setFormatter(formatter)
@@ -47,10 +47,10 @@ logger.addHandler(handler)
 
 ## HAX FOR FREEZING ##
 class Alarm(Exception):
-	pass
+    pass
 def alarm_handler(signum, frame):
-	logger.debug("ALARM")
-	raise Alarm
+    logger.debug("ALARM")
+    raise Alarm
 ## HAX END ##
 
 def signal_term_handler(signal, frame):
@@ -58,219 +58,219 @@ def signal_term_handler(signal, frame):
     sys.exit(0)
 
 class PitftDaemon(Daemon):
-	sm = None
-	screen = None
+    sm = None
+    screen = None
 
-	# Setup Python game and Screen manager
-	def setup(self):
-		logger.info("Starting setup")
+    # Setup Python game and Screen manager
+    def setup(self):
+        logger.info("Starting setup")
 
-		signal(SIGTERM, signal_term_handler)
-		# Python game ######################
-		logger.info("Setting pygame")
-		pygame_init_done = False
-		while not pygame_init_done:
-			try:
-				pygame.init()
-				pygame_init_done = True
-			except:
-				logger.debug("Pygame init failed")
-				pygame_init_done = False
-				time.sleep(5)
+        signal(SIGTERM, signal_term_handler)
+        # Python game ######################
+        logger.info("Setting pygame")
+        pygame_init_done = False
+        while not pygame_init_done:
+            try:
+                pygame.init()
+                pygame_init_done = True
+            except:
+                logger.debug("Pygame init failed")
+                pygame_init_done = False
+                time.sleep(5)
 
-		pygame.mouse.set_visible(False)
+        pygame.mouse.set_visible(False)
 
-		# Hax for freezing
-		signal(SIGALRM, alarm_handler)
-		alarm(3)
-		try:
-			# Set screen size
-			size = width, height = config.resolution
-			self.screen = pygame.display.set_mode(size)
-			alarm(0)
-		except Alarm:
-			logger.debug("Keyboard interrupt?")
-			raise KeyboardInterrupt
-		# Hax end
+        # Hax for freezing
+        signal(SIGALRM, alarm_handler)
+        alarm(3)
+        try:
+            # Set screen size
+            size = width, height = config.resolution
+            self.screen = pygame.display.set_mode(size)
+            alarm(0)
+        except Alarm:
+            logger.debug("Keyboard interrupt?")
+            raise KeyboardInterrupt
+        # Hax end
 
-		logger.info("Display driver: %s" % pygame.display.get_driver())
-		
-		# Screen manager ###############
-		logger.info("Setting screen manager")
-		self.sm = ScreenManager(path)
-		logger.debug("Screen manager set")
+        logger.info("Display driver: %s" % pygame.display.get_driver())
 
-		# LIRC
-		lircrcfile = path + config.lircrcfile
-		self.lirc_enabled = False
-		if os.path.isfile(lircrcfile):
-			try:
-				self.lirc_sockid = lirc.init("pitft-playerui", lircrcfile, blocking=False)
-				self.lirc_enabled = True
-			except Exception, e:
-				logger.debug(e)
-				self.lirc_enabled = False
-		
-		# Mouse variables
-		self.clicktime 	        = datetime.datetime.now()
-		self.longpress_time     = timedelta(milliseconds=400)
-		self.scroll_threshold   = 20
-		self.start_pos          = 0,0
-		self.mouse_scroll       = ""
-		self.mousebutton_down   = False
-		self.longpress          = False
-		self.pos                = 0
+        # Screen manager ###############
+        logger.info("Setting screen manager")
+        self.sm = ScreenManager(path)
+        logger.debug("Screen manager set")
 
-		# Times in milliseconds
-		self.screen_refreshtime = 50
-		self.player_refreshtime = 110
+        # LIRC
+        lircrcfile = path + config.lircrcfile
+        self.lirc_enabled = False
+        if os.path.isfile(lircrcfile):
+            try:
+                self.lirc_sockid = lirc.init("pitft-playerui", lircrcfile, blocking=False)
+                self.lirc_enabled = True
+            except Exception, e:
+                logger.debug(e)
+                self.lirc_enabled = False
 
-		#Backlight
-#		self.screen_timer = 0
-		self.backlight = False
-		self.update_screen_timeout(True)
-		logger.debug("Setup done")
+        # Mouse variables
+        self.clicktime          = datetime.datetime.now()
+        self.longpress_time     = timedelta(milliseconds=400)
+        self.scroll_threshold   = 20
+        self.start_pos          = 0,0
+        self.mouse_scroll       = ""
+        self.mousebutton_down   = False
+        self.longpress          = False
+        self.pos                = 0
 
-	def shutdown(self):
-		# Close MPD connection -  TODO
-#		self.pc.mpd.disconnect()
-		pass
+        # Times in milliseconds
+        self.screen_refreshtime = 50
+        self.player_refreshtime = 110
 
-	# Main loop
-	def run(self):
-		self.setup()
-		drawtime = datetime.datetime.now()
-		refreshtime = datetime.datetime.now()
+        #Backlight
+#       self.screen_timer = 0
+        self.backlight = False
+        self.update_screen_timeout(True)
+        logger.debug("Setup done")
 
-		while 1:
-			# Check mouse and LIRC events
-			active = self.read_mouse()
-			if self.lirc_enabled:
-				active = active | self.read_lirc()
-			
-			# Refresh info
-			if refreshtime < datetime.datetime.now():
-				refreshtime = datetime.datetime.now() + timedelta(milliseconds=self.player_refreshtime)
-				active = active | self.sm.refresh()
-			
-			# Update screen timeout, if there was any activity
-			if config.screen_timeout > 0:
-				self.update_screen_timeout(active)
-					
-			# Draw screen
-			if drawtime < datetime.datetime.now():
-				drawtime = datetime.datetime.now() + timedelta(milliseconds=self.screen_refreshtime)
-					
-				# Don't draw when display is off
-				if self.backlight:
-					self.sm.render(self.screen)
-					pygame.display.flip()
+    def shutdown(self):
+        # Close MPD connection -  TODO
+#       self.pc.mpd.disconnect()
+        pass
 
-	def read_mouse(self):
-		direction = 0,0
-		userevents = False
-		
-		for event in pygame.event.get():
-			if event.type == pygame.MOUSEBUTTONDOWN:
-				userevents = True
-				self.clicktime = datetime.datetime.now()
-				self.pos = self.start_pos = pygame.mouse.get_pos()
+    # Main loop
+    def run(self):
+        self.setup()
+        drawtime = datetime.datetime.now()
+        refreshtime = datetime.datetime.now()
 
-				# Instant click when backlight is off to wake
-				if not self.backlight:
-					self.mousebutton_down = False
-				else:
-					self.mousebutton_down = True
+        while 1:
+            # Check mouse and LIRC events
+            active = self.read_mouse()
+            if self.lirc_enabled:
+                active = active | self.read_lirc()
 
-			if event.type == pygame.MOUSEMOTION and self.mousebutton_down and not self.longpress:
-				userevents = True
-				pos = pygame.mouse.get_pos()
-				direction = (pos[0] - self.pos[0], pos[1] - self.pos[1])
+            # Refresh info
+            if refreshtime < datetime.datetime.now():
+                refreshtime = datetime.datetime.now() + timedelta(milliseconds=self.player_refreshtime)
+                active = active | self.sm.refresh()
 
-				# Start scrolling
-				if not self.mouse_scroll:					
-					if abs(direction[0]) >= self.scroll_threshold:
-						self.mouse_scroll = "x"
-						self.scroll(self.start_pos,direction[0],0)
+            # Update screen timeout, if there was any activity
+            if config.screen_timeout > 0:
+                self.update_screen_timeout(active)
 
-					elif abs(direction[1]) >= self.scroll_threshold:
-						self.mouse_scroll = "y"
-						self.scroll(self.start_pos, 0, direction[1])
+            # Draw screen
+            if drawtime < datetime.datetime.now():
+                drawtime = datetime.datetime.now() + timedelta(milliseconds=self.screen_refreshtime)
 
-				# Scrolling already, update offset
-				else:
-					if self.mouse_scroll == "x" and abs(direction[0]) > 0:
-						self.scroll(self.start_pos, direction[0], 0)
-					if self.mouse_scroll == "y" and abs(direction[1]) > 0:
-						self.scroll(self.start_pos, 0, direction[1])
+                # Don't draw when display is off
+                if self.backlight:
+                    self.sm.render(self.screen)
+                    pygame.display.flip()
 
-				# Save new position
-				self.pos = pos
+    def read_mouse(self):
+        direction = 0,0
+        userevents = False
 
-			if event.type == pygame.MOUSEBUTTONUP:
-				userevents = True
-				if self.mousebutton_down and not self.longpress:
-					# Not a long click or scroll: click
-					if not self.mouse_scroll:
-						self.sm.on_click(1, self.start_pos)
-					else:
-						self.scroll(self.start_pos, 0,0, True)
+        for event in pygame.event.get():
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                userevents = True
+                self.clicktime = datetime.datetime.now()
+                self.pos = self.start_pos = pygame.mouse.get_pos()
 
-				# Clear variables
-				self.mousebutton_down = False
-				self.mouse_scroll     = ""
-				self.longpress        = False
+                # Instant click when backlight is off to wake
+                if not self.backlight:
+                    self.mousebutton_down = False
+                else:
+                    self.mousebutton_down = True
 
-		# Long press - register second click
-		if self.mousebutton_down and not self.mouse_scroll:
-			userevents = True
-			if datetime.datetime.now() - self.clicktime > self.longpress_time:
-				self.mousebutton_down = self.sm.on_click(2, self.start_pos)
+            if event.type == pygame.MOUSEMOTION and self.mousebutton_down and not self.longpress:
+                userevents = True
+                pos = pygame.mouse.get_pos()
+                direction = (pos[0] - self.pos[0], pos[1] - self.pos[1])
 
-				# Update timers
-				self.clicktime = datetime.datetime.now()
-		return userevents
+                # Start scrolling
+                if not self.mouse_scroll:
+                    if abs(direction[0]) >= self.scroll_threshold:
+                        self.mouse_scroll = "x"
+                        self.scroll(self.start_pos,direction[0],0)
 
-	def scroll(self, start, x, y, end=False):
-		self.sm.on_scroll(start, x, y, end)
+                    elif abs(direction[1]) >= self.scroll_threshold:
+                        self.mouse_scroll = "y"
+                        self.scroll(self.start_pos, 0, direction[1])
 
-	def read_lirc(self):
-		commands = lirc.nextcode()
-		if commands:
-			for command in commands:
-				self.sm.pc.control_player(command)
-				logger.debug("LIRC: %s" % command)
-			return True
-		return False
+                # Scrolling already, update offset
+                else:
+                    if self.mouse_scroll == "x" and abs(direction[0]) > 0:
+                        self.scroll(self.start_pos, direction[0], 0)
+                    if self.mouse_scroll == "y" and abs(direction[1]) > 0:
+                        self.scroll(self.start_pos, 0, direction[1])
 
-	def set_backlight(self, state):
-		logger.debug("Backlight %s" %state)
-		subprocess.call("echo '" + str(state*1) + "' > " + config.backlight_sysfs, shell=True)
-		self.backlight = state
-		
-	def update_screen_timeout(self, active):
-		if active:
-			self.screen_timer = datetime.datetime.now() + timedelta(seconds=config.screen_timeout)
-			if not self.backlight:
-				self.set_backlight(True)
-		elif self.screen_timer < datetime.datetime.now() and self.backlight:
-			self.set_backlight(False)
-			
+                # Save new position
+                self.pos = pos
+
+            if event.type == pygame.MOUSEBUTTONUP:
+                userevents = True
+                if self.mousebutton_down and not self.longpress:
+                    # Not a long click or scroll: click
+                    if not self.mouse_scroll:
+                        self.sm.on_click(1, self.start_pos)
+                    else:
+                        self.scroll(self.start_pos, 0,0, True)
+
+                # Clear variables
+                self.mousebutton_down = False
+                self.mouse_scroll     = ""
+                self.longpress        = False
+
+        # Long press - register second click
+        if self.mousebutton_down and not self.mouse_scroll:
+            userevents = True
+            if datetime.datetime.now() - self.clicktime > self.longpress_time:
+                self.mousebutton_down = self.sm.on_click(2, self.start_pos)
+
+                # Update timers
+                self.clicktime = datetime.datetime.now()
+        return userevents
+
+    def scroll(self, start, x, y, end=False):
+        self.sm.on_scroll(start, x, y, end)
+
+    def read_lirc(self):
+        commands = lirc.nextcode()
+        if commands:
+            for command in commands:
+                self.sm.pc.control_player(command)
+                logger.debug("LIRC: %s" % command)
+            return True
+        return False
+
+    def set_backlight(self, state):
+        logger.debug("Backlight %s" %state)
+        subprocess.call("echo '" + str(state*1) + "' > " + config.backlight_sysfs, shell=True)
+        self.backlight = state
+
+    def update_screen_timeout(self, active):
+        if active:
+            self.screen_timer = datetime.datetime.now() + timedelta(seconds=config.screen_timeout)
+            if not self.backlight:
+                self.set_backlight(True)
+        elif self.screen_timer < datetime.datetime.now() and self.backlight:
+            self.set_backlight(False)
+
 if __name__ == "__main__":
-	daemon = PitftDaemon('/tmp/pitft-playerui-daemon.pid')
-	if len(sys.argv) > 1:
-		if 'start' == sys.argv[1]:
-			daemon.start()
-		elif 'stop' == sys.argv[1]:
-			daemon.shutdown()
-			daemon.stop()
-		elif 'restart' == sys.argv[1]:
-			daemon.restart()
-		else:
-			print "Unknown command"
-			sys.exit(2)
-		sys.exit(0)
-	else:
-		print "usage: %s start|stop|restart|" % sys.argv[0]
-		print "usage: %s start|stop|restart|control <command>" % sys.argv[0]
-		sys.exit(2)
+    daemon = PitftDaemon('/tmp/pitft-playerui-daemon.pid')
+    if len(sys.argv) > 1:
+        if 'start' == sys.argv[1]:
+            daemon.start()
+        elif 'stop' == sys.argv[1]:
+            daemon.shutdown()
+            daemon.stop()
+        elif 'restart' == sys.argv[1]:
+            daemon.restart()
+        else:
+            print "Unknown command"
+            sys.exit(2)
+        sys.exit(0)
+    else:
+        print "usage: %s start|stop|restart|" % sys.argv[0]
+        print "usage: %s start|stop|restart|control <command>" % sys.argv[0]
+        sys.exit(2)

@@ -34,16 +34,16 @@ size["controlbuttonsoffset"] = 16
 size["progressbar"]          = 370, 8
 size["progressbar_height"]   = 16
 size["progressbar_click"]    = size["progressbar"][0], 60
-size["volume_click"]		 = 80,260
-size["volume_slider"]		 = 20,180
+size["volume_click"]         = 80,260
+size["volume_slider"]        = 20,180
 size["listitem_height"]      = 52
 size["logo"]                 = 34, 34
 size["logoback"]             = size["logo"][0]+2*size["margin"][0]+2*size["padding"][0] , size["logo"][1]+2*size["margin"][1]+2*size["padding"][1]
-size["screen"]				 = config.resolution[0] - 2*size["margin"][0], config.resolution[1]-2*size["margin"][1]
-size["paddedscreen"]		 = size["screen"][0] - 2*size["padding"][0], size["screen"][1] - 2*size["padding"][1]
+size["screen"]               = config.resolution[0] - 2*size["margin"][0], config.resolution[1]-2*size["margin"][1]
+size["paddedscreen"]         = size["screen"][0] - 2*size["padding"][0], size["screen"][1] - 2*size["padding"][1]
 size["scrollbar"]            = 20, size["screen"][1]
 size["scrollbar_click"]      = 60, config.resolution[1]
-size["scrollbar_slider"]	 = 20, size["scrollbar"][1]-28
+size["scrollbar_slider"]     = 20, size["scrollbar"][1]-28
 
 
 
@@ -117,55 +117,55 @@ _pos["scrollbar_slider"] = _pos["scrollbar"][0]+4, _pos["scrollbar"][1]+12
 # Helper functions
 ###########################
 def limit(value,min,max):
-	value = max if value > max else value
-	value = min if value < min else value
-	return value
+    value = max if value > max else value
+    value = min if value < min else value
+    return value
 
 def limit_offset(offset,max=(-config.resolution[0],-config.resolution[1],config.resolution[0],config.resolution[1])):
-	if offset[0] > 0:
-		offset = (max[2] if offset[0] > max[2] else offset[0],
-				  offset[1])
-	else:
-		offset = (max[0] if offset[0] < max[0] else offset[0],
-				  offset[1])
-	if offset[1] > 0:
-		offset = (offset[0],
-				  max[3] if offset[1] > max[3] else offset[1])
-	else:
-		offset = (offset[0],
-				 max[1] if offset[1] < max[1] else offset[1])
-	return offset
+    if offset[0] > 0:
+        offset = (max[2] if offset[0] > max[2] else offset[0],
+                  offset[1])
+    else:
+        offset = (max[0] if offset[0] < max[0] else offset[0],
+                  offset[1])
+    if offset[1] > 0:
+        offset = (offset[0],
+                  max[3] if offset[1] > max[3] else offset[1])
+    else:
+        offset = (offset[0],
+                 max[1] if offset[1] < max[1] else offset[1])
+    return offset
 
 def render_menuitem(text, font, color_str, menu, index, offset, direction="up"):
 
-	if direction == "down":
-		offset = (offset[0], offset[1] + index*size[menu])
-	if direction == "up":
-		offset = (offset[0], offset[1] - index*size[menu])
+    if direction == "down":
+        offset = (offset[0], offset[1] + index*size[menu])
+    if direction == "up":
+        offset = (offset[0], offset[1] - index*size[menu])
 
-	text = _render_text(text, font, color_str)
-	
-	text_rect = text.get_rect(center=(config.resolution[0]/2, 0))
-	offset = (offset[0] - text_rect[0], offset[1])
-	position = pos(menu, offset)
-	
-	return (text,position)
-	
+    text = _render_text(text, font, color_str)
+
+    text_rect = text.get_rect(center=(config.resolution[0]/2, 0))
+    offset = (offset[0] - text_rect[0], offset[1])
+    position = pos(menu, offset)
+
+    return (text,position)
+
 def menupos(item, number, offset, direction="down"):
-	if direction == "down":
-		offset = (offset[0], offset[1] + number*size[item])
-	if direction == "up":
-		offset = (offset[0], offset[1] - number*size[item])
-	return pos(item, offset)
+    if direction == "down":
+        offset = (offset[0], offset[1] + number*size[item])
+    if direction == "up":
+        offset = (offset[0], offset[1] - number*size[item])
+    return pos(item, offset)
 
 def pos(position, offset=(0,0)):
-	return _pos[position][0] + offset[0], _pos[position][1] + offset[1]
-	
+    return _pos[position][0] + offset[0], _pos[position][1] + offset[1]
+
 def render_text(text, font, color_str="text"):
-	return font.render(text, 1, color[color_str])
-	 
+    return font.render(text, 1, color[color_str])
+
 # Compare if between x_0,y_0 and x_1,y_1
 def clicked(click, start__pos, size):
-	return start__pos[0] <= click[0] <= start__pos[0] + size[0] and \
-	   start__pos[1] <= click[1] <= start__pos[1] + size[1]
+    return start__pos[0] <= click[0] <= start__pos[0] + size[0] and \
+       start__pos[1] <= click[1] <= start__pos[1] + size[1]
 
