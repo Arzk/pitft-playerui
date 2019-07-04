@@ -16,44 +16,16 @@ class PlayerBase(object):
             "random_enabled"  : False,
             "repeat_enabled"  : False,
             "elapsed_enabled" : False,
-            "logopath"        : ""
+            "logopath"        : "",
+            "logo"            : None
         }
-
         # Things to remember
-        self.data =  {
-            "status" :
-            {
-                "state"       : "",
-                "elapsed"     : "",
-                "repeat"      : "",
-                "random"      : "",
-                "volume"      : "",
-                "playlistlength" : 0
-            },
-            "song" :
-            {
-                "pos"         : "",
-                "artist"      : "",
-                "album"       : "",
-                "date"        : "",
-                "track"       : "",
-                "title"       : "",
-                "time"        : "",
-                "cover_uri"   : ""
-            },
-            "cover"           : False,
-            "coverartfile"    : "",
-            "update" :
-            {
-                "active"      : False,
-                "state"       : False,
-                "elapsed"     : False,
-                "random"      : False,
-                "repeat"      : False,
-                "volume"      : False,
-                "trackinfo"   : False,
-                "coverart"    : False
-            },
+        self.data = {
+            "status" : {},
+            "song"   : {},
+            "cover"  : False,
+            "coverartfile" : "",
+            "update" : {},
             "list" :
             {
                 "type"        : "",
@@ -66,7 +38,40 @@ class PlayerBase(object):
             },
             "menu" : []
         }
-
+        self.init_data()
+        
+    def init_data (self):
+        self.data["status"] = {
+                "state"       : "",
+                "elapsed"     : "",
+                "repeat"      : "",
+                "random"      : "",
+                "volume"      : "",
+                "playlistlength" : 0
+            }            
+        self.data["song"] = {
+                "pos"         : "",
+                "artist"      : "",
+                "album"       : "",
+                "date"        : "",
+                "track"       : "",
+                "title"       : "",
+                "time"        : "",
+                "cover_uri"   : ""
+            }
+        self.data["cover"] = False
+        self.data["coverartfile"] = ""
+        self.data["update"] = {
+                "active"      : False,
+                "state"       : True,
+                "elapsed"     : True,
+                "random"      : True,
+                "repeat"      : True,
+                "volume"      : True,
+                "trackinfo"   : True,
+                "coverart"    : True
+            }
+            
     """ Get data """
     def __getitem__(self, item):
         return self.data[item]
@@ -74,6 +79,9 @@ class PlayerBase(object):
     """ Get capability value """
     def __call__(self, item):
         return self.capabilities[item]
+
+    def set_logo(self, item):
+        self.capabilities["logo"] = item
 
     """ Refresh data from API """
     def refresh(self, active=False):

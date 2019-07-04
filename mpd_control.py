@@ -71,11 +71,6 @@ class MPDControl (PlayerBase):
             except Exception as e:
                 self.logger.debug(e)
                 self._disconnected()
-                self.data["status"]["state"]     = ""
-                self.data["status"]["elapsed"]   = ""
-                self.data["status"]["repeat"]    = ""
-                self.data["status"]["random"]    = ""
-                self.data["status"]["volume"]    = ""
 
             try:
                 # Fetch song info
@@ -144,15 +139,6 @@ class MPDControl (PlayerBase):
             except Exception as e:
                 self.logger.debug(e)
                 self._disconnected()
-                self.data["song"]["pos"]         = ""
-                self.data["song"]["artist"]      = ""
-                self.data["song"]["album"]       = ""
-                self.data["song"]["date"]        = ""
-                self.data["song"]["track"]       = ""
-                self.data["song"]["title"]       = ""
-                self.data["song"]["time"]        = ""
-                self.data["cover"]               = False
-                self.data["coverartfile"]        = ""
 
     def connect(self):
         if not self.noConnection:
@@ -184,6 +170,7 @@ class MPDControl (PlayerBase):
         if not self.noConnection:
             self.logger.info("Lost connection to MPD server")
         self.capabilities["connected"]   = False
+        self.init_data()
         self.client = None
 
     def disconnect(self):

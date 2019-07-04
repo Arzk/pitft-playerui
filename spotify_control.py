@@ -156,14 +156,6 @@ class SpotifyControl (PlayerBase):
             except Exception as e:
                 self.logger.debug(e)
                 self._disconnected()
-                self.data["song"]["artist"]      = ""
-                self.data["song"]["album"]       = ""
-                self.data["song"]["date"]        = ""
-                self.data["song"]["track"]       = ""
-                self.data["song"]["title"]       = ""
-                self.data["song"]["time"]        = ""
-                self.data["cover"]               = False
-                self.data["coverartfile"]        = ""
 
     def connect (self):
         if not self.noConnection:
@@ -186,6 +178,7 @@ class SpotifyControl (PlayerBase):
         if not self.noConnection:
             self.logger.info("Lost connection to Spotify server")
         self.capabilities["connected"] = False
+        self.init_data()
         self.client = None
         self.noConnection = True
 

@@ -48,16 +48,16 @@ class PlayerControl:
         return self.players[self.current](item)
 
     def get_players(self):
+        return self.players
 #        playerlist = []
 #        for player in self.players:
 #            if player("connected"):
 #                playerlist.append({'name': player("name").upper(), 'logopath': player("logopath")})
 #        return playerlist
-        playerlist = []
-        for player in self.players:
-#            if player("connected"):
-            playerlist.append({'name': player("name").upper(), 'logopath': player("logopath")})
-        return playerlist
+#        playerlist = []
+#        for player in self.players:
+#            playerlist.append({'name': player("name").upper(), 'logopath': player("logopath")})
+#        return playerlist
 
     def get_current(self):
         return self.current

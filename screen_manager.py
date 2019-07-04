@@ -102,17 +102,14 @@ class ScreenManager:
         self.first_refresh_done = False
 
     def populate_players(self):
-        self.topmenu = []
-        self.playerlogos = []
-        players = self.pc.get_players()
-        for player in players:
+        self.topmenu = self.pc.get_players()
+        for player in self.topmenu:
             try:
-                self.topmenu.append(player.get('name'))
-                logopath = player.get('logopath')
+                logopath = player('logopath')
                 if logopath:
-                    self.playerlogos.append(pygame.transform.scale(pygame.image.load(logopath), size["logo"]))
+                    player.set_logo(pygame.transform.scale(pygame.image.load(logopath), size["logo"]))
                 else:
-                    self.playerlogos.append(None)
+                    player.set_logo(None)
             except Exception, e:
                 self.logger.debug(e)
 
@@ -373,11 +370,10 @@ class ScreenManager:
                             menupos("bottommenu", index, (text_rect[0],self.draw_offset[1])))
             # Top menu
             # Check for changes in player availability
-#           self.populate_players()
             for i in range (0,len(self.topmenu)-1):
                 index = i if i < self.pc.get_current() else i+1
                 color = "text" if self.draw_offset[1] == (i+1)*size["topmenu"] else "inactive"
-                text = render_text(self.topmenu[index], self.font["menuitem"], color)
+                text = render_text(self.topmenu[index]("name").upper(), self.font["menuitem"], color)
                 text_rect = text.get_rect(center=(config.resolution[0]/2, 0))
                 surface.blit(text,
                             menupos("topmenu", i, (text_rect[0],self.draw_offset[1]), "up"))
@@ -408,7 +404,7 @@ class ScreenManager:
                             pos("track_length", (0, self.draw_offset[1])))
 
             # Draw player logo if it exists
-            logo = self.playerlogos[self.pc.get_current()]
+            logo = self.pc("logo")
             if logo:
                 surface.blit(self.image["background"],
                             pos("logoback",(0, self.draw_offset[1])),
