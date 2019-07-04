@@ -26,6 +26,9 @@ screen_timeout = 0
 """ Enable volume control. True/False """
 volume_enabled = True
 
+""" True: flipping follows finger. False: Like Android players - right -> previous """
+invert_next_prev = True
+
 """ The sysfs file for display backlight """
 backlight_sysfs = "/sys/class/backlight/soc\:backlight/brightness"
 ### If you are using the old kernel drivers for the display

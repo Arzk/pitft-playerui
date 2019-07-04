@@ -520,14 +520,24 @@ class ScreenManager:
                 y = 0 if y < size["topmenu"] else y-y%size["topmenu"]
             else:
                 y = 0 if abs(y) < size["bottommenu"] else y-y%size["bottommenu"]+size["bottommenu"]
-            self.draw_offset = limit_offset((-x,y),(-108, -len(self.pc["menu"])*size["bottommenu"],
-                                                    108, (len(self.topmenu)-1)*size["topmenu"]))
+            if config.invert_next_prev:
+                self.draw_offset = limit_offset((x,y),(-108, -len(self.pc["menu"])*size["bottommenu"],
+                                                         108, (len(self.topmenu)-1)*size["topmenu"]))
+            else:
+                self.draw_offset = limit_offset((-x,y),(-108, -len(self.pc["menu"])*size["bottommenu"],
+                                                        108, (len(self.topmenu)-1)*size["topmenu"]))
 
             # Prev/next
-            if x < 0:
-                self.image["coverart_border"] = self.image["coverart_border_next"]
-            elif x > 0:
-                self.image["coverart_border"] = self.image["coverart_border_prev"]
+            if x > 0:
+                if config.invert_next_prev:
+                    self.image["coverart_border"] = self.image["coverart_border_next"]
+                else:
+                    self.image["coverart_border"] = self.image["coverart_border_prev"]
+            elif x < 0:
+                if config.invert_next_prev:
+                    self.image["coverart_border"] = self.image["coverart_border_prev"]
+                else:
+                    self.image["coverart_border"] = self.image["coverart_border_next"]
             else:
                 if self.pc["status"]["state"] == "play":
                     self.image["coverart_border"] = self.image["coverart_border_clean"]
