@@ -99,7 +99,6 @@ class PlayerControl:
         self.players[self.current].update_ack(item)
 
     def control_player(self, command, parameter=-1, id=-1):
-        self.logger.debug(command + " : " + str(parameter))
         # Translate
         if self.players[self.current]["status"]:
             if command == "play_pause":
