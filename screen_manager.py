@@ -7,14 +7,13 @@ import os
 from math import ceil, floor
 
 import config
-from control import PlayerControl
 from positioning import *
 
 class ScreenManager:
-    def __init__(self, path):
-        self.logger = logging.getLogger("PiTFT-Playerui.Screen_Manager")
+    def __init__(self, path, pc):
+        self.logger = logging.getLogger("PiTFT-Playerui.screen_manager")
         os.chdir(path)
-        self.pc = PlayerControl()
+        self.pc = pc
 
         # Fonts
         try:
@@ -99,7 +98,6 @@ class ScreenManager:
         self.listitems_on_screen = config.resolution[1]//size["listitem_height"]
 
         self.populate_players()
-        self.first_refresh_done = False
 
     def populate_players(self):
         self.topmenu = self.pc.get_players()
@@ -114,34 +112,20 @@ class ScreenManager:
                 self.logger.debug(e)
 
     def refresh(self):
-
-        # Refresh information from players
-        try:
-            self.pc.refresh(self.first_refresh_done)
-        except Exception, e:
-            self.logger.debug(e)
-            raise
-
+        updated = False
         # Parse new song information
         try:
             self.parse_song()
         except Exception, e:
             self.logger.debug(e)
             pass
-
-        active = False
-        # Something is playing - keep screen on
-        if self.pc["status"]:
-            if self.pc["status"]["state"] == "play":
-                active = True
-
-        self.first_refresh_done = True
-        return active
+            
+        return self.updated()
 
     def parse_song(self):
 
         # State icons on cover art
-        if self.pc["update"]["state"]:
+        if self.pc.updated("state"):
             if self.pc["status"]["state"] == "play":
                 self.image["coverart_border"] = self.image["coverart_border_clean"]
             else:
@@ -151,7 +135,7 @@ class ScreenManager:
             self.force_update("coverart")
             self.pc.update_ack("state")
 
-        if self.pc["update"]["elapsed"]:
+        if self.pc.updated("elapsed"):
 
             # Time elapsed
             try:
@@ -172,7 +156,7 @@ class ScreenManager:
             self.force_update("elapsed")
             self.pc.update_ack("elapsed")
 
-        if self.pc["update"]["trackinfo"]:
+        if self.pc.updated("trackinfo"):
 
             # Position
             try:
@@ -241,7 +225,7 @@ class ScreenManager:
             self.force_update("trackinfo")
             self.pc.update_ack("trackinfo")
 
-        if self.pc["update"]["random"]:
+        if self.pc.updated("random"):
             try:
                 self.status["random"] = int(self.pc["status"]["random"])
             except:
@@ -255,7 +239,7 @@ class ScreenManager:
             self.force_update("random")
             self.pc.update_ack("random")
 
-        if self.pc["update"]["repeat"]:
+        if self.pc.updated("repeat"):
             try:
                 self.status["repeat"] = int(self.pc["status"]["repeat"])
             except:
@@ -268,7 +252,7 @@ class ScreenManager:
             self.force_update("repeat")
             self.pc.update_ack("repeat")
 
-        if self.pc["update"]["volume"]:
+        if self.pc.updated("volume"):
             try:
                 self.status["volume"] = int(self.pc["status"]["volume"])
             except:
@@ -277,7 +261,7 @@ class ScreenManager:
             self.force_update("volume")
             self.pc.update_ack("volume")
 
-        if self.pc["update"]["coverart"]:
+        if self.pc.updated("coverart"):
             self.image["cover"] = self.fetch_coverart(self.pc["coverartfile"])
 
             self.force_update("coverart")
@@ -298,7 +282,6 @@ class ScreenManager:
     def render(self, surface):
         if self.updated("screen"):
             surface.blit(self.image["background"], (0,0))
-
         try:
             if self.view == "main":
                 self.render_mainscreen(surface)
@@ -342,8 +325,8 @@ class ScreenManager:
         self.force_update("screen")
 
     def switch_view(self, view):
-        # Update everything
-        self.status["update"]["screen"] = True
+        if view == "main":
+            self.view=view
         if view == "listview":
             # Center currently playing item
             self.list_offset = (self.pc["list"]["position"]-self.listitems_on_screen/2)*size['listitem_height']
@@ -351,13 +334,11 @@ class ScreenManager:
             if self.pc["list"]["viewcontent"] and self.pc["list"]["click"]:
                 self.view=view
         else:
-            self.view="main"
+            self.logger.debug("Unknown view %s" % view)
         self.force_update()
 
     def render_mainscreen(self,surface):
-
         if self.updated("screen"):
-
             # Update everything
             self.force_update()
 
@@ -704,11 +685,14 @@ class ScreenManager:
             elif x < -self.scroll_threshold:
                 self.on_click_listview(-1, start)
 
-    def update_ack(self, updated):
-        self.status["update"][updated] = False
-
-    def updated(self, item):
-        return self.status["update"][item]
+    def update_ack(self, item):
+        self.status["update"][item] = False
+        
+    def updated(self, item="all"):
+        if item == "all":
+            return True in self.status["update"].values()
+        else:
+            return self.status["update"][item]
 
     def force_update (self,item="all"):
         if item == "all":

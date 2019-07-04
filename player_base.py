@@ -86,6 +86,12 @@ class PlayerBase(object):
     """ Refresh data from API """
     def refresh(self, active=False):
         pass
+        
+    def updated(self, item="all"):
+        if item == "all":
+            return True in self.data["update"].values()
+        else:
+            return self.data["update"][item]
 
     """ Force an update """
     def force_update (self,item="all"):
@@ -95,8 +101,8 @@ class PlayerBase(object):
             self.data["update"][item] = True
 
     """ Acknowledge an update request """
-    def update_ack(self, updated):
-        self.data["update"][updated] = False
+    def update_ack(self, item):
+        self.data["update"][item] = False
 
     """ Control the player via API """
     def control(self, command, parameter=-1):

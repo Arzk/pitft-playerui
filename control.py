@@ -7,7 +7,7 @@ from cd_control import CDControl
 
 class PlayerControl:
     def __init__(self):
-        self.logger  = logging.getLogger("PiTFT-Playerui.Player_Control")
+        self.logger  = logging.getLogger("PiTFT-Playerui.player_control")
         self.players = []
         self.current = 0
 
@@ -36,7 +36,8 @@ class PlayerControl:
             self.logger.debug("No players defined! Quitting")
             raise
 
-        self.logger.debug("Player control set")
+        # Force first refresh for all players
+        self.do_first_refresh = True
 
     def __getitem__(self, item):
         if self.players[self.current]:
@@ -49,15 +50,6 @@ class PlayerControl:
 
     def get_players(self):
         return self.players
-#        playerlist = []
-#        for player in self.players:
-#            if player("connected"):
-#                playerlist.append({'name': player("name").upper(), 'logopath': player("logopath")})
-#        return playerlist
-#        playerlist = []
-#        for player in self.players:
-#            playerlist.append({'name': player("name").upper(), 'logopath': player("logopath")})
-#        return playerlist
 
     def get_current(self):
         return self.current
@@ -79,21 +71,32 @@ class PlayerControl:
                         self.logger.debug("pausing %s" % player("name"))
                         self.control_player("pause", 0, id)
 
-
-    # force (bool): update all players
-    def refresh(self, force=False):
+    def refresh(self):
+        active = False
         # Update all for active, only status for rest
         for id, player in enumerate(self.players):
             try:
-                player.refresh(self.current == id or force)
+                player.refresh(self.current == id or self.do_first_refresh)
+                self.do_first_refresh = False
             except Exception, e:
                 self.logger.debug(e)
 
         # Get active player
         self.determine_active_player()
 
-    def update_ack(self, updated):
-        self.players[self.current].update_ack(updated)
+        # Return true if playing
+        if self.players[self.current]["status"]["state"] == "play":
+            active = True
+        return active, self.updated()
+        
+    def updated(self, item="all"):
+        if item == "all":
+            return True in self.players[self.current]["update"].values()
+        else:
+            return self.players[self.current]["update"][item]
+
+    def update_ack(self, item):
+        self.players[self.current].update_ack(item)
 
     def control_player(self, command, parameter=0, id=-1):
         # Translate

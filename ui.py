@@ -14,6 +14,7 @@ from logging.handlers import TimedRotatingFileHandler
 from daemon import Daemon
 import lirc
 
+from control import PlayerControl
 from screen_manager import ScreenManager
 import config
 
@@ -58,8 +59,6 @@ def signal_term_handler(signal, frame):
     sys.exit(0)
 
 class PitftDaemon(Daemon):
-    sm = None
-    screen = None
 
     # Setup Python game and Screen manager
     def setup(self):
@@ -82,7 +81,7 @@ class PitftDaemon(Daemon):
 
         # Hax for freezing
         signal(SIGALRM, alarm_handler)
-        alarm(3)
+        alarm(1)
         try:
             # Set screen size
             size = width, height = config.resolution
@@ -95,9 +94,14 @@ class PitftDaemon(Daemon):
 
         logger.info("Display driver: %s" % pygame.display.get_driver())
 
+        # Player control ###############
+        logger.info("Setting player control")
+        self.pc = PlayerControl()
+        logger.debug("Player control set")
+
         # Screen manager ###############
         logger.info("Setting screen manager")
-        self.sm = ScreenManager(path)
+        self.sm = ScreenManager(path, self.pc)
         logger.debug("Screen manager set")
 
         # LIRC
@@ -113,7 +117,7 @@ class PitftDaemon(Daemon):
 
         # Mouse variables
         self.clicktime          = datetime.datetime.now()
-        self.longpress_time     = timedelta(milliseconds=400)
+        self.longpress_time     = timedelta(milliseconds=300)
         self.scroll_threshold   = 20
         self.start_pos          = 0,0
         self.mouse_scroll       = ""
@@ -122,20 +126,18 @@ class PitftDaemon(Daemon):
         self.pos                = 0
 
         # Times in milliseconds
-        self.screen_refreshtime = 50
-        self.player_refreshtime = 110
+        self.screen_refreshtime = 16.67
+        self.player_refreshtime = 200
 
         #Backlight
-#       self.screen_timer = 0
+        self.screen_timer = 0.0
         self.backlight = False
         self.update_screen_timeout(True)
         logger.debug("Setup done")
 
     def shutdown(self):
-        # Close MPD connection -  TODO
-#       self.pc.mpd.disconnect()
         pass
-
+            
     # Main loop
     def run(self):
         self.setup()
@@ -144,14 +146,23 @@ class PitftDaemon(Daemon):
 
         while 1:
             # Check mouse and LIRC events
+            updated = False
             active = self.read_mouse()
+
             if self.lirc_enabled:
                 active = active | self.read_lirc()
 
             # Refresh info
             if refreshtime < datetime.datetime.now():
                 refreshtime = datetime.datetime.now() + timedelta(milliseconds=self.player_refreshtime)
-                active = active | self.sm.refresh()
+                
+                # Refresh information from players
+                ret, updated = self.pc.refresh()
+                active = active | ret
+                
+                # Update screen
+                if updated:
+                    self.sm.refresh()
 
             # Update screen timeout, if there was any activity
             if config.screen_timeout > 0:
@@ -165,6 +176,8 @@ class PitftDaemon(Daemon):
                 if self.backlight:
                     self.sm.render(self.screen)
                     pygame.display.flip()
+            else:
+                time.sleep(0.01)
 
     def read_mouse(self):
         direction = 0,0
@@ -238,7 +251,7 @@ class PitftDaemon(Daemon):
         commands = lirc.nextcode()
         if commands:
             for command in commands:
-                self.sm.pc.control_player(command)
+                self.pc.control_player(command)
                 logger.debug("LIRC: %s" % command)
             return True
         return False
