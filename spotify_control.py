@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import subprocess
 import httplib, urllib
 from threading import Thread
@@ -22,6 +23,9 @@ class SpotifyControl (PlayerBase):
         # because it is delivered in song, not status
         self.volume = ""
 
+        # Active client in spotify?
+        self.active_client = False
+
         self.connect()
 
     def __getitem__(self, item):
@@ -41,83 +45,54 @@ class SpotifyControl (PlayerBase):
                 # Fetch status
                 sp_status = self._api("info","status")
 
-                # Extract state from strings
-                for line in sp_status.split("\n"):
-                    if "playing" in line:
-                        status["state"] = "play" if "true" in line else "pause"
-                    if "shuffle" in line:
-                        status["random"] = 1 if "true" in line else 0
-                    if "repeat" in line:
-                        status["repeat"] = 1 if "true" in line else 0
+                # Selected player in spotify
+                active_client = sp_status["active"]
+                logged_in = sp_status["logged_in"]
 
+                # Parse status
+                status["state"] = "play" if sp_status["playing"] else "pause"
+                status["random"] = 1 if sp_status["shuffle"] else 0
+                status["repeat"] = 1 if sp_status["repeat"] else 0
                 # Get volume from previous metadata
                 status["volume"] = self.volume
 
                 # Check for changes in status
-                if status != self.data["status"]:
-
-                    if status["state"] != self.data["status"]["state"]:
+                if status != self.data["status"] or active_client != self.active_client:
+                    if status["state"] != self.data["status"]["state"] or active_client != self.active_client:
                         self.data["update"]["state"]   = True
-                        # Started playing - request active status
-                        if status["state"] == "play":
+                        # Started playing on this device - request active status
+                        if active_client and status["state"] == "play":
                             self.data["update"]["active"] = True
+
                     if status["repeat"] != self.data["status"]["repeat"]:
-                        self.data["update"]["repeat"]  = True
+                        self.data["update"]["repeat"] = True
                     if status["random"] != self.data["status"]["random"]:
-                        self.data["update"]["random"]  = True
+                        self.data["update"]["random"] = True
                     if status["volume"] != self.data["status"]["volume"]:
-                        self.data["update"]["volume"]  = True
+                        self.data["update"]["volume"] = True
 
                     #Save new status
                     self.data["status"] = status
+                    self.active_client = active_client
 
             except Exception as e:
                 if not self.noConnection:
                     self.logger.debug(e)
                 self._disconnected()
-                self.data["status"]["state"]     = ""
-                self.data["status"]["elapsed"]   = ""
-                self.data["status"]["repeat"]    = ""
-                self.data["status"]["random"]    = ""
-                self.data["status"]["volume"]    = ""
+
             try:
                 if active:
                     # Fetch song info
                     sp_metadata       = self._api("info","metadata")
 
-                    # Parse multiline string of type
-                    # '  "album_name": "Album", '
-                    # Split lines and remove leading '"' + ending '", '
-                    for line in sp_metadata.split("\n"):
-                        if "album_name" in line:
-                            song["album"] = line.split(": ")[1][1:-3].decode('unicode_escape').encode('utf-8')
-                        if "artist_name" in line:
-                            song["artist"] = line.split(": ")[1][1:-3].decode('unicode_escape').encode('utf-8')
-                        if "track_name" in line:
-                            song["title"] = line.split(": ")[1][1:-3].decode('unicode_escape').encode('utf-8')
-                        if "cover_uri" in line:
-                            song["cover_uri"] = line.split(": ")[1][1:-3]
-                        if "volume" in line:
-                            self.volume = str(int(line.split(": ")[1])*100/65535)
-
-                    # Sanity check
-                    if "artist" not in song:
-                        song["artist"] = ""
-
-                    if "album" not in song:
-                        song["album"] = ""
-
-                    if "date" not in song:
-                        song["date"] = ""
-
-                    if "track" not in song:
-                        song["track"] = ""
-
-                    if "title" not in song:
-                        song["title"] = ""
-
-                    if "time" not in song:
-                        song["time"] = ""
+                    self.volume = str(int(sp_metadata["volume"])*100/65535)
+                    song["album"]     = sp_metadata["album_name"].encode('utf-8')
+                    song["artist"]    = sp_metadata["artist_name"].encode('utf-8')
+                    song["title"]     = sp_metadata["track_name"].encode('utf-8')
+                    song["cover_uri"] = sp_metadata["cover_uri"]
+                    song["time"]      = ""
+                    song["track"]     = ""
+                    song["date"]      = ""
 
                     # Fetch coverart
                     if song["cover_uri"] and not self.data["cover"] or song["cover_uri"] != self.data["song"]["cover_uri"]:
@@ -244,5 +219,10 @@ class SpotifyControl (PlayerBase):
             params = urllib.urlencode({"value": parameter})
             headers = {"Content-type": "application/x-www-form-urlencoded", "Accept": "text/plain"}
             self.client.request('POST', '/api/'+method+'/'+command, params, headers)
+
         doc = self.client.getresponse().read()
+        try:
+            doc = json.loads(doc)
+        except:
+            doc = doc
         return doc
