@@ -12,8 +12,7 @@ from player_base import PlayerBase
 
 class MPDControl (PlayerBase):
     def __init__(self, config):
-        super(MPDControl, self).__init__("mpd")
-        self.config = config
+        super(MPDControl, self).__init__("mpd", config)
 
         self.capabilities["volume_enabled"]    = True
         self.capabilities["seek_enabled"]      = True

@@ -4,16 +4,16 @@ import httplib, urllib
 from threading import Thread
 
 from player_base import PlayerBase
-import config
+#import config
 
 class SpotifyControl (PlayerBase):
-    def __init__(self):
-        super(SpotifyControl, self).__init__("spotify")
+    def __init__(self, config):
+        super(SpotifyControl, self).__init__("spotify", config)
 
         self.client = None
         self.noConnection = False
 
-        self.capabilities["volume_enabled"]  = config.volume_enabled
+        self.capabilities["volume_enabled"]  = self.config.volume_enabled
         self.capabilities["random_enabled"]  = True
         self.capabilities["repeat_enabled"]  = True
         self.capabilities["logopath"]        = "pics/logo/spotify.png"
@@ -169,7 +169,7 @@ class SpotifyControl (PlayerBase):
         if not self.noConnection:
             self.logger.info("Trying to connect to Spotify server")
 
-        self.client = httplib.HTTPConnection(config.spotify_host, config.spotify_port)
+        self.client = httplib.HTTPConnection(self.config.spotify_host, self.config.spotify_port)
         try:
             displayname = self._api("info","display_name")
             self.logger.info("Spotify connected")
@@ -229,7 +229,7 @@ class SpotifyControl (PlayerBase):
         self.data["coverartfile"] = ""
         try:
             if self.client:
-                coverart_url = config.spotify_host + ":" + config.spotify_port + "/api/info/image_url/" + cover_uri
+                coverart_url = self.config.spotify_host + ":" + self.config.spotify_port + "/api/info/image_url/" + cover_uri
                 if coverart_url:
                     self.data["coverartfile"] = "/dev/shm/sp_cover.png"
                     subprocess.check_output("wget -q %s -O %s" % (coverart_url, self.data["coverartfile"]), shell=True )

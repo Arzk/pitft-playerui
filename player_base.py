@@ -2,9 +2,10 @@
 import logging
 
 class PlayerBase(object):
-    def __init__(self, name):
+    def __init__(self, name, config):
         self.logger = logging.getLogger("PiTFT-Playerui." + name)
         self.coverartThread = None
+        self.config = config
 
         # Capabilities
         self.capabilities = {

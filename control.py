@@ -11,10 +11,11 @@ class PlayerControl:
         self.players = []
         self.current = 0
 
+        # Initialize players
         try:
             self.logger.debug("Setting Spotify")
             if config.spotify_host and config.spotify_port:
-                self.players.append(SpotifyControl())
+                self.players.append(SpotifyControl(config))
         except Exception, e:
             self.logger.debug(e)
         try:
@@ -26,7 +27,7 @@ class PlayerControl:
         try:
             self.logger.debug("Setting CD")
             if config.cdda_enabled:
-                self.players.append(CDControl())
+                self.players.append(CDControl(config))
         except Exception, e:
             self.logger.debug(e)
 
@@ -47,10 +48,15 @@ class PlayerControl:
         return self.players[self.current](item)
 
     def get_players(self):
+#        playerlist = []
+#        for player in self.players:
+#            if player("connected"):
+#                playerlist.append({'name': player("name").upper(), 'logopath': player("logopath")})
+#        return playerlist
         playerlist = []
         for player in self.players:
-            if player("connected"):
-                playerlist.append({'name': player("name").upper(), 'logopath': player("logopath")})
+#            if player("connected"):
+            playerlist.append({'name': player("name").upper(), 'logopath': player("logopath")})
         return playerlist
 
     def get_current(self):

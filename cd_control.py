@@ -7,11 +7,10 @@ import CDDB
 import pylast
 
 from player_base import PlayerBase
-import config
 
 class CDControl (PlayerBase):
-    def __init__(self):
-        super(CDControl, self).__init__("cd")
+    def __init__(self, config):
+        super(CDControl, self).__init__("cd", config)
 
         self.capabilities["connected"]       = True
         self.capabilities["logopath"]        = ""
@@ -87,7 +86,7 @@ class CDControl (PlayerBase):
 
     def connect(self):
         # (re)connect to last.fm
-        if not self.lfm_connected and config.API_KEY and config.API_SECRET:
+        if not self.lfm_connected and self.config.API_KEY and self.config.API_SECRET:
             self.connect_lfm()
 
     def eject(self):
@@ -247,7 +246,7 @@ class CDControl (PlayerBase):
         self.logger.info("Setting Pylast")
         self.lfm_connected = False
         try:
-            self.lfm = pylast.LastFMNetwork(api_key = config.API_KEY, api_secret = config.API_SECRET)
+            self.lfm = pylast.LastFMNetwork(api_key = self.config.API_KEY, api_secret = self.config.API_SECRET)
             self.lfm_connected = True
             self.logger.debug("Connected to Last.fm")
         except:

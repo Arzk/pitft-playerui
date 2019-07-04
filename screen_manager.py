@@ -13,11 +13,8 @@ from positioning import *
 class ScreenManager:
     def __init__(self, path):
         self.logger = logging.getLogger("PiTFT-Playerui.Screen_Manager")
-        self.pc = PlayerControl()
-
-        # Paths
-        #path = os.path.dirname(os.path.abspath(__file__)) + "/"
         os.chdir(path)
+        self.pc = PlayerControl()
 
         # Fonts
         try:
