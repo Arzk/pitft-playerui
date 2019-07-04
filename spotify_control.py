@@ -51,8 +51,8 @@ class SpotifyControl (PlayerBase):
 
                 # Parse status
                 status["state"] = "play" if sp_status["playing"] else "pause"
-                status["random"] = sp_status["shuffle"]
-                status["repeat"] = sp_status["repeat"]
+                status["random"] = 1 if sp_status["shuffle"] else 0
+                status["repeat"] = 1 if sp_status["repeat"] else 0
                 # Get volume from previous metadata
                 status["volume"] = self.volume
 

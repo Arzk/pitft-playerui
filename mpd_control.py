@@ -45,6 +45,7 @@ class MPDControl (PlayerBase):
         else:
             try:
                 status = self.client.status()
+                
                 # Check for changes in status
                 if status != self.data["status"]:
                     if status["state"] != self.data["status"]["state"]:
@@ -343,16 +344,16 @@ class MPDControl (PlayerBase):
                 return "listview"
             # Scroll
 
-            elif button >= 3 and item > -1:
-                self.logger.debug("Playlists item scrolled: %s" % item)
+            elif button >= 3:
+                self.logger.debug("Playlists item scrolled: %s" % button)
                 return "listview"
 
             # Long press: append to the current playlist
-            elif button == 2 and item > -1:
+            elif button == 2:
                 self.load_playlist(playlist, False)
 
             # Normal click: replace and play
-            elif button == 1 and item > -1:
+            elif button == 1:
                 self.load_playlist(playlist, True)
 
         except Exception, e:
@@ -372,16 +373,16 @@ class MPDControl (PlayerBase):
                 return "listview"
 
             # Normal click: play
-            elif button == 1 and item > -1:
+            elif button == 1:
                 self.play_item(item)
 
             # Long press
-            elif button == 2 and item > -1:
-                self.logger.debug("Playlist item longpressed: %s" % item)
+            elif button == 2:
+                self.logger.debug("Playlist item longpressed: %s" % button)
 
             # Scroll
-            elif button >= 3 and item > -1:
-                self.logger.debug("Playlist item scrolled: %s" % item)
+            elif button >= 3:
+                self.logger.debug("Playlist item scrolled: %s" % button)
                 return "listview"
 
         except Exception, e:
@@ -413,22 +414,20 @@ class MPDControl (PlayerBase):
                 return "listview"
 
             # Scroll
-            elif button >= 3 and item > -1:
-                self.logger.debug("Library item scrolled: %s" % item)
+            elif button >= 3:
+                self.logger.debug("Library item scrolled: %s" % button)
                 return "listview"
 
             # Longpress: Replace in playlist
-            elif button == 2 and item > -1:
+            elif button == 2:
                 self.client.clear()
                 self.client.findadd(self.data["list"]["type"], selected)
                 self.play_item(0)
-
-                if self.data["status"]["state"] != "play":
-                    self.play_item(0)
+                
                 return ""
 
-            # Normal click: navigate library
-            elif button == 1 and item > -1:
+            # Normal click: navigate library or add to playlist
+            elif button == 1:
                 # Last view was genres -> show artists for genre
                 if self.data["list"]["type"] == "genre":
                     self.previouslibraryview["genre"] = selected

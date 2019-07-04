@@ -145,8 +145,9 @@ class PitftDaemon(Daemon):
         refreshtime = datetime.datetime.now()
 
         while 1:
-            # Check mouse and LIRC events
             updated = False
+            
+            # Check mouse and LIRC events
             active = self.read_mouse()
 
             if self.lirc_enabled:

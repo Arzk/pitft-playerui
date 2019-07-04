@@ -227,7 +227,7 @@ class ScreenManager:
 
         if self.pc.updated("random"):
             try:
-                self.status["random"] = self.pc["status"]["random"]
+                self.status["random"] = int(self.pc["status"]["random"])
             except:
                 self.status["random"] = False
 
@@ -241,7 +241,7 @@ class ScreenManager:
 
         if self.pc.updated("repeat"):
             try:
-                self.status["repeat"] = self.pc["status"]["repeat"]
+                self.status["repeat"] = int(self.pc["status"]["repeat"])
             except:
                 self.status["repeat"] = False
             if self.status["repeat"]:
@@ -686,12 +686,12 @@ class ScreenManager:
             self.list_offset = limit_offset((0,self.list_offset),(0, 0, 0, max_offset))[1]
             self.draw_offset = (0,0)
 
-            # Horizontal scroll left does something for the item
+            # Horizontal scroll right does something for the item
             if x > self.scroll_threshold:
                 button = 2 + x//self.scroll_threshold
                 self.on_click_listview(button, start)
 
-            # Horizontal scroll right exits
+            # Horizontal scroll left exits
             elif x < -self.scroll_threshold:
                 self.on_click_listview(-1, start)
 
