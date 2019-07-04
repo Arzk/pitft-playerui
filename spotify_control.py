@@ -224,7 +224,7 @@ class SpotifyControl (PlayerBase):
             if self.client:
                 coverart_url = self.config.spotify_host + ":" + self.config.spotify_port + "/api/info/image_url/" + cover_uri
                 if coverart_url:
-                    self.data["coverartfile"] = "/dev/shm/sp_cover.png"
+                    self.data["coverartfile"] = self.config.logpath + "/sp_cover.png"
                     subprocess.check_output("wget -q %s -O %s" % (coverart_url, self.data["coverartfile"]), shell=True )
                     self.logger.debug("Spotify coverart downloaded")
                     self.data["cover"] = True

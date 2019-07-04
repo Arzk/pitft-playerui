@@ -505,7 +505,7 @@ class MPDControl (PlayerBase):
                 try:
                     coverart_url = lastfm_album.get_cover_image(2)
                     if coverart_url:
-                        self.data["coverartfile"] = "/dev/shm/mpd_cover.png"
+                        self.data["coverartfile"] = self.config.logpath + "/mpd_cover.png"
                         subprocess.check_output("wget -q %s -O %s" % (coverart_url, self.data["coverartfile"]), shell=True )
                         self.logger.debug("MPD coverart downloaded from Last.fm")
                         self.data["cover"] = True

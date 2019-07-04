@@ -15,6 +15,7 @@ fontfile = "helvetica-neue-bold.ttf"
 loglevel = "INFO"
 
 """ Path to log files. /dev/shm is written to the memory but disappears on boot """
+""" Note: Album cover art also saved hare """
 logpath = "/dev/shm/pitft-playerui"
 #logpath = "/var/log/pitft-playerui"
 
