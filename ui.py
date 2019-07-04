@@ -225,7 +225,7 @@ class PitftDaemon(Daemon):
                 if self.mousebutton_down and not self.longpress:
                     # Not a long click or scroll: click
                     if not self.mouse_scroll:
-                        self.sm.on_click(1, self.start_pos)
+                        self.on_click(1, self.start_pos)
                     else:
                         self.scroll(self.start_pos, 0,0, True)
 
@@ -238,11 +238,14 @@ class PitftDaemon(Daemon):
         if self.mousebutton_down and not self.mouse_scroll:
             userevents = True
             if datetime.datetime.now() - self.clicktime > self.longpress_time:
-                self.mousebutton_down = self.sm.on_click(2, self.start_pos)
+                self.mousebutton_down = self.on_click(2, self.start_pos)
 
                 # Update timers
                 self.clicktime = datetime.datetime.now()
         return userevents
+
+    def on_click(self, mousebutton, clickpos):
+        self.sm.on_click(mousebutton, clickpos)
 
     def scroll(self, start, x, y, end=False):
         self.sm.on_scroll(start, x, y, end)
@@ -251,8 +254,20 @@ class PitftDaemon(Daemon):
         commands = lirc.nextcode()
         if commands:
             for command in commands:
-                self.pc.control_player(command)
-                logger.debug("LIRC: %s" % command)
+                parameter = -1
+                try:
+                    if "switch" in command:
+                        command, parameter = command.split()
+                        for id, player in enumerate(self.pc.get_players()):
+                            if parameter == player("name"):
+                                parameter = int(id)
+                                # TODO: Ugly hack to do this here
+                                self.sm.force_update("screen")
+                    self.pc.control_player(command, parameter)
+                    logger.debug("LIRC: %s" % command, parameter)
+                except Exception as e:
+                    logger.debug(e)
+
             return True
         return False
 

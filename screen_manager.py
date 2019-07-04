@@ -72,8 +72,8 @@ class ScreenManager:
         self.status["timeElapsedPercentage"] = 0
         self.status["playbackStatus"]  = "stop"
         self.status["volume"]          = 0
-        self.status["random"]          = 0
-        self.status["repeat"]          = 0
+        self.status["random"]          = False
+        self.status["repeat"]          = False
 
         self.status["update"] = {}
         self.status["update"]["screen"]    = True

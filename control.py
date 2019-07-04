@@ -98,7 +98,8 @@ class PlayerControl:
     def update_ack(self, item):
         self.players[self.current].update_ack(item)
 
-    def control_player(self, command, parameter=0, id=-1):
+    def control_player(self, command, parameter=-1, id=-1):
+        self.logger.debug(command + " : " + str(parameter))
         # Translate
         if self.players[self.current]["status"]:
             if command == "play_pause":
@@ -108,9 +109,7 @@ class PlayerControl:
                     command = "play"
 
         # Switching commands
-        if command == "radio":
-            self.load_playlist(config.radio_playlist)
-        elif command == "switch":
+        if command == "switch":
             self.switch_active_player(parameter)
 
         # Player specific commands

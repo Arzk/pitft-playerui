@@ -129,6 +129,8 @@ Clone the git repository:
 
 Copy config.py.in to config.py
 
+For lirc support, copy pitft-playerui.lircrc.in to pitft-playerui.lircrc
+
 From config.py you need to change the font if you are using something else than Helvetica Neue Bold and check that path is correct.
 You can download for example Open Sans "OpenSans-Bold.ttf" from www.fontsquirrel.com/fonts/open-sans. Transfer ttf file to /home/pi/pitft-playerui/ folder.
 
