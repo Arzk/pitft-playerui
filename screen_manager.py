@@ -327,7 +327,7 @@ class ScreenManager:
     def switch_view(self, view):
         if view == "main":
             self.view=view
-        if view == "listview":
+        elif view == "listview":
             # Center currently playing item
             self.list_offset = (self.pc["list"]["position"]-self.listitems_on_screen/2)*size['listitem_height']
             self.list_offset = limit_offset((0,self.list_offset),(0, 0, 0, size["listitem_height"]*(len(self.pc["list"]["viewcontent"])-self.listitems_on_screen-1)))[1]
