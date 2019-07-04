@@ -44,8 +44,8 @@ class PlayerBase(object):
         self.data["status"] = {
                 "state"       : "",
                 "elapsed"     : "",
-                "repeat"      : "",
-                "random"      : "",
+                "repeat"      : False,
+                "random"      : False,
                 "volume"      : "",
                 "playlistlength" : 0
             }            

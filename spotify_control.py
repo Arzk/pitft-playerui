@@ -51,8 +51,8 @@ class SpotifyControl (PlayerBase):
 
                 # Parse status
                 status["state"] = "play" if sp_status["playing"] else "pause"
-                status["random"] = 1 if sp_status["shuffle"] else 0
-                status["repeat"] = 1 if sp_status["repeat"] else 0
+                status["random"] = sp_status["shuffle"]
+                status["repeat"] = sp_status["repeat"]
                 # Get volume from previous metadata
                 status["volume"] = self.volume
 
@@ -173,16 +173,10 @@ class SpotifyControl (PlayerBase):
 
             # Check shuffle and repeat state
             if command == "shuffle":
-                if self.data["status"]["random"] == 1:
-                    command += '/disable'
-                else:
-                    command += '/enable'
+                command += '/disable' if self.data["status"]["random"] else '/enable'
 
             if command == "repeat":
-                if self.data["status"]["repeat"] == 1:
-                    command += '/disable'
-                else:
-                    command += '/enable'
+                command += '/disable' if self.data["status"]["repeat"] else '/enable'
 
             #Send command
             try:

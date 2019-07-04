@@ -227,9 +227,9 @@ class ScreenManager:
 
         if self.pc.updated("random"):
             try:
-                self.status["random"] = int(self.pc["status"]["random"])
+                self.status["random"] = self.pc["status"]["random"]
             except:
-                self.status["random"] = 0
+                self.status["random"] = False
 
             if self.status["random"]:
                 self.image["button_random"] = self.image["button_random_on"]
@@ -241,9 +241,9 @@ class ScreenManager:
 
         if self.pc.updated("repeat"):
             try:
-                self.status["repeat"] = int(self.pc["status"]["repeat"])
+                self.status["repeat"] = self.pc["status"]["repeat"]
             except:
-                self.status["repeat"] = 0
+                self.status["repeat"] = False
             if self.status["repeat"]:
                 self.image["button_repeat"] = self.image["button_repeat_on"]
             else:
