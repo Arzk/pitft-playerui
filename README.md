@@ -24,7 +24,7 @@ Shows and lets user control:
 
 Main screen gestures:
 - Coverart click: play/pause
-- Vertical scrolling: menus
+- Vertical scrolling: switch player (down), player menus(up)
 - Horizontal flip: next/previous
 
 List view:
@@ -49,6 +49,7 @@ Known issues:
 - CDDB tag fetching does not work well together with MPD playback. Planning to switch the CD player to mplayer
 - Requires all the python modules even though features are disabled in config (CDDB, LIRC)
 - Inaccurate touchscreen calibration/detection using Raspbian Jessie/Stretch with sdl2, need to force downgrade sdl to 1.2 version (script provided in repo scripts/forcesdl_1.2, modify to your liking)
+- Restart command occasionally gives unnecessary SIGTERMs to the newly started instance
 
 Installing:
 ===========
@@ -129,7 +130,7 @@ Clone the git repository:
 
 Copy config.py.in to config.py
 
-For lirc support, copy pitft-playerui.lircrc.in to pitft-playerui.lircrc
+For lirc support, copy pitft-playerui.lircrc.in to pitft-playerui.lircrc and modify your buttons
 
 From config.py you need to change the font if you are using something else than Helvetica Neue Bold and check that path is correct.
 You can download for example Open Sans "OpenSans-Bold.ttf" from www.fontsquirrel.com/fonts/open-sans. Transfer ttf file to /home/pi/pitft-playerui/ folder.
