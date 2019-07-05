@@ -44,6 +44,7 @@ size["paddedscreen"]         = size["screen"][0] - 2*size["padding"][0], size["s
 size["scrollbar"]            = 20, size["screen"][1]
 size["scrollbar_click"]      = 60, config.resolution[1]
 size["scrollbar_slider"]     = 20, size["scrollbar"][1]-28
+size["listbutton"]           = 20, 20
 
 
 
@@ -93,7 +94,6 @@ _pos["buttonright"] = _pos["right"] - size["controlbutton"][0], _pos["paddedtop"
 
 _pos["repeatbutton"]  = _pos["buttonleft"]
 _pos["randombutton"]  = _pos["repeatbutton"][0], _pos["repeatbutton"][1] - size["selectorbutton"][1]
-# _pos["randombutton"]  = _pos["repeatbutton"][0]+size["controlbutton"][0], _pos["repeatbutton"][1]
 
 _pos["volume"]         = _pos["right"]-size["volume_click"][0]/2-15, 30
 _pos["volume_click"]   = _pos["volume"][0]-size["volume_click"][0]/2, _pos["volume"][1]-30

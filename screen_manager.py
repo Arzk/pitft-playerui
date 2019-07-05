@@ -93,6 +93,7 @@ class ScreenManager:
         self.scroll_start       = -1,-1
         self.scroll_offset      = 0,0
         self.scroll_threshold   = 40
+        self.list_scroll_threshold = 40
         self.draw_offset        = 0,0
         self.list_offset        = 0
         self.listitems_on_screen = config.resolution[1]//size["listitem_height"]
@@ -102,12 +103,22 @@ class ScreenManager:
     def populate_players(self):
         self.topmenu = self.pc.get_players()
         for player in self.topmenu:
+            # Load player logo
             try:
                 logopath = player('logopath')
                 if logopath:
                     player.set_logo(pygame.transform.scale(pygame.image.load(logopath), size["logo"]))
                 else:
                     player.set_logo(None)
+            except Exception, e:
+                self.logger.debug(e)
+                
+            # Load list button icons
+            try:
+                listbuttons = player('listbuttons')
+                if listbuttons:
+                    for name, button in listbuttons.items():
+                        player.set_buttonicon(name, pygame.transform.scale(pygame.image.load(button["path"]), size["listbutton"]))
             except Exception, e:
                 self.logger.debug(e)
 
@@ -293,7 +304,7 @@ class ScreenManager:
 
     def on_click(self, mousebutton, clickpos):
         try:
-            self.logger.debug("Click: " + str(mousebutton) + " X: " + str(clickpos[0]) + " Y: " + str(clickpos[1]))
+#            self.logger.debug("Click: " + str(mousebutton) + " X: " + str(clickpos[0]) + " Y: " + str(clickpos[1]))
             if self.view == "main":
                 allow_repeat = self.on_click_mainscreen(mousebutton, clickpos)
             elif self.view == "listview":
@@ -388,7 +399,7 @@ class ScreenManager:
             logo = self.pc("logo")
             if logo:
                 surface.blit(self.image["background"],
-                            pos("logoback",(0, self.draw_offset[1])),
+                             pos("logoback",(0, self.draw_offset[1])),
                             (pos("logoback",(0, self.draw_offset[1])),
                             size["logoback"]))
                 surface.blit(logo, pos("logo",(0, self.draw_offset[1])))
@@ -400,7 +411,7 @@ class ScreenManager:
 
             # Refresh backgrounds
             surface.blit(self.image["background"],
-                        pos("progressbackground",(0, self.draw_offset[1])),
+                         pos("progressbackground",(0, self.draw_offset[1])),
                         (pos("progressbackground",(0, self.draw_offset[1])), size["progressbackground"]))
             surface.blit(self.image["progress_bg"],
                          pos("progressbar", (0, self.draw_offset[1])))
@@ -578,6 +589,7 @@ class ScreenManager:
                     self.image["coverart_border"] = self.image["coverart_border_paused"]
 
     def render_listview(self,surface):
+
         list_draw_offset = self.list_offset%size['listitem_height']
         # Detect scrolling:
         if self.scroll_start[1] > -1:
@@ -586,7 +598,9 @@ class ScreenManager:
                 scrolled_item = -1
         else:
             scrolled_item = -1
+            
 
+        # List content
         if self.pc["list"]["viewcontent"]:
             list_length = len(self.pc["list"]["viewcontent"])
             for i in range(-self.listitems_on_screen,2*self.listitems_on_screen):
@@ -610,6 +624,13 @@ class ScreenManager:
                         surface.blit(text, pos("listview", (0,self.draw_offset[1]-list_draw_offset+size['listitem_height']*i)))
                     else:
                         surface.blit(text, pos("listview", (self.draw_offset[0],self.draw_offset[1]-list_draw_offset+size['listitem_height']*i)))
+
+                    # List button icons
+                    for index, item in enumerate(self.pc["list"]["buttons"]):
+                        if self.draw_offset[0] == self.list_scroll_threshold*(index+1):
+                            surface.blit(item["icon"],pos("listview", (12, size['listitem_height']*scrolled_item-self.list_offset)))
+
+
             # Scrollbar
             if list_length > self.listitems_on_screen:
                 surface.blit(self.image["scroll_bg"],
@@ -672,9 +693,9 @@ class ScreenManager:
         else:
             # Limit X Scroll to the length of the menuitem buttons
             if x > 0:
-                x = (x//self.scroll_threshold)*self.scroll_threshold
+                x = (x//self.list_scroll_threshold)*self.list_scroll_threshold
                 try:
-                    x = limit_offset((x,0),(0, 0, len(self.pc["list"]["buttons"])*self.scroll_threshold,0))[0]
+                    x = limit_offset((x,0),(0, 0, len(self.pc["list"]["buttons"])*self.list_scroll_threshold,0))[0]
                 except Exception as e:
                     self.logger.debug(e)
 
@@ -687,12 +708,12 @@ class ScreenManager:
             self.draw_offset = (0,0)
 
             # Horizontal scroll right does something for the item
-            if x > self.scroll_threshold:
-                button = 2 + x//self.scroll_threshold
+            if x >= self.list_scroll_threshold:
+                button = 2 + x//self.list_scroll_threshold
                 self.on_click_listview(button, start)
 
             # Horizontal scroll left exits
-            elif x < -self.scroll_threshold:
+            elif x <= -self.list_scroll_threshold:
                 self.on_click_listview(-1, start)
 
     def update_ack(self, item):

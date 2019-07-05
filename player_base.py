@@ -17,7 +17,8 @@ class PlayerBase(object):
             "repeat_enabled"  : False,
             "elapsed_enabled" : False,
             "logopath"        : "",
-            "logo"            : None
+            "logo"            : None,
+            "listbuttons"     : {}
         }
         # Things to remember
         self.data = {
@@ -82,6 +83,9 @@ class PlayerBase(object):
 
     def set_logo(self, item):
         self.capabilities["logo"] = item
+
+    def set_buttonicon(self, item, icon):
+        self.capabilities["listbuttons"][item]["icon"] = icon
 
     """ Refresh data from API """
     def refresh(self, active=False):

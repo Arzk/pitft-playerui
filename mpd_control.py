@@ -21,17 +21,22 @@ class MPDControl (PlayerBase):
         self.capabilities["elapsed_enabled"]   = True
         self.capabilities["logopath"]          = "pics/logo/mpd.png"
 
-        self.client = None
-        self.noConnection = False
-        self.lfm_connected = False
+        # Button icons to be used in list menus
+        self.capabilities["listbuttons"]       = {"remove" : {"path" : "pics/icons/remove.png", "icon" : None},
+                                                  "add"    : {"path" : "pics/icons/add.png",    "icon" : None}}
 
-        self.connect()
         self.previouslibraryview = {"genre": "", "artist": ""}
 
         self.data["menu"].append ({"name": "PLAYLIST",  "type": "listview", "listcontent": self.get_playlist})
         self.data["menu"].append ({"name": "PLAYLISTS", "type": "listview", "listcontent": self.get_playlists})
         self.data["menu"].append ({"name": "LIBRARY",   "type": "listview", "listcontent": self.list_library})
 
+        self.client = None
+        self.noConnection = False
+        self.lfm_connected = False
+
+        self.connect()
+        
         if self.client:
             self.logger.info("MPD server version: %s" % self.client.mpd_version)
 
@@ -224,6 +229,11 @@ class MPDControl (PlayerBase):
         except Exception, e:
             self.logger.info(e)
             self._disconnected()
+            
+    def remove_playlist_item(self, item):
+        self.logger.debug("Removing playlist item %s" % item)
+        if self.client:
+            self.client.delete(item)
 
     def get_playlists(self):
         self.data["list"]["type"] = "playlists"
@@ -232,7 +242,7 @@ class MPDControl (PlayerBase):
         self.data["list"]["highlight"] = -1
         self.data["list"]["position"]  = 0
         self.data["list"]["click"] = self.playlists_click
-        self.data["list"]["buttons"] = ["","",""]
+        self.data["list"]["buttons"] = []
         try:
             if self.client:
                 playlists = self.client.listplaylists()
@@ -250,9 +260,12 @@ class MPDControl (PlayerBase):
         self.data["list"]["content"] = []
         self.data["list"]["viewcontent"] = self.data["list"]["content"]
         self.data["list"]["click"] = self.playlist_click
-        self.data["list"]["buttons"] = ["","",""]
+        self.data["list"]["buttons"] = [{"name"  : "remove", 
+                                         "icon"  : self.capabilities["listbuttons"]["remove"]["icon"],
+                                         "action" : self.remove_playlist_item}]
         try:
             # Todo: not updating when list is shown
+            # Todo: Wrong item highlighted when removing playlist items
             self.data["list"]["highlight"] = int(self.data["song"]["pos"])
             self.data["list"]["position"]  = int(self.data["song"]["pos"])
         except Exception, e:
@@ -291,7 +304,7 @@ class MPDControl (PlayerBase):
         self.data["list"]["highlight"] = -1
         self.data["list"]["position"]  = 0
         self.data["list"]["click"] = self.library_click
-        self.data["list"]["buttons"] = ["","",""]
+        self.data["list"]["buttons"] = []
 
         try:
             if self.client:
@@ -344,17 +357,18 @@ class MPDControl (PlayerBase):
                 return "listview"
             # Scroll
 
-            elif button >= 3:
-                self.logger.debug("Playlists item scrolled: %s" % button)
-                return "listview"
+            # Normal click: replace and play
+            elif button == 1:
+                self.load_playlist(playlist, True)
 
             # Long press: append to the current playlist
             elif button == 2:
                 self.load_playlist(playlist, False)
 
-            # Normal click: replace and play
-            elif button == 1:
-                self.load_playlist(playlist, True)
+            # Scroll: Activate menu item
+            elif button >= 3:
+                self.logger.debug("Playlists item scrolled: %s" % button)
+                return "listview"
 
         except Exception, e:
             self.logger.info("No playlist %s" % item)
@@ -363,6 +377,7 @@ class MPDControl (PlayerBase):
 
     def playlist_click(self, item=-1, button=1):
         try:
+            self.logger.debug("List button: %s" % button)
 
             # Scrolled left
             if button == -1:
@@ -380,15 +395,19 @@ class MPDControl (PlayerBase):
             elif button == 2:
                 self.logger.debug("Playlist item longpressed: %s" % button)
 
-            # Scroll
+            # Scroll: Activate menu item
             elif button >= 3:
-                self.logger.debug("Playlist item scrolled: %s" % button)
-                return "listview"
+                selection = self.data["list"]["buttons"][button-3]
+                if selection["action"]:
+                    selection["action"](item)
+                    self.get_playlist()
+                    return "listview"
 
         except Exception, e:
             self.logger.info(e)
         return ""
 
+    # TODO: Remember previous scroll position when navigating back
     def library_click(self, item=-1, button=1):
         try:
             selected = self.data["list"]["content"][item]
