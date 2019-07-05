@@ -1,0 +1,74 @@
+#################
+# Input selection
+#################
+begin
+  button = tv_radio
+  prog = pitft-playerui
+  config = spotify
+end
+begin
+  button = pip
+  prog = pitft-playerui
+  config = mpd
+end
+begin
+  button = timer
+  prog = pitft-playerui
+  config = cd
+end
+#begin
+#  button = timer
+#  prog = pitft-playerui
+#  config = radio
+#end
+
+#################
+# Media control
+#################
+begin
+  button = play
+  prog = pitft-playerui
+  config = play
+end
+begin
+  button = pause
+  prog = pitft-playerui
+  config = pause
+end
+begin
+  button = stop
+  prog = pitft-playerui
+  config = stop
+end
+begin
+  button = rewind
+  prog = pitft-playerui
+  config = rwd
+  repeat = 1
+end
+begin
+  button = fastforward
+  prog = pitft-playerui
+  config = ff
+  repeat = 1
+end
+begin
+  button = previous
+  prog = pitft-playerui
+  config = previous
+end
+begin
+  button = next
+  prog = pitft-playerui
+  config = next
+end
+begin
+  button = repeat
+  prog = pitft-playerui
+  config = repeat
+end
+begin
+  button = teletext
+  prog = pitft-playerui
+  config = random
+end

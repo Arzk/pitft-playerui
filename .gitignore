@@ -3,4 +3,6 @@
 *_old
 *_my
 *_template
+*.xcf
 config.py
+pitft-playerui.lircrc

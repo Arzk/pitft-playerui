@@ -1,17 +1,8 @@
 PiTFT-PlayerUI is a fork of PMB-PiTFT (Pi MusicBox PiTFT), a small Python script that uses mopidy's mpd-api to show controlling ui on Raspberry Pi's screen.
 
-Note: For the last year or so, I've been rewriting the whole thing in the development branch. The main focus is to get rid of all the buttons and make the UI more gesture-based. I'm not merging before I consider it ready, but all the commits should be runnable. If you'd like to take a look, please switch the branch and check the latest commit messages for what's fixed, what's broken :)
+![Screenshot](https://dl.dropboxusercontent.com/s/c2x5mcrbz4xqm0j/pitft-playerui.gif)
 
-![Screenshot](https://dl.dropboxusercontent.com/s/1qgy5z9hq60rr0i/pitft-playerui.png)
-
-Improvements:
-===========
-- Support for 2.8" and 3.5" PiTFT+
-- Audio CD tag fetching from FreeDB
-- Spotify-connect-web support (https://github.com/Fornoth/spotify-connect-web)
-- Darker UI
-- Gesture support
-- CLI player control
+Note: This is still in progress, but most of the features should work already.
 
 Features:
 ===========
@@ -28,22 +19,26 @@ Shows and lets user control:
 - Active player toggle
 - Playlists
 - CD playback
-- Radio playback
 - Volume
+- Playlists and library (MPD only)
 
-Gestures:
-- Vertical scrolling in lists
+Main screen gestures:
+- Coverart click: play/pause
+- Vertical scrolling: switch player (down), player menus(up)
 - Horizontal flip: next/previous
-- Long press on song info: show playlist
-- Long press on volume: increase step
-- Long press on next / prev: fast forward / rewind
+
+List view:
+- Item click (depends on list)
+- Long click (depends on list)
+- Vertical scrolling
+- Horizontal flip: exit (left), additional commands (right)
 
 Things you need:
 =================
 - Raspberry pi (I am using model 3)
 - Adafruit PiTFT+ 3.5" with Resistive Touchscreen ( https://www.adafruit.com/product/2441 )
 - Internet connection for Pi
-- Raspbian running on the Pi
+- Raspbian running on the Pi (developing on Stretch, but Jessie was also ok)
 - [Optional] MPD configured
 - [Optional] Spotify-connect-web configured
 - [Optional] Last.fm API key for cover art fetching
@@ -51,14 +46,14 @@ Things you need:
 
 Known issues:
 ==============
-- Doesn't check if players are available when using CLI commands
-- Requires all the python modules even though features are disabled in config
-- Cover art is not saved separately for each player, has to be refetched when the player is changed
+- CDDB tag fetching does not work well together with MPD playback. Planning to switch the CD player to mplayer
+- Requires all the python modules even though features are disabled in config (CDDB, LIRC)
 - Inaccurate touchscreen calibration/detection using Raspbian Jessie/Stretch with sdl2, need to force downgrade sdl to 1.2 version (script provided in repo scripts/forcesdl_1.2, modify to your liking)
+- Restart command occasionally gives unnecessary SIGTERMs to the newly started instance
 
 Installing:
 ===========
-Current installation guide is tested and working with: Resistive PiTFT+ 3.5", PiFi DAC+ and Raspberry Pi 3 running Raspbian Jessie.
+Current installation guide is tested and working with: Resistive PiTFT+ 3.5", PiFi DAC+ and Raspberry Pi 3 running Raspbian Stretch.
 
 Install Raspbian and MPD and Configure PiTFT+ using the guide by Adafruit: https://learn.adafruit.com/adafruit-pitft-3-dot-5-touch-screen-for-raspberry-pi/ 
 Detailed install and calibration recommended
@@ -74,7 +69,18 @@ Open /etc/asound.conf and add the following:
 <pre>
 pcm.!default {
  type plug
- slave.pcm "dacci_dmix"
+ slave.pcm "pifi"
+}
+
+pcm.pifi {
+    type softvol
+    slave {
+        pcm "dacci_dmix"
+    }
+    control  {
+        name "PCM"
+        card sndrpihifiberry
+    }
 }
 
 pcm.dacci_dmix {
@@ -104,16 +110,14 @@ ctl.dacci {
 }
 </pre>
 
+This should set MPD and Spotify to use the same softvol volume slider. To set the balance between players, use the replaygain preamp settings in mpd.conf.
+
 Install dependencies:
 <pre>apt-get update
-apt-get install python-pygame memcached python-memcache
+apt-get install python-pygame python-lirc python-cddb
 pip install python-mpd2
 apt-get install evtest tslib libts-bin
 </pre>
-
-For CD support install the cddb-py module:
-http://cddb-py.sourceforge.net/
-<pre>apt-get install python-cddb</pre>
 
 For Spotify support install spotify-connect-web:
 https://github.com/Fornoth/spotify-connect-web
@@ -126,21 +130,17 @@ Clone the git repository:
 
 Copy config.py.in to config.py
 
+For lirc support, copy pitft-playerui.lircrc.in to pitft-playerui.lircrc and modify your buttons
+
 From config.py you need to change the font if you are using something else than Helvetica Neue Bold and check that path is correct.
 You can download for example Open Sans "OpenSans-Bold.ttf" from www.fontsquirrel.com/fonts/open-sans. Transfer ttf file to /home/pi/pitft-playerui/ folder.
 
 Set the other settings in config.py file:
-- Resolution defaults to 480x320. Set to 320x240 if using 2.8" PiTFT
+- Resolution defaults to 480x320. Set to 320x240 if using 2.8" PiTFT (not implemented yet)
 - For local cover art set the path of the mpd library
 - Set the LastFM api key and login information for remote cover art fetching
 - For Spotify set the path and port of Spotify-connect-web
 - To disable MPD support and use only spotify, clear the mpd_host and mpd_port
-
-For display backlight control write these lines to /etc/rc.local:
-<pre>echo 508 > /sys/class/gpio/export
-echo 'out' > /sys/class/gpio/gpio508/direction
-echo '1' > /sys/class/gpio/gpio508/value
-</pre>
 
 This is a daemon and it has three commands: start, restart and stop.
 Use the following command to start ui:
@@ -155,41 +155,17 @@ Note that using the framebuffer requires root access. The script can also be run
 
 Some specific things:
 =========
-- The radio UI button expects to find a playlist set in the config.py (default: "Radio"). 
-	- The Radio playlist is hidden from the playlists view
 - The active player view is decided between MPD and Spotify so that:
-	- On start the playing player is active. Pause Spotify if both are playing
+	- On start the playing player is active. Pause one if both are playing
 	- If Spotify is playing and MPD starts playing, pause Spotify and switch to MPD
 	- Vice versa if Spotify starts playing
 
-CLI:
-=========
-You can control the system from command line, for example using irexec, with
-
-<code>python /home/pi/pitft-playerui/ui.py control [command]</code>
-
-Valid commands implemented:
-- play
-- play_pause # Play/pause toggle
-- pause
-- stop
-- next
-- previous
-- rwd     # Rewind, only in MPD
-- ff      # Fast forward, only in MPD
-- repeat
-- random
-- spotify # Switch active player to Spotify
-- mpd     # Switch active player to MPD
-- cd      # Play CD
-- radio   # Load radio playlist
-
 TODO:
 =========
+- 320x240 support
+- CD player with mplayer
 - Support for OpenHome Mediaplayer (http://petemanchester.github.io/MediaPlayer/)
-- Volume control for Spotify
 - Sleep timer and other settings in a separate menu
-- Radio stream icons set in the config.py file
 - Got other ideas? Post an issue and tell me about it
 
 Author notes:
