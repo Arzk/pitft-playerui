@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 import logging
 import config
-from spotify_control import SpotifyControl
-from mpd_control import MPDControl
-from cd_control import CDControl
+if config.spotify_host and config.spotify_port:
+    from spotify_control import SpotifyControl
+if config.mpd_host and config.mpd_port:
+    from mpd_control import MPDControl
+if config.cdda_enabled:
+    from cd_control import CDControl
 
 class PlayerControl:
     def __init__(self):
