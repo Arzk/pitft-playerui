@@ -47,7 +47,6 @@ Things you need:
 Known issues:
 ==============
 - CDDB tag fetching does not work well together with MPD playback. Planning to switch the CD player to mplayer
-- Requires all the python modules even though features are disabled in config (CDDB, LIRC)
 - Inaccurate touchscreen calibration/detection using Raspbian Jessie/Stretch with sdl2, need to force downgrade sdl to 1.2 version (script provided in repo scripts/forcesdl_1.2, modify to your liking)
 - Restart command occasionally gives unnecessary SIGTERMs to the newly started instance
 

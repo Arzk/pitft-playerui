@@ -12,11 +12,15 @@ from datetime import timedelta
 from signal import alarm, signal, SIGALRM, SIGTERM, SIGKILL
 from logging.handlers import TimedRotatingFileHandler
 from daemon import Daemon
-import lirc
 
+# Own modules
 from control import PlayerControl
 from screen_manager import ScreenManager
 import config
+
+# Additional modules, if in config
+if config.lircrcfile:
+    import lirc
 
 # OS enviroment variables for pitft
 #os.putenv ("SDL_VIDEODRIVER" , "fbcon")
