@@ -118,6 +118,8 @@ class PitftDaemon(Daemon):
         # Mouse variables
         self.clicktime          = datetime.datetime.now()
         self.longpress_time     = timedelta(milliseconds=300)
+        self.click_filtertime   = datetime.datetime.now()
+        self.click_filterdelta  = timedelta(milliseconds=10)
         self.scroll_threshold   = 20
         self.start_pos          = 0,0
         self.mouse_scroll       = ""
@@ -148,37 +150,48 @@ class PitftDaemon(Daemon):
             updated = False
             
             # Check mouse and LIRC events
-            active = self.read_mouse()
+            try:
+                active = self.read_mouse()
+                if self.lirc_enabled:
+                    active = active | self.read_lirc()
+            except Exception as e:
+                logger.debug(e)
 
-            if self.lirc_enabled:
-                active = active | self.read_lirc()
+            try:
+                # Refresh info
+                if refreshtime < datetime.datetime.now():
+                    refreshtime = datetime.datetime.now() + timedelta(milliseconds=self.player_refreshtime)
 
-            # Refresh info
-            if refreshtime < datetime.datetime.now():
-                refreshtime = datetime.datetime.now() + timedelta(milliseconds=self.player_refreshtime)
-                
-                # Refresh information from players
-                ret, updated = self.pc.refresh()
-                active = active | ret
-                
-                # Update screen
-                if updated:
-                    self.sm.refresh()
+                    # Refresh information from players
+                    ret, updated = self.pc.refresh()
+                    active = active | ret
 
-            # Update screen timeout, if there was any activity
-            if config.screen_timeout > 0:
-                self.update_screen_timeout(active)
+                    # Update screen
+                    if updated:
+                        self.sm.refresh()
+            except Exception as e:
+                logger.debug(e)
 
-            # Draw screen
-            if drawtime < datetime.datetime.now():
-                drawtime = datetime.datetime.now() + timedelta(milliseconds=self.screen_refreshtime)
+            try:
+                # Update screen timeout, if there was any activity
+                if config.screen_timeout > 0:
+                    self.update_screen_timeout(active)
+            except Exception as e:
+                logger.debug(e)
 
-                # Don't draw when display is off
-                if self.backlight:
-                    self.sm.render(self.screen)
-                    pygame.display.flip()
-            else:
-                time.sleep(0.01)
+            try:
+                # Draw screen
+                if drawtime < datetime.datetime.now():
+                    drawtime = datetime.datetime.now() + timedelta(milliseconds=self.screen_refreshtime)
+
+                    # Don't draw when display is off
+                    if self.backlight:
+                        self.sm.render(self.screen)
+                        pygame.display.flip()
+                else:
+                    time.sleep(0.01)
+            except Exception as e:
+                logger.debug(e)
 
     def read_mouse(self):
         direction = 0,0
@@ -186,15 +199,17 @@ class PitftDaemon(Daemon):
 
         for event in pygame.event.get():
             if event.type == pygame.MOUSEBUTTONDOWN:
-                userevents = True
                 self.clicktime = datetime.datetime.now()
-                self.pos = self.start_pos = pygame.mouse.get_pos()
+                # Filter out if instantly after previous mousebutton up event
+                if self.clicktime > self.click_filtertime:
+                    userevents = True
+                    self.pos = self.start_pos = pygame.mouse.get_pos()
 
-                # Instant click when backlight is off to wake
-                if not self.backlight:
-                    self.mousebutton_down = False
-                else:
-                    self.mousebutton_down = True
+                    # Instant click when backlight is off to wake
+                    if not self.backlight:
+                        self.mousebutton_down = False
+                    else:
+                        self.mousebutton_down = True
 
             if event.type == pygame.MOUSEMOTION and self.mousebutton_down and not self.longpress:
                 userevents = True
@@ -234,6 +249,9 @@ class PitftDaemon(Daemon):
                 self.mousebutton_down = False
                 self.mouse_scroll     = ""
                 self.longpress        = False
+                
+                # Filter next click, if it happens instantly
+                self.click_filtertime = datetime.datetime.now() + self.click_filterdelta
 
         # Long press - register second click
         if self.mousebutton_down and not self.mouse_scroll:
@@ -300,6 +318,5 @@ if __name__ == "__main__":
             sys.exit(2)
         sys.exit(0)
     else:
-        print "usage: %s start|stop|restart|" % sys.argv[0]
-        print "usage: %s start|stop|restart|control <command>" % sys.argv[0]
+        print "usage: %s start|stop|restart" % sys.argv[0]
         sys.exit(2)
