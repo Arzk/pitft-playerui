@@ -75,7 +75,7 @@ class MPDControl (PlayerBase):
 
 
             except Exception as e:
-                self.logger.debug(e)
+                self.logger.error(e)
                 self._disconnected()
 
             try:
@@ -119,8 +119,8 @@ class MPDControl (PlayerBase):
                             else:
                                 self.coverartThread = Thread(target=self.fetch_coverart(song))
                                 self.coverartThread.start()
-                        except Exception, e:
-                            self.logger.debug("Coverartthread: %s" % e)
+                        except Exception as e:
+                            self.logger.error("Coverartthread: %s" % e)
 
                     # Check for changes in song
                     if song != self.data["song"]:
@@ -143,7 +143,7 @@ class MPDControl (PlayerBase):
                         self.data["song"] = song
 
             except Exception as e:
-                self.logger.debug(e)
+                self.logger.error(e)
                 self._disconnected()
 
     def connect(self):
@@ -160,9 +160,9 @@ class MPDControl (PlayerBase):
                 self.logger.info("Connection to MPD server established.")
                 self.noConnection = False
                 self.capabilities["connected"]   = True
-             except Exception, e:
+             except Exception as e:
                 if not self.noConnection:
-                    self.logger.info(e)
+                    self.logger.error(e)
                 self._disconnected()
                 self.noConnection = True
                 self.capabilities["connected"]   = False
@@ -214,8 +214,8 @@ class MPDControl (PlayerBase):
                     self.client.random(random)
                 elif command == "volume" and parameter != -1:
                     self.client.setvol(parameter)
-        except Exception, e:
-            self.logger.info(e)
+        except Exception as e:
+            self.logger.error(e)
             self._disconnected()
 
     def load_playlist(self, playlist, clear=False):
@@ -226,8 +226,8 @@ class MPDControl (PlayerBase):
                 self.client.load(playlist)
                 if clear:
                     self.play_item(0)
-        except Exception, e:
-            self.logger.info(e)
+        except Exception as e:
+            self.logger.error(e)
             self._disconnected()
             
     def remove_playlist_item(self, item):
@@ -251,8 +251,8 @@ class MPDControl (PlayerBase):
                     if "playlist" in item:
                         listitem = item["playlist"]
                     self.data["list"]["content"].append(listitem)
-        except Exception, e:
-            self.logger.info(e)
+        except Exception as e:
+            self.logger.error(e)
             self._disconnected()
 
     def get_playlist(self):
@@ -268,7 +268,7 @@ class MPDControl (PlayerBase):
             # Todo: Wrong item highlighted when removing playlist items
             self.data["list"]["highlight"] = int(self.data["song"]["pos"])
             self.data["list"]["position"]  = int(self.data["song"]["pos"])
-        except Exception, e:
+        except Exception as e:
             self.data["list"]["highlight"] = -1
             self.data["list"]["position"]  = 0
 
@@ -292,8 +292,8 @@ class MPDControl (PlayerBase):
                             listitem = item["file"].split("/")[-1]
                         self.data["list"]["content"].append(listitem)
 
-        except Exception, e:
-            self.logger.info(e)
+        except Exception as e:
+            self.logger.error(e)
             self._disconnected()
 
     def list_library(self, type="genre", filtertype="", filter=""):
@@ -325,24 +325,24 @@ class MPDControl (PlayerBase):
                 elif type == "title" and filtertype == "album":
                     self.data["list"]["viewcontent"] = self.data["list"]["content"]
 
-        except Exception, e:
-            self.logger.info(e)
+        except Exception as e:
+            self.logger.error(e)
             self._disconnected()
 
     def play_item(self, number):
         try:
             if self.client:
                 self.client.play(number)
-        except Exception, e:
-            self.logger.info(e)
+        except Exception as e:
+            self.logger.error(e)
             self._disconnected()
 
     def findadd(self, type, item):
         try:
             if self.client:
                 self.client.findadd(type, item)
-        except Exception, e:
-            self.logger.info(e)
+        except Exception as e:
+            self.logger.error(e)
             self._disconnected()
 
     def playlists_click(self, item=-1, button=1):
@@ -370,8 +370,8 @@ class MPDControl (PlayerBase):
                 self.logger.debug("Playlists item scrolled: %s" % button)
                 return "listview"
 
-        except Exception, e:
-            self.logger.info("No playlist %s" % item)
+        except Exception as e:
+            self.logger.error("No playlist %s" % item)
 
         return ""
 
@@ -403,8 +403,8 @@ class MPDControl (PlayerBase):
                     self.get_playlist()
                     return "listview"
 
-        except Exception, e:
-            self.logger.info(e)
+        except Exception as e:
+            self.logger.error(e)
         return ""
 
     # TODO: Remember previous scroll position when navigating back
@@ -469,8 +469,8 @@ class MPDControl (PlayerBase):
                     self.client.findadd(self.data["list"]["type"], selected)
                     return ""
 
-        except Exception, e:
-            self.logger.info(e)
+        except Exception as e:
+            self.logger.error(e)
             return ""
 
     def fetch_coverart(self, song):
@@ -513,10 +513,10 @@ class MPDControl (PlayerBase):
 
             try:
                 lastfm_album = self.lfm.get_album(song["artist"], song["album"])
-            except Exception, e:
+            except Exception as e:
                 self.lfm_connected = False
                 lastfm_album = {}
-                self.logger.exception(e)
+                self.logger.error(e)
                 pass
 
             if lastfm_album:
@@ -528,8 +528,8 @@ class MPDControl (PlayerBase):
                         self.logger.debug("MPD coverart downloaded from Last.fm")
                         self.data["cover"] = True
                         self.data["update"]["coverart"] = True
-                except Exception, e:
-                    self.logger.exception(e)
+                except Exception as e:
+                    self.logger.error(e)
                     pass
 
     def connect_lfm(self):

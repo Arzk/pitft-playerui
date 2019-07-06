@@ -77,7 +77,7 @@ class SpotifyControl (PlayerBase):
 
             except Exception as e:
                 if not self.noConnection:
-                    self.logger.debug(e)
+                    self.logger.error(e)
                 self._disconnected()
 
             try:
@@ -108,8 +108,8 @@ class SpotifyControl (PlayerBase):
                             else:
                                 self.coverartThread = Thread(target=self._fetch_coverart(song["cover_uri"]))
                                 self.coverartThread.start()
-                        except Exception, e:
-                            self.logger.debug("Coverartthread: %s" % e)
+                        except Exception as e:
+                            self.logger.error("Coverartthread: %s" % e)
                     else:
                         song["coverartfile"] = self.data["coverartfile"]
                         song["cover"] = self.data["cover"]
@@ -129,7 +129,7 @@ class SpotifyControl (PlayerBase):
                         self.data["song"] = song
 
             except Exception as e:
-                self.logger.debug(e)
+                self.logger.error(e)
                 self._disconnected()
 
     def connect (self):
@@ -142,9 +142,9 @@ class SpotifyControl (PlayerBase):
             self.logger.info("Spotify connected")
             self.noConnection = False
             self.capabilities["connected"]   = True
-        except Exception, e:
+        except Exception as e:
             if not self.noConnection:
-                self.logger.info(e)
+                self.logger.error(e)
             self._disconnected()
             self.noConnection = True
             self.capabilities["connected"]   = False
@@ -182,8 +182,8 @@ class SpotifyControl (PlayerBase):
             try:
                 if self.client:
                     self._api("playback", command, parameter)
-            except Exception, e:
-                self.logger.info(e)
+            except Exception as e:
+                self.logger.error(e)
                 self._disconnected()
 
     def _fetch_coverart(self, cover_uri):
@@ -198,8 +198,8 @@ class SpotifyControl (PlayerBase):
                     self.logger.debug("Spotify coverart downloaded")
                     self.data["cover"] = True
                     self.data["update"]["coverart"] = True
-        except Exception, e:
-            self.logger.exception(e)
+        except Exception as e:
+            self.logger.error(e)
             pass
 
     # Using api from spotify-connect-web

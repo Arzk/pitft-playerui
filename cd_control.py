@@ -82,7 +82,7 @@ class CDControl (PlayerBase):
                 self.data["song"] = song
 
         except Exception as e:
-            self.logger.debug(e)
+            self.logger.error(e)
 
     def connect(self):
         # (re)connect to last.fm
@@ -107,9 +107,9 @@ class CDControl (PlayerBase):
             cdrom = DiscID.open()
             disc_id = DiscID.disc_id(cdrom)
             self.logger.debug("Loaded new cd, id: %s" % disc_id)
-        except Exception, e:
+        except Exception as e:
             inserted = False
-            self.logger.debug(e)
+            self.logger.error(e)
             disc_id = {}
 
         if disc_id:
@@ -124,8 +124,8 @@ class CDControl (PlayerBase):
         try:
             (query_status, query_info) = CDDB.query(disc_id)
             self.logger.debug("CDDB Query status: %s" % query_status)
-        except Exception, e:
-            self.logger.debug(e)
+        except Exception as e:
+            self.logger.error(e)
             query_status = 0
             query_info = {}
 
@@ -143,8 +143,8 @@ class CDControl (PlayerBase):
             # No match found
             else:
                 self.logger.info("CD query failed, status: %s " % query_status)
-        except Exception, e:
-            self.logger.debug(e)
+        except Exception as e:
+            self.logger.error(e)
             read_status = 0
             read_info = {}
 
@@ -189,10 +189,10 @@ class CDControl (PlayerBase):
                     # Other tracks: count from start frame of track and next track.
                     disc["tracks"][track+1]["time"] = (disc_id[track+3] - disc_id[track+2]) / 75
 
-            except Exception, e:
+            except Exception as e:
                 disc["tracks"][track+1]["title"] = ""
                 disc["tracks"][track+1]["time"] = ""
-                self.logger.debug(e)
+                self.logger.error(e)
 
         # Fetch coverart
         if not self.data["cover"]:
@@ -207,8 +207,8 @@ class CDControl (PlayerBase):
                 else:
                     self.coverartThread = Thread(target=self._fetch_coverart(disc["artist"], disc["album"]))
                     self.coverartThread.start()
-            except Exception, e:
-                self.logger.debug("Coverartthread: %s" % e)
+            except Exception as e:
+                self.logger.error("Coverartthread: %s" % e)
 
         return disc
 
@@ -220,10 +220,10 @@ class CDControl (PlayerBase):
         if self.lfm_connected:
             try:
                 lastfm_album = self.lfm.get_album(artist, album)
-            except Exception, e:
+            except Exception as e:
                 self.lfm_connected = False
                 lastfm_album = {}
-                self.logger.exception(e)
+                self.logger.error(e)
                 pass
 
             if lastfm_album:
@@ -235,8 +235,8 @@ class CDControl (PlayerBase):
                         self.logger.debug("CD coverart downloaded from Last.fm")
                         self.data["cover"] = True
                         self.data["update"]["coverart"] = True
-                except Exception, e:
-                    self.logger.exception(e)
+                except Exception as e:
+                    self.logger.error(e)
                     pass
 
     def control(self, command, parameter=-1):
@@ -252,4 +252,4 @@ class CDControl (PlayerBase):
         except:
             self.lfm = ""
             time.sleep(5)
-            self.logger.debug("Last.fm not connected")
+            self.logger.error("Last.fm not connected")

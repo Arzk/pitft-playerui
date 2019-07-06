@@ -37,8 +37,7 @@ path = os.path.dirname(os.path.abspath(__file__)) + "/"
 logger = logging.getLogger("PiTFT-Playerui")
 try:
     if config.loglevel == "DEBUG":
-        loglevel = logging.DEBUG
-        logger.setLevel(loglevel)
+        logger.setLevel(logging.DEBUG)
         formatter = logging.Formatter("%(asctime)s %(levelname)-5s %(name)-32s %(lineno)-4d %(message)s")
     else:
         logger.setLevel(logging.INFO)
@@ -115,8 +114,8 @@ class PitftDaemon(Daemon):
             try:
                 self.lirc_sockid = lirc.init("pitft-playerui", lircrcfile, blocking=False)
                 self.lirc_enabled = True
-            except Exception, e:
-                logger.debug(e)
+            except Exception as e:
+                logger.error(e)
                 self.lirc_enabled = False
 
         # Mouse variables
@@ -159,7 +158,7 @@ class PitftDaemon(Daemon):
                 if self.lirc_enabled:
                     active = active | self.read_lirc()
             except Exception as e:
-                logger.debug(e)
+                logger.error(e)
 
             try:
                 # Refresh info
@@ -174,14 +173,14 @@ class PitftDaemon(Daemon):
                     if updated:
                         self.sm.refresh()
             except Exception as e:
-                logger.debug(e)
+                logger.error(e)
 
             try:
                 # Update screen timeout, if there was any activity
                 if config.screen_timeout > 0:
                     self.update_screen_timeout(active)
             except Exception as e:
-                logger.debug(e)
+                logger.error(e)
 
             try:
                 # Draw screen
@@ -195,7 +194,7 @@ class PitftDaemon(Daemon):
                 else:
                     time.sleep(0.01)
             except Exception as e:
-                logger.debug(e)
+                logger.error(e)
 
     def read_mouse(self):
         direction = 0,0
@@ -289,7 +288,7 @@ class PitftDaemon(Daemon):
                     self.pc.control_player(command, parameter)
                     logger.debug("LIRC: %s" % command, parameter)
                 except Exception as e:
-                    logger.debug(e)
+                    logger.error(e)
 
             return True
         return False
@@ -318,9 +317,9 @@ if __name__ == "__main__":
         elif 'restart' == sys.argv[1]:
             daemon.restart()
         else:
-            print "Unknown command"
+            print ("Unknown command")
             sys.exit(2)
         sys.exit(0)
     else:
-        print "usage: %s start|stop|restart" % sys.argv[0]
+        print ("usage: %s start|stop|restart" % sys.argv[0])
         sys.exit(2)

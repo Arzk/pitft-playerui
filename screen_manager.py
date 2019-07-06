@@ -22,8 +22,8 @@ class ScreenManager:
             self.font["details"]     = pygame.font.Font(config.fontfile, 16)
             self.font["elapsed"]     = pygame.font.Font(config.fontfile, 16)
             self.font["listview"]    = pygame.font.Font(config.fontfile, 20)
-        except Exception, e:
-            self.logger.debug(e)
+        except Exception as e:
+            self.logger.error(e)
             raise
 
         # Images
@@ -54,8 +54,8 @@ class ScreenManager:
             self.image["button_random_on"]       = pygame.image.load("pics/" + "button-random-on.png")
             self.image["button_random"]          = self.image["button_repeat_off"]
 
-        except Exception, e:
-            self.logger.debug(e)
+        except Exception as e:
+            self.logger.error(e)
             raise
 
         # Things to show
@@ -110,8 +110,8 @@ class ScreenManager:
                     player.set_logo(pygame.transform.scale(pygame.image.load(logopath), size["logo"]))
                 else:
                     player.set_logo(None)
-            except Exception, e:
-                self.logger.debug(e)
+            except Exception as e:
+                self.logger.error(e)
                 
             # Load list button icons
             try:
@@ -119,16 +119,16 @@ class ScreenManager:
                 if listbuttons:
                     for name, button in listbuttons.items():
                         player.set_buttonicon(name, pygame.transform.scale(pygame.image.load(button["path"]), size["listbutton"]))
-            except Exception, e:
-                self.logger.debug(e)
+            except Exception as e:
+                self.logger.error(e)
 
     def refresh(self):
         updated = False
         # Parse new song information
         try:
             self.parse_song()
-        except Exception, e:
-            self.logger.debug(e)
+        except Exception as e:
+            self.logger.error(e)
             pass
             
         return self.updated()
@@ -284,8 +284,8 @@ class ScreenManager:
                 self.logger.debug("Using coverart: %s" % coverartfile)
                 coverart = pygame.image.load(coverartfile)
                 return pygame.transform.scale(coverart, size["coverart"])
-            except Exception, e:
-                self.logger.exception(e)
+            except Exception as e:
+                self.logger.error(e)
                 return self.image["coverart_place"]
         else:
             return self.image["coverart_place"]
@@ -298,8 +298,8 @@ class ScreenManager:
                 self.render_mainscreen(surface)
             elif self.view == "listview":
                 self.render_listview(surface)
-        except Exception, e:
-            self.logger.debug(e)
+        except Exception as e:
+            self.logger.error(e)
             pass
 
     def on_click(self, mousebutton, clickpos):
@@ -309,8 +309,8 @@ class ScreenManager:
                 allow_repeat = self.on_click_mainscreen(mousebutton, clickpos)
             elif self.view == "listview":
                 allow_repeat = self.on_click_listview(mousebutton, clickpos)
-        except Exception, e:
-            self.logger.debug(e)
+        except Exception as e:
+            self.logger.error(e)
             allow_repeat = False
             pass
         return allow_repeat
@@ -609,9 +609,9 @@ class ScreenManager:
                     try:
                         listitem = self.pc["list"]["viewcontent"][list_index].decode('utf-8')
 
-                    except Exception, e:
+                    except Exception as e:
                         listitem = ""
-                        self.logger.debug(e)
+                        self.logger.error(e)
 
                     # Highlight currently playing item
                     if list_index == self.pc["list"]["highlight"]:
@@ -697,7 +697,7 @@ class ScreenManager:
                 try:
                     x = limit_offset((x,0),(0, 0, len(self.pc["list"]["buttons"])*self.list_scroll_threshold,0))[0]
                 except Exception as e:
-                    self.logger.debug(e)
+                    self.logger.error(e)
 
             self.draw_offset = limit_offset((x,y),(-config.resolution[0], -config.resolution[1],
                                                     config.resolution[0],  config.resolution[1]))

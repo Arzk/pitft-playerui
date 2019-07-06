@@ -16,24 +16,24 @@ class PlayerControl:
             self.logger.debug("Setting Spotify")
             if config.spotify_host and config.spotify_port:
                 self.players.append(SpotifyControl(config))
-        except Exception, e:
-            self.logger.debug(e)
+        except Exception as e:
+            self.logger.error(e)
         try:
             self.logger.debug("Setting MPD")
             if config.mpd_host and config.mpd_port:
                 self.players.append(MPDControl(config))
-        except Exception, e:
-            self.logger.debug(e)
+        except Exception as e:
+            self.logger.error(e)
         try:
             self.logger.debug("Setting CD")
             if config.cdda_enabled:
                 self.players.append(CDControl(config))
-        except Exception, e:
-            self.logger.debug(e)
+        except Exception as e:
+            self.logger.error(e)
 
         # Quit if no players
         if not len(self.players):
-            self.logger.debug("No players defined! Quitting")
+            self.logger.error("No players defined! Quitting")
             raise
 
         # Force first refresh for all players
@@ -78,8 +78,8 @@ class PlayerControl:
             try:
                 player.refresh(self.current == id or self.do_first_refresh)
                 self.do_first_refresh = False
-            except Exception, e:
-                self.logger.debug(e)
+            except Exception as e:
+                self.logger.error(e)
 
         # Get active player
         self.determine_active_player()
