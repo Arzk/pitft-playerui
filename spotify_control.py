@@ -50,15 +50,15 @@ class SpotifyControl (PlayerBase):
                 logged_in = sp_status["logged_in"]
 
                 # Parse status
-                status["state"] = "play" if sp_status["playing"] else "pause"
+                status["state"] = "play" if sp_status["playing"] and active_client else "pause"
                 status["random"] = 1 if sp_status["shuffle"] else 0
                 status["repeat"] = 1 if sp_status["repeat"] else 0
                 # Get volume from previous metadata
                 status["volume"] = self.volume
 
                 # Check for changes in status
-                if status != self.data["status"] or active_client != self.active_client:
-                    if status["state"] != self.data["status"]["state"] or active_client != self.active_client:
+                if status != self.data["status"]:
+                    if status["state"] != self.data["status"]["state"]:
                         self.data["update"]["state"]   = True
                         # Started playing on this device - request active status
                         if active_client and status["state"] == "play":
