@@ -123,7 +123,7 @@ class PitftDaemon(Daemon):
         self.longpress_time     = timedelta(milliseconds=300)
         self.click_filtertime   = datetime.datetime.now()
         self.click_filterdelta  = timedelta(milliseconds=10)
-        self.scroll_threshold   = 20
+        self.scroll_threshold   = (20, 5)
         self.start_pos          = 0,0
         self.scroll_offset      = 0,0
         self.mouse_scroll       = ""
@@ -222,11 +222,11 @@ class PitftDaemon(Daemon):
 
                 # Start scrolling
                 if not self.mouse_scroll:
-                    if abs(direction[0]) >= self.scroll_threshold:
+                    if abs(direction[0]) >= self.scroll_threshold[0]:
                         self.mouse_scroll = "x"
                         self.scroll(self.start_pos,direction[0],0)
 
-                    elif abs(direction[1]) >= self.scroll_threshold:
+                    elif abs(direction[1]) >= self.scroll_threshold[1]:
                         self.mouse_scroll = "y"
                         self.scroll(self.start_pos, 0, direction[1])
 
