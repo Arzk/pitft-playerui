@@ -318,12 +318,14 @@ class ScreenManager:
 
         # Screen specific
         if self.view == "main":
-            self.scroll_mainscreen(start, x, y, end)
+            allow_smoothscroll = self.scroll_mainscreen(start, x, y, end)
         elif self.view == "listview":
-            self.scroll_listview(start, x, y, end)
+            allow_smoothscroll = self.scroll_listview(start, x, y, end)
 
         # Redraw screen
         self.force_update("screen")
+
+        return allow_smoothscroll
 
     def switch_view(self, view):
         if view == "main":
@@ -488,6 +490,8 @@ class ScreenManager:
 
     def scroll_mainscreen(self, start, x, y, end=False):
 
+        allow_smoothscroll = False
+
         # scrolling progress bar
         if self.pc("seek_enabled") and \
                   (clicked(start, pos("progressbar"), size["progressbar_click"]) or \
@@ -576,6 +580,7 @@ class ScreenManager:
                     self.image["coverart_border"] = self.image["coverart_border_clean"]
                 else:
                     self.image["coverart_border"] = self.image["coverart_border_paused"]
+        return allow_smoothscroll
 
     def render_listview(self,surface):
 
@@ -592,7 +597,7 @@ class ScreenManager:
         # List content
         if self.pc["list"]["viewcontent"]:
             list_length = len(self.pc["list"]["viewcontent"])
-            for i in range(-self.listitems_on_screen,2*self.listitems_on_screen):
+            for i in range(-10*self.listitems_on_screen,11*self.listitems_on_screen):
                 list_index = i+self.list_offset//size['listitem_height']
                 if list_index in range(0, list_length):
                     try:
@@ -664,6 +669,7 @@ class ScreenManager:
         return False
 
     def scroll_listview(self, start, x, y, end=False):
+        allow_smoothscroll = False
         self.scroll_start = start
 
         # Prevent negative offset for short lists that fit on the screen
@@ -684,13 +690,13 @@ class ScreenManager:
             # Limit X Scroll to the length of the menuitem buttons
             if x > 0:
                 x = (x//self.list_scroll_threshold)*self.list_scroll_threshold
-                try:
-                    x = limit_offset((x,0),(0, 0, len(self.pc["list"]["buttons"])*self.list_scroll_threshold,0))[0]
-                except Exception as e:
-                    self.logger.error(e)
+                x = limit_offset((x,0),(0, 0, len(self.pc["list"]["buttons"])*self.list_scroll_threshold,0))[0]
 
-            self.draw_offset = limit_offset((x,y),(-config.resolution[0], -config.resolution[1],
-                                                    config.resolution[0],  config.resolution[1]))
+            self.draw_offset = limit_offset((x,y),(-config.resolution[0], -10*config.resolution[1],
+                                                    config.resolution[0],  10*config.resolution[1]))
+            # Allow smooth scrolling
+            if abs(y) > 0:
+                allow_smoothscroll = True
 
         # Scroll ended
         if end:
@@ -707,6 +713,8 @@ class ScreenManager:
             # Horizontal scroll left exits
             elif x <= -self.list_scroll_threshold:
                 self.click_listview(-1, start)
+
+        return allow_smoothscroll
 
     def update_ack(self, item):
         self.status["update"][item] = False

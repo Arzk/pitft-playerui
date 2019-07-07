@@ -128,8 +128,18 @@ class PitftDaemon(Daemon):
         self.scroll_offset      = 0,0
         self.mouse_scroll       = ""
         self.mousebutton_down   = False
-        self.longpress          = False
         self.pos                = 0
+
+        # Smooth scrolling variables
+        self.smoothscroll           = False
+        self.smoothscroll_start_pos = 0,0
+        self.smoothscroll_direction = 0,0
+        self.smoothscroll_directions_index = 0
+        self.smoothscroll_direction_samples = 10
+        self.smoothscroll_directions = [0]*self.smoothscroll_direction_samples
+        self.smoothscroll_factor    = 0.9
+        self.smoothscroll_timedelta = timedelta(milliseconds=10)
+        self.smoothscroll_time      = datetime.datetime.now()
 
         # Times in milliseconds
         self.screen_refreshtime = 16.67
@@ -207,6 +217,13 @@ class PitftDaemon(Daemon):
                 # Filter out if instantly after previous mousebutton up event
                 if self.clicktime > self.click_filtertime:
                     userevents = True
+                    if self.smoothscroll:
+                        self.scroll(self.smoothscroll_start_pos, (0,0), True)
+                        self.smoothscroll = False
+                        self.smoothscroll_directions_index = 0
+                        self.smoothscroll_directions = [0]*self.smoothscroll_direction_samples
+                        self.smoothscroll_direction = 0,0
+                        self.smoothscroll_start_pos = 0,0
                     self.pos = self.start_pos = pygame.mouse.get_pos()
 
                     # Instant click when backlight is off to wake
@@ -215,7 +232,7 @@ class PitftDaemon(Daemon):
                     else:
                         self.mousebutton_down = True
 
-            if event.type == pygame.MOUSEMOTION and self.mousebutton_down and not self.longpress:
+            elif event.type == pygame.MOUSEMOTION and self.mousebutton_down:
                 userevents = True
                 pos = pygame.mouse.get_pos()
                 direction = (pos[0] - self.pos[0], pos[1] - self.pos[1])
@@ -224,58 +241,92 @@ class PitftDaemon(Daemon):
                 if not self.mouse_scroll:
                     if abs(direction[0]) >= self.scroll_threshold[0]:
                         self.mouse_scroll = "x"
-                        self.scroll(self.start_pos,direction[0],0)
 
                     elif abs(direction[1]) >= self.scroll_threshold[1]:
                         self.mouse_scroll = "y"
-                        self.scroll(self.start_pos, 0, direction[1])
 
                 # Scrolling already, update offset
-                else:
-                    if self.mouse_scroll == "x" and abs(direction[0]) > 0:
-                        self.scroll(self.start_pos, direction[0], 0)
-                    if self.mouse_scroll == "y" and abs(direction[1]) > 0:
-                        self.scroll(self.start_pos, 0, direction[1])
+                if self.mouse_scroll == "x":
+                    direction = direction[0], 0
+                if self.mouse_scroll == "y":
+                    direction = 0, direction[1]
+
+                self.smoothscroll = self.scroll(self.start_pos, direction)
+
+                # Save directions from latest samples for smooth scrolling - Direction is always Y
+                self.smoothscroll_directions_index = self.smoothscroll_directions_index + 1 
+                if self.smoothscroll_directions_index > self.smoothscroll_direction_samples-1:
+                    self.smoothscroll_directions_index = 0
+
+                self.smoothscroll_directions[self.smoothscroll_directions_index] = direction[1]
+                self.smoothscroll_direction = 0, sum(self.smoothscroll_directions)
 
                 # Save new position
                 self.pos = pos
 
-            if event.type == pygame.MOUSEBUTTONUP:
+            elif event.type == pygame.MOUSEBUTTONUP:
                 userevents = True
-                if self.mousebutton_down and not self.longpress:
+                if self.mousebutton_down:
                     # Not a long click or scroll: click
                     if not self.mouse_scroll:
                         self.click(1, self.start_pos)
+                    # Scrolling: End right away or start deceleration if allowed
                     else:
-                        self.scroll(self.start_pos, 0,0, True)
+                        if self.smoothscroll:
+                            self.smoothscroll_start_pos = self.start_pos
+                            self.scroll(self.smoothscroll_start_pos, self.smoothscroll_direction)
+                            self.smoothscroll_time = datetime.datetime.now() + self.smoothscroll_timedelta
+                        else:
+                            self.scroll(self.start_pos, (0,0), True)
+                            self.mouse_scroll     = ""
 
                 # Clear variables
                 self.mousebutton_down = False
-                self.mouse_scroll     = ""
-                self.longpress        = False
-                
+
                 # Filter next click, if it happens instantly
                 self.click_filtertime = datetime.datetime.now() + self.click_filterdelta
 
         # Long press - register second click
-        if self.mousebutton_down and not self.mouse_scroll:
+        if self.mousebutton_down and not self.mouse_scroll and not self.smoothscroll:
             userevents = True
             if datetime.datetime.now() - self.clicktime > self.longpress_time:
                 self.mousebutton_down = self.click(2, self.start_pos)
 
                 # Update timers
                 self.clicktime = datetime.datetime.now()
+
+        # No activity, but smooth scrolling
+        if self.smoothscroll and not self.mousebutton_down:
+            if datetime.datetime.now() > self.smoothscroll_time:
+                userevents = True
+                self.smoothscroll_direction = 0, int(self.smoothscroll_direction[1] * self.smoothscroll_factor)
+
+                # Decelerated under threshold -> Stop scrolling
+                if abs(self.smoothscroll_direction[1]) < self.scroll_threshold[1]:
+                    self.scroll(self.smoothscroll_start_pos, (0,0), True)
+                    self.mouse_scroll = ""
+                    self.smoothscroll = False
+                    self.smoothscroll_directions_index = 0
+                    self.smoothscroll_directions = [0]*self.smoothscroll_direction_samples
+                    self.smoothscroll_direction = 0,0
+                    self.smoothscroll_start_pos = 0,0
+
+                else: # Continue scrolling
+                    self.scroll(self.smoothscroll_start_pos, self.smoothscroll_direction)
+                    self.smoothscroll_time = datetime.datetime.now() + self.smoothscroll_timedelta
+
         return userevents
 
     def click(self, mousebutton, clickpos):
         self.sm.click(mousebutton, clickpos)
 
-    def scroll(self, start, x, y, end=False):
+    def scroll(self, start, direction, end=False):
         # Update total offset
-        self.scroll_offset = (self.scroll_offset[0] + x, self.scroll_offset[1] + y)
-        self.sm.scroll(start, self.scroll_offset[0], self.scroll_offset[1], end)
+        self.scroll_offset = (self.scroll_offset[0] + direction[0], self.scroll_offset[1] + direction[1])
+        allow_deceleration = self.sm.scroll(start, self.scroll_offset[0], self.scroll_offset[1], end)
         if end:
             self.scroll_offset = 0,0
+        return allow_deceleration
 
     def read_lirc(self):
         commands = lirc.nextcode()
