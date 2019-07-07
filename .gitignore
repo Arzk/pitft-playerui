@@ -6,3 +6,4 @@
 *.xcf
 config.py
 pitft-playerui.lircrc
+test/*
