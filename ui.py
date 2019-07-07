@@ -123,7 +123,7 @@ class PitftDaemon(Daemon):
         self.longpress_time     = timedelta(milliseconds=300)
         self.click_filtertime   = datetime.datetime.now()
         self.click_filterdelta  = timedelta(milliseconds=10)
-        self.scroll_threshold   = (20, 5)
+        self.scroll_threshold   = (20, 20)
         self.start_pos          = 0,0
         self.scroll_offset      = 0,0
         self.mouse_scroll       = ""
@@ -132,13 +132,12 @@ class PitftDaemon(Daemon):
 
         # Smooth scrolling variables
         self.smoothscroll           = False
-        self.smoothscroll_start_pos = 0,0
         self.smoothscroll_direction = 0,0
         self.smoothscroll_directions_index = 0
         self.smoothscroll_direction_samples = 10
         self.smoothscroll_directions = [0]*self.smoothscroll_direction_samples
         self.smoothscroll_factor    = 0.9
-        self.smoothscroll_timedelta = timedelta(milliseconds=10)
+        self.smoothscroll_timedelta = timedelta(milliseconds=1)
         self.smoothscroll_time      = datetime.datetime.now()
 
         # Times in milliseconds
@@ -218,12 +217,13 @@ class PitftDaemon(Daemon):
                 if self.clicktime > self.click_filtertime:
                     userevents = True
                     if self.smoothscroll:
-                        self.scroll(self.smoothscroll_start_pos, (0,0), True)
+                        self.scroll(self.start_pos, (0,0), True)
+                        #self.mouse_scroll = ""
                         self.smoothscroll = False
                         self.smoothscroll_directions_index = 0
                         self.smoothscroll_directions = [0]*self.smoothscroll_direction_samples
                         self.smoothscroll_direction = 0,0
-                        self.smoothscroll_start_pos = 0,0
+                        
                     self.pos = self.start_pos = pygame.mouse.get_pos()
 
                     # Instant click when backlight is off to wake
@@ -237,8 +237,8 @@ class PitftDaemon(Daemon):
                 pos = pygame.mouse.get_pos()
                 direction = (pos[0] - self.pos[0], pos[1] - self.pos[1])
 
-                # Start scrolling
                 if not self.mouse_scroll:
+                    # Start scrolling: Lock direction
                     if abs(direction[0]) >= self.scroll_threshold[0]:
                         self.mouse_scroll = "x"
 
@@ -248,10 +248,13 @@ class PitftDaemon(Daemon):
                 # Scrolling already, update offset
                 if self.mouse_scroll == "x":
                     direction = direction[0], 0
-                if self.mouse_scroll == "y":
+                elif self.mouse_scroll == "y":
                     direction = 0, direction[1]
+                else:
+                    direction = 0, 0
 
-                self.smoothscroll = self.scroll(self.start_pos, direction)
+                if self.mouse_scroll:
+                    self.smoothscroll = self.scroll(self.start_pos, direction)
 
                 # Save directions from latest samples for smooth scrolling - Direction is always Y
                 self.smoothscroll_directions_index = self.smoothscroll_directions_index + 1 
@@ -273,8 +276,7 @@ class PitftDaemon(Daemon):
                     # Scrolling: End right away or start deceleration if allowed
                     else:
                         if self.smoothscroll:
-                            self.smoothscroll_start_pos = self.start_pos
-                            self.scroll(self.smoothscroll_start_pos, self.smoothscroll_direction)
+                            self.scroll(self.start_pos, self.smoothscroll_direction)
                             self.smoothscroll_time = datetime.datetime.now() + self.smoothscroll_timedelta
                         else:
                             self.scroll(self.start_pos, (0,0), True)
@@ -303,16 +305,15 @@ class PitftDaemon(Daemon):
 
                 # Decelerated under threshold -> Stop scrolling
                 if abs(self.smoothscroll_direction[1]) < self.scroll_threshold[1]:
-                    self.scroll(self.smoothscroll_start_pos, (0,0), True)
+                    self.scroll(self.start_pos, (0,0), True)
                     self.mouse_scroll = ""
                     self.smoothscroll = False
                     self.smoothscroll_directions_index = 0
                     self.smoothscroll_directions = [0]*self.smoothscroll_direction_samples
                     self.smoothscroll_direction = 0,0
-                    self.smoothscroll_start_pos = 0,0
 
                 else: # Continue scrolling
-                    self.scroll(self.smoothscroll_start_pos, self.smoothscroll_direction)
+                    self.scroll(self.start_pos, self.smoothscroll_direction)
                     self.smoothscroll_time = datetime.datetime.now() + self.smoothscroll_timedelta
 
         return userevents
