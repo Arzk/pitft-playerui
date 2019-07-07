@@ -2,23 +2,16 @@ PiTFT-PlayerUI is a fork of PMB-PiTFT (Pi MusicBox PiTFT), a small Python script
 
 ![Screenshot](https://dl.dropboxusercontent.com/s/c2x5mcrbz4xqm0j/pitft-playerui.gif)
 
-Note: This is still in progress, but most of the features should work already.
-
 Features:
 ===========
 Shows following details of currently playing track in MPD and Spotify:
 - Cover art from local folder.jpg etc file, Spotify or Last.FM
 - Artist, Album and Track title
 - Track time total and elapsed (Only in MPD)
-- Fetches audio CD information from freeDB
 
 Shows and lets user control:
-- Repeat
-- Random
 - Playback status
-- Active player toggle
-- Playlists
-- CD playback
+- Repeat and random
 - Volume
 - Playlists and library (MPD only)
 
@@ -26,10 +19,11 @@ Main screen gestures:
 - Coverart click: play/pause
 - Vertical scrolling: switch player (down), player menus(up)
 - Horizontal flip: next/previous
+- Volume and progressbar: scroll or click
 
 List view:
-- Item click (depends on list)
-- Long click (depends on list)
+- Item click: Select
+- Long click: Alternative action
 - Vertical scrolling
 - Horizontal flip: exit (left), additional commands (right)
 
@@ -169,7 +163,6 @@ TODO:
 
 Author notes:
 =============
-
 There might be some bugs left, so let me hear about them. Feel free to give any improvement ideas. This is my first python project, so a lot of things could surely be done more efficiently.
 
 Thanks:
