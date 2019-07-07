@@ -91,7 +91,6 @@ class ScreenManager:
 
         self.view = "main"
         self.scroll_start       = -1,-1
-        self.scroll_offset      = 0,0
         self.scroll_threshold   = 40
         self.list_scroll_threshold = 40
         self.draw_offset        = 0,0
@@ -302,35 +301,26 @@ class ScreenManager:
             self.logger.error(e)
             pass
 
-    def on_click(self, mousebutton, clickpos):
+    def click(self, mousebutton, clickpos):
         try:
 #            self.logger.debug("Click: " + str(mousebutton) + " X: " + str(clickpos[0]) + " Y: " + str(clickpos[1]))
             if self.view == "main":
-                allow_repeat = self.on_click_mainscreen(mousebutton, clickpos)
+                allow_repeat = self.click_mainscreen(mousebutton, clickpos)
             elif self.view == "listview":
-                allow_repeat = self.on_click_listview(mousebutton, clickpos)
+                allow_repeat = self.click_listview(mousebutton, clickpos)
         except Exception as e:
             self.logger.error(e)
             allow_repeat = False
             pass
         return allow_repeat
 
-    def on_scroll(self, start, x, y, end=False):
-        self.scroll_start = start
-
-        # Update total offset
-        self.scroll_offset = (self.scroll_offset[0] + x, self.scroll_offset[1] + y)
+    def scroll(self, start, x, y, end=False):
 
         # Screen specific
         if self.view == "main":
-            self.scroll_mainscreen(start, self.scroll_offset[0], self.scroll_offset[1], end)
+            self.scroll_mainscreen(start, x, y, end)
         elif self.view == "listview":
-            self.scroll_listview(start, self.scroll_offset[0], self.scroll_offset[1], end)
-
-        # Scroll ended
-        if end:
-            self.scroll_start = -1,-1
-            self.scroll_offset = 0,0
+            self.scroll_listview(start, x, y, end)
 
         # Redraw screen
         self.force_update("screen")
@@ -361,7 +351,6 @@ class ScreenManager:
                 surface.blit(text,
                             menupos("bottommenu", index, (text_rect[0],self.draw_offset[1])))
             # Top menu
-            # Check for changes in player availability
             for i in range (0,len(self.topmenu)-1):
                 index = i if i < self.pc.get_current() else i+1
                 color = "text" if self.draw_offset[1] == (i+1)*size["topmenu"] else "inactive"
@@ -465,7 +454,7 @@ class ScreenManager:
                         pos("coverart", self.draw_offset))
             self.update_ack("coverart")
 
-    def on_click_mainscreen(self, mousebutton, clickpos):
+    def click_mainscreen(self, mousebutton, clickpos):
 
         allow_repeat = False
 
@@ -648,7 +637,7 @@ class ScreenManager:
         else:
             self.switch_view("main")
 
-    def on_click_listview(self, mousebutton, clickpos):
+    def click_listview(self, mousebutton, clickpos):
 
         if clicked(clickpos, pos("scrollbar_click"), size["scrollbar_click"]):
             ratio = float(-32.0 + clickpos[1])*1.20
@@ -675,6 +664,7 @@ class ScreenManager:
         return False
 
     def scroll_listview(self, start, x, y, end=False):
+        self.scroll_start = start
 
         # Prevent negative offset for short lists that fit on the screen
         if len(self.pc["list"]["viewcontent"]) > self.listitems_on_screen:
@@ -702,7 +692,9 @@ class ScreenManager:
             self.draw_offset = limit_offset((x,y),(-config.resolution[0], -config.resolution[1],
                                                     config.resolution[0],  config.resolution[1]))
 
+        # Scroll ended
         if end:
+            self.scroll_start = -1,-1
             self.list_offset = self.list_offset - self.draw_offset[1]
             self.list_offset = limit_offset((0,self.list_offset),(0, 0, 0, max_offset))[1]
             self.draw_offset = (0,0)
@@ -710,11 +702,11 @@ class ScreenManager:
             # Horizontal scroll right does something for the item
             if x >= self.list_scroll_threshold:
                 button = 2 + x//self.list_scroll_threshold
-                self.on_click_listview(button, start)
+                self.click_listview(button, start)
 
             # Horizontal scroll left exits
             elif x <= -self.list_scroll_threshold:
-                self.on_click_listview(-1, start)
+                self.click_listview(-1, start)
 
     def update_ack(self, item):
         self.status["update"][item] = False
