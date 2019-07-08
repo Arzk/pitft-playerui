@@ -17,14 +17,9 @@ size["padding"]              = 4,4
 size["coverart"]             = 256, 256
 size["topmenu"]              = 80
 size["bottommenu"]           = 60
-size["selectorbutton"]       = 64, 64
 size["controlbutton"]        = 48, 48
-size["button_screenoff"]     = 60, 60
-size["icon_screenoff"]       = 20, 16
+size["buttonpadding"]        = 12
 size["togglebutton"]         = 62, 25
-size["volume_text_width"]    = 46
-size["volume_field"]         = 44, 24
-size["volume_fieldoffset"]   = 6
 size["trackinfo_height"]     = 20 # Row height
 size["details"]              = 46,52
 size["elapsed"]              = 40,40
@@ -68,8 +63,6 @@ _pos["center"]       = config.resolution[0]/2, config.resolution[1]/2
 _pos["topmenu"]      = 0, _pos["top"]-size["topmenu"]+10
 _pos["bottommenu"]   = 0, _pos["bottom"]+20
 
-_pos["MAIN"]         = _pos["center"][0], _pos["top"]-30
-_pos["testtext"]     = _pos["center"][0], _pos["bottom"]
 _pos["listview"]     = _pos["paddedleft"], _pos["paddedtop"]
 
 # Track info
@@ -88,21 +81,18 @@ _pos["progressbackground"] = 0, _pos["progressbar"][1] - 4
 size["progressbackground"] = _pos["track_length"][0], size["progressbar_height"]
 
 # Buttons
-# Topmost selector button
-_pos["buttonleft"]  = _pos["left"] + 28, _pos["progressbar"][1]-64 - size["controlbutton"][1] #418, 8
-_pos["buttonright"] = _pos["right"] - size["controlbutton"][0], _pos["paddedtop"] #418, 8
+# Lowest button
+_pos["buttonleft"]  = _pos["left"] + 28, _pos["progressbar"][1]-80 - size["controlbutton"][1]
 
 _pos["repeatbutton"]  = _pos["buttonleft"]
-_pos["randombutton"]  = _pos["repeatbutton"][0], _pos["repeatbutton"][1] - size["selectorbutton"][1]
+_pos["randombutton"]  = _pos["repeatbutton"][0], _pos["repeatbutton"][1] - size["controlbutton"][1] - size["buttonpadding"]
 
 _pos["volume"]         = _pos["right"]-size["volume_click"][0]/2-15, 30
 _pos["volume_click"]   = _pos["volume"][0]-size["volume_click"][0]/2, _pos["volume"][1]-30
 _pos["volume_slider"]  = _pos["volume"][0]+2, _pos["volume"][1]+4
 
-_pos["icon_screenoff"] = config.resolution[0] - size["icon_screenoff"][0]-5    , config.resolution[1] - size["icon_screenoff"][1]-5
-
 # Cover art
-_pos["coverart"]      = (config.resolution[0] - size["coverart"][0])/2, _pos["top"] #4
+_pos["coverart"]      = (config.resolution[0] - size["coverart"][0])/2, _pos["top"]
 
 # Player icon
 _pos["logo"]          = _pos["paddedright"] - size["logo"][0], _pos["paddedbottom"] - size["logo"][1]
@@ -165,7 +155,7 @@ def render_text(text, font, color_str="text"):
     return font.render(text, 1, color[color_str])
 
 # Compare if between x_0,y_0 and x_1,y_1
-def clicked(click, start__pos, size):
-    return start__pos[0] <= click[0] <= start__pos[0] + size[0] and \
-       start__pos[1] <= click[1] <= start__pos[1] + size[1]
+def clicked(click, start_pos, size):
+    return start_pos[0] <= click[0] <= start_pos[0] + size[0] and \
+       start_pos[1] <= click[1] <= start_pos[1] + size[1]
 
