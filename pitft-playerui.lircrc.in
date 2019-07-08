@@ -4,23 +4,18 @@
 begin
   button = tv_radio
   prog = pitft-playerui
-  config = spotify
+  config = switch spotify
 end
 begin
   button = pip
   prog = pitft-playerui
-  config = mpd
+  config = switch mpd
 end
 begin
   button = timer
   prog = pitft-playerui
-  config = cd
+  config = switch cd
 end
-#begin
-#  button = timer
-#  prog = pitft-playerui
-#  config = radio
-#end
 
 #################
 # Media control
@@ -28,47 +23,47 @@ end
 begin
   button = play
   prog = pitft-playerui
-  config = play
+  config = control play
 end
 begin
   button = pause
   prog = pitft-playerui
-  config = pause
+  config = control pause
 end
 begin
   button = stop
   prog = pitft-playerui
-  config = stop
+  config = control stop
 end
 begin
   button = rewind
   prog = pitft-playerui
-  config = rwd
+  config = control rwd
   repeat = 1
 end
 begin
   button = fastforward
   prog = pitft-playerui
-  config = ff
+  config = control ff
   repeat = 1
 end
 begin
   button = previous
   prog = pitft-playerui
-  config = previous
+  config = control previous
 end
 begin
   button = next
   prog = pitft-playerui
-  config = next
+  config = control next
 end
 begin
   button = repeat
   prog = pitft-playerui
-  config = repeat
+  config = control repeat
 end
 begin
   button = teletext
   prog = pitft-playerui
-  config = random
+  config = control random
 end
