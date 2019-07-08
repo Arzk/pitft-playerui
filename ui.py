@@ -214,22 +214,27 @@ class PitftDaemon(Daemon):
                 self.clicktime = datetime.datetime.now()
                 # Filter out if instantly after previous mousebutton up event
                 if self.clicktime > self.click_filtertime:
-                    userevents = True
-                    if self.smoothscroll:
-                        self.scroll(self.start_pos, (0,0), True)
-                        #self.mouse_scroll = ""
-                        self.smoothscroll = False
-                        self.smoothscroll_directions_index = 0
-                        self.smoothscroll_directions = [0]*self.smoothscroll_direction_samples
-                        self.smoothscroll_direction = 0,0
-                        
                     self.pos = self.start_pos = pygame.mouse.get_pos()
+                    userevents = True
+                    if event.button == 1:
+                        if self.smoothscroll:
+                            self.scroll(self.start_pos, (0,0), True)
+                            self.smoothscroll = False
+                            self.smoothscroll_directions_index = 0
+                            self.smoothscroll_directions = [0]*self.smoothscroll_direction_samples
+                            self.smoothscroll_direction = 0,0
 
-                    # Instant click when backlight is off to wake
-                    if not self.backlight:
-                        self.mousebutton_down = False
-                    else:
-                        self.mousebutton_down = True
+                        # Instant click when backlight is off to wake
+                        if not self.backlight:
+                            self.mousebutton_down = False
+                        else:
+                            self.mousebutton_down = True
+
+                    # Scroll wheel
+                    elif event.button == 4:
+                        self.scroll(self.start_pos, (0,30), True)
+                    elif event.button == 5:
+                        self.scroll(self.start_pos, (0,-30), True)
 
             elif event.type == pygame.MOUSEMOTION and self.mousebutton_down:
                 userevents = True
@@ -266,7 +271,7 @@ class PitftDaemon(Daemon):
                 # Save new position
                 self.pos = pos
 
-            elif event.type == pygame.MOUSEBUTTONUP:
+            elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                 userevents = True
                 if self.mousebutton_down:
                     # Not a long click or scroll: click
@@ -279,7 +284,7 @@ class PitftDaemon(Daemon):
                             self.smoothscroll_time = datetime.datetime.now() + self.smoothscroll_timedelta
                         else:
                             self.scroll(self.start_pos, (0,0), True)
-                            self.mouse_scroll     = ""
+                            self.mouse_scroll = ""
 
                 # Clear variables
                 self.mousebutton_down = False
@@ -321,7 +326,6 @@ class PitftDaemon(Daemon):
         self.sm.click(mousebutton, clickpos)
 
     def scroll(self, start, direction, end=False):
-        # Update total offset
         return self.sm.scroll(start, direction, end)
 
     def read_lirc(self):
@@ -337,10 +341,8 @@ class PitftDaemon(Daemon):
                         self.pc.control_player(command)
                     else:
                         logger.debug("LIRC: Unknown target %s" % target)
-
                 except Exception as e:
                     logger.error(e)
-
             return True
         return False
 

@@ -316,12 +316,15 @@ class ScreenManager:
         return allow_repeat
 
     def scroll(self, start, direction, end=False):
+        # Update total offset
         self.scroll_offset = (self.scroll_offset[0] + direction[0], self.scroll_offset[1] + direction[1])
+
         # Screen specific
         if self.view == "main":
             allow_smoothscroll = self.scroll_mainscreen(start, self.scroll_offset, end)
         elif self.view == "listview":
             allow_smoothscroll = self.scroll_listview(start, self.scroll_offset, end)
+
         if end:
             self.scroll_offset = 0,0
 
