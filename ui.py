@@ -125,7 +125,6 @@ class PitftDaemon(Daemon):
         self.click_filterdelta  = timedelta(milliseconds=10)
         self.scroll_threshold   = (20, 20)
         self.start_pos          = 0,0
-        self.scroll_offset      = 0,0
         self.mouse_scroll       = ""
         self.mousebutton_down   = False
         self.pos                = 0
@@ -323,11 +322,7 @@ class PitftDaemon(Daemon):
 
     def scroll(self, start, direction, end=False):
         # Update total offset
-        self.scroll_offset = (self.scroll_offset[0] + direction[0], self.scroll_offset[1] + direction[1])
-        allow_deceleration = self.sm.scroll(start, self.scroll_offset[0], self.scroll_offset[1], end)
-        if end:
-            self.scroll_offset = 0,0
-        return allow_deceleration
+        return self.sm.scroll(start, direction, end)
 
     def read_lirc(self):
         commands = lirc.nextcode()

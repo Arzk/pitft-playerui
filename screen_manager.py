@@ -92,6 +92,7 @@ class ScreenManager:
         self.view = "main"
         self.scroll_start       = -1,-1
         self.scroll_threshold   = 40
+        self.scroll_offset      = 0,0
         self.list_scroll_threshold = 40
         self.draw_offset        = 0,0
         self.list_offset        = 0
@@ -314,13 +315,15 @@ class ScreenManager:
             pass
         return allow_repeat
 
-    def scroll(self, start, x, y, end=False):
-
+    def scroll(self, start, direction, end=False):
+        self.scroll_offset = (self.scroll_offset[0] + direction[0], self.scroll_offset[1] + direction[1])
         # Screen specific
         if self.view == "main":
-            allow_smoothscroll = self.scroll_mainscreen(start, x, y, end)
+            allow_smoothscroll = self.scroll_mainscreen(start, self.scroll_offset, end)
         elif self.view == "listview":
-            allow_smoothscroll = self.scroll_listview(start, x, y, end)
+            allow_smoothscroll = self.scroll_listview(start, self.scroll_offset, end)
+        if end:
+            self.scroll_offset = 0,0
 
         # Redraw screen
         self.force_update("screen")
@@ -501,8 +504,8 @@ class ScreenManager:
         # Return value: allow repeat
         return allow_repeat
 
-    def scroll_mainscreen(self, start, x, y, end=False):
-
+    def scroll_mainscreen(self, start, direction, end=False):
+        x, y = direction
         allow_smoothscroll = False
 
         # scrolling progress bar
@@ -681,7 +684,8 @@ class ScreenManager:
         # Return value: allow repeat
         return False
 
-    def scroll_listview(self, start, x, y, end=False):
+    def scroll_listview(self, start, direction, end=False):
+        x, y = direction
         allow_smoothscroll = False
         self.scroll_start = start
 
