@@ -242,7 +242,9 @@ class MPDControl (PlayerBase):
         self.data["list"]["highlight"] = -1
         self.data["list"]["position"]  = 0
         self.data["list"]["click"] = self.playlists_click
-        self.data["list"]["buttons"] = []
+        self.data["list"]["buttons"] = [{"name"  : "append",
+                                         "icon"  : self.capabilities["listbuttons"]["add"]["icon"],
+                                         "action" : self.load_playlist}]
         try:
             if self.client:
                 playlists = self.client.listplaylists()
@@ -260,7 +262,7 @@ class MPDControl (PlayerBase):
         self.data["list"]["content"] = []
         self.data["list"]["viewcontent"] = self.data["list"]["content"]
         self.data["list"]["click"] = self.playlist_click
-        self.data["list"]["buttons"] = [{"name"  : "remove", 
+        self.data["list"]["buttons"] = [{"name"  : "remove",
                                          "icon"  : self.capabilities["listbuttons"]["remove"]["icon"],
                                          "action" : self.remove_playlist_item}]
         try:
@@ -305,6 +307,9 @@ class MPDControl (PlayerBase):
         self.data["list"]["position"]  = 0
         self.data["list"]["click"] = self.library_click
         self.data["list"]["buttons"] = []
+        self.data["list"]["buttons"] = [{"name"  : "append",
+                                         "icon"  : self.capabilities["listbuttons"]["add"]["icon"],
+                                         "action" : self.findadd}]
 
         try:
             if self.client:
@@ -337,10 +342,14 @@ class MPDControl (PlayerBase):
             self.logger.error(e)
             self._disconnected()
 
-    def findadd(self, type, item):
+    def findadd(self, type, item, clear="False"):
         try:
             if self.client:
+                if clear:
+                    self.client.clear()
                 self.client.findadd(type, item)
+                if clear:
+                    self.play_item(0)
         except Exception as e:
             self.logger.error(e)
             self._disconnected()
@@ -360,13 +369,20 @@ class MPDControl (PlayerBase):
             # Normal click: replace and play
             elif button == 1:
                 self.load_playlist(playlist, True)
+                return ""
 
-            # Long press: append to the current playlist
+            # Long press: same as normal, but stay
             elif button == 2:
-                self.load_playlist(playlist, False)
+                self.load_playlist(playlist, True)
+                self.logger.debug("Playlists item longpressed: %s" % item)
+                return "listview"
 
             # Scroll: Activate menu item
             elif button >= 3:
+                selection = self.data["list"]["buttons"][button-3]
+                if selection["action"]:
+                    selection["action"](playlist, False)
+
                 self.logger.debug("Playlists item scrolled: %s" % button)
                 return "listview"
 
@@ -390,18 +406,23 @@ class MPDControl (PlayerBase):
             # Normal click: play
             elif button == 1:
                 self.play_item(item)
+                return ""
 
-            # Long press
+            # Long press: same as normal, but stay
             elif button == 2:
+                self.play_item(item)
                 self.logger.debug("Playlist item longpressed: %s" % button)
+                return "listview"
 
-            # Scroll: Activate menu item
+            # Scroll: Activate menu item and stay
             elif button >= 3:
                 selection = self.data["list"]["buttons"][button-3]
                 if selection["action"]:
                     selection["action"](item)
                     self.get_playlist()
-                    return "listview"
+
+                self.logger.debug("Playlist item scrolled: %s" % button)
+                return "listview"
 
         except Exception as e:
             self.logger.error(e)
@@ -432,19 +453,6 @@ class MPDControl (PlayerBase):
             elif item == -1:
                 return "listview"
 
-            # Scroll
-            elif button >= 3:
-                self.logger.debug("Library item scrolled: %s" % button)
-                return "listview"
-
-            # Longpress: Replace in playlist
-            elif button == 2:
-                self.client.clear()
-                self.client.findadd(self.data["list"]["type"], selected)
-                self.play_item(0)
-                
-                return ""
-
             # Normal click: navigate library or add to playlist
             elif button == 1:
                 # Last view was genres -> show artists for genre
@@ -466,8 +474,22 @@ class MPDControl (PlayerBase):
 
                 # Last view was songs -> play item
                 elif self.data["list"]["type"] == "title":
-                    self.client.findadd(self.data["list"]["type"], selected)
+                    self.findadd(self.data["list"]["type"], selected, True)
                     return ""
+
+            # Longpress: Replace in playlist and stay
+            elif button == 2:
+                self.findadd(self.data["list"]["type"], selected, True)
+                return "listview"
+
+            # Scroll: Activate menu item and stay
+            elif button >= 3:
+                selection = self.data["list"]["buttons"][button-3]
+                if selection["action"]:
+                    selection["action"](self.data["list"]["type"], selected, False)
+
+                self.logger.debug("Library item scrolled: %s" % button)
+                return "listview"
 
         except Exception as e:
             self.logger.error(e)
