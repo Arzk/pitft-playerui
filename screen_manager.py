@@ -347,16 +347,7 @@ class ScreenManager:
         self.force_update()
 
     def switch_player(self, id):
-        # Name provided: find id
-        if isinstance(id, basestring):
-            for number, player in enumerate(self.pc.get_players()):
-                if id == player("name"):
-                    id = number
-
-        # ID exists: perform the switch
-        if id != -1:
-            self.pc.control_player("switch", id)
-
+        self.pc.control_player("switch", id)
         self.force_update()
 
     def render_mainscreen(self,surface):

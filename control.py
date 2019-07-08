@@ -123,16 +123,25 @@ class PlayerControl:
 
     def switch_active_player(self, id):
         player_changed = False
-        if self.current != id:
-            player_changed = True
-            self.current = id
-            self.logger.debug("Switching player to %s" % self.players[id]("name"))
 
-        # Player changed, refresh data
-        if player_changed:
-            self.players[self.current].force_update()
-        # Ack the request
-        self.players[self.current].update_ack("active")
+        # Name provided: find id
+        if isinstance(id, basestring):
+            for number, player in enumerate(self.get_players()):
+                if id == player("name"):
+                    id = number
+
+        # ID exists: perform the switch
+        if id != -1:
+            if self.current != id:
+                player_changed = True
+                self.current = id
+                self.logger.debug("Switching player to %s" % self.players[id]("name"))
+
+            # Player changed, refresh data
+            if player_changed:
+                self.players[self.current].force_update()
+            # Ack the request
+            self.players[self.current].update_ack("active")
 
     def get_active_player(self):
         return self.current
