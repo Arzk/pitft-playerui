@@ -332,17 +332,12 @@ class PitftDaemon(Daemon):
     def read_lirc(self):
         commands = lirc.nextcode()
         if commands:
-            for command in commands:
-                logger.debug("LIRC: %s" %command)
+            for line in commands:
+                logger.debug("LIRC: %s" % line)
                 try:
-                    target, command = command.split()
+                    target, command = line.split()
                     if target == "switch":
-                        for id, player in enumerate(self.pc.get_players()):
-                            if command == player("name"):
-                                command = int(id)
-                                # TODO: Ugly hack to do this here
-                                self.sm.force_update("screen")
-                        self.pc.control_player(target, command)
+                        self.sm.switch_player(command)
                     elif target == "control":
                         self.pc.control_player(command)
                     else:
