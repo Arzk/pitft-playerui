@@ -17,7 +17,7 @@ size["padding"]              = 4,4
 size["coverart"]             = 256, 256
 size["topmenu"]              = 80
 size["bottommenu"]           = 60
-size["controlbutton"]        = 48, 48
+size["controlbutton"]        = 58, 58
 size["buttonpadding"]        = 12
 size["togglebutton"]         = 62, 25
 size["trackinfo_height"]     = 20 # Row height
@@ -82,7 +82,7 @@ size["progressbackground"] = _pos["track_length"][0], size["progressbar_height"]
 
 # Buttons
 # Lowest button
-_pos["buttonleft"]  = _pos["left"] + 28, _pos["progressbar"][1]-80 - size["controlbutton"][1]
+_pos["buttonleft"]  = _pos["left"] + 28, _pos["progressbar"][1]-64 - size["controlbutton"][1]
 
 _pos["repeatbutton"]  = _pos["buttonleft"]
 _pos["randombutton"]  = _pos["repeatbutton"][0], _pos["repeatbutton"][1] - size["controlbutton"][1] - size["buttonpadding"]

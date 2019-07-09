@@ -36,7 +36,7 @@ class MPDControl (PlayerBase):
         self.lfm_connected = False
 
         self.connect()
-        
+
         if self.client:
             self.logger.info("MPD server version: %s" % self.client.mpd_version)
 
@@ -50,7 +50,7 @@ class MPDControl (PlayerBase):
         else:
             try:
                 status = self.client.status()
-                
+
                 # Check for changes in status
                 if status != self.data["status"]:
                     if status["state"] != self.data["status"]["state"]:
@@ -229,7 +229,7 @@ class MPDControl (PlayerBase):
         except Exception as e:
             self.logger.error(e)
             self._disconnected()
-            
+
     def remove_playlist_item(self, item):
         self.logger.debug("Removing playlist item %s" % item)
         if self.client:

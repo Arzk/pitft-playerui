@@ -151,7 +151,7 @@ class PitftDaemon(Daemon):
 
     def shutdown(self):
         pass
-            
+
     # Main loop
     def run(self):
         self.setup()
@@ -160,7 +160,7 @@ class PitftDaemon(Daemon):
 
         while 1:
             updated = False
-            
+
             # Check mouse and LIRC events
             try:
                 active = self.read_mouse()
@@ -261,7 +261,7 @@ class PitftDaemon(Daemon):
                     self.smoothscroll = self.scroll(self.start_pos, direction)
 
                 # Save directions from latest samples for smooth scrolling - Direction is always Y
-                self.smoothscroll_directions_index = self.smoothscroll_directions_index + 1 
+                self.smoothscroll_directions_index = self.smoothscroll_directions_index + 1
                 if self.smoothscroll_directions_index > self.smoothscroll_direction_samples-1:
                     self.smoothscroll_directions_index = 0
 

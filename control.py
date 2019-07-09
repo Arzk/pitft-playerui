@@ -91,7 +91,7 @@ class PlayerControl:
         if self.players[self.current]["status"]["state"] == "play":
             active = True
         return active, self.updated()
-        
+
     def updated(self, item="all"):
         if item == "all":
             return True in self.players[self.current]["update"].values()

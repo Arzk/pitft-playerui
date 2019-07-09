@@ -112,7 +112,7 @@ class ScreenManager:
                     player.set_logo(None)
             except Exception as e:
                 self.logger.error(e)
-                
+
             # Load list button icons
             try:
                 listbuttons = player('listbuttons')
@@ -130,7 +130,7 @@ class ScreenManager:
         except Exception as e:
             self.logger.error(e)
             pass
-            
+
         return self.updated()
 
     def parse_song(self):
@@ -602,7 +602,6 @@ class ScreenManager:
                 scrolled_item = -1
         else:
             scrolled_item = -1
-            
 
         # List content
         if self.pc["list"]["viewcontent"]:
@@ -633,7 +632,6 @@ class ScreenManager:
                     for index, item in enumerate(self.pc["list"]["buttons"]):
                         if self.draw_offset[0] == self.list_scroll_threshold*(index+1):
                             surface.blit(item["icon"],pos("listview", (12, size['listitem_height']*scrolled_item-self.list_offset)))
-
 
             # Scrollbar
             if list_length > self.listitems_on_screen:
@@ -729,7 +727,7 @@ class ScreenManager:
 
     def update_ack(self, item):
         self.status["update"][item] = False
-        
+
     def updated(self, item="all"):
         if item == "all":
             return True in self.status["update"].values()

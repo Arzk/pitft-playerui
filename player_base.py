@@ -40,7 +40,7 @@ class PlayerBase(object):
             "menu" : []
         }
         self.init_data()
-        
+
     def init_data (self):
         self.data["status"] = {
                 "state"       : "",
@@ -49,7 +49,7 @@ class PlayerBase(object):
                 "random"      : "",
                 "volume"      : "",
                 "playlistlength" : 0
-            }            
+            }
         self.data["song"] = {
                 "pos"         : "",
                 "artist"      : "",
@@ -72,7 +72,7 @@ class PlayerBase(object):
                 "trackinfo"   : True,
                 "coverart"    : True
             }
-            
+
     """ Get data """
     def __getitem__(self, item):
         return self.data[item]
@@ -90,7 +90,7 @@ class PlayerBase(object):
     """ Refresh data from API """
     def refresh(self, active=False):
         pass
-        
+
     def updated(self, item="all"):
         if item == "all":
             return True in self.data["update"].values()
