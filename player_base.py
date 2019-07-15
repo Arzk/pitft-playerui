@@ -81,9 +81,11 @@ class PlayerBase(object):
     def __call__(self, item):
         return self.capabilities[item]
 
+    """ Set the loaded logo """
     def set_logo(self, item):
         self.capabilities["logo"] = item
 
+    """ Set the loaded icon """
     def set_buttonicon(self, item, icon):
         self.capabilities["listbuttons"][item]["icon"] = icon
 
@@ -91,6 +93,7 @@ class PlayerBase(object):
     def refresh(self, active=False):
         pass
 
+    """ Check if update requested for item """
     def updated(self, item="all"):
         if item == "all":
             return True in self.data["update"].values()

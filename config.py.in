@@ -51,6 +51,9 @@ mpd_port = "6600"
 ### Leave empty to disable local coverart fetching
 library_path = ""
 
+""" Folder to search for Radio icons, must match "name" returned from MPD """
+radio_coverart_path = ""
+
 """ Enable audio CD support via cdio_paranoia plugin and cddb-py. True/False """
 cdda_enabled = False
 

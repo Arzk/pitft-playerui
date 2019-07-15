@@ -66,7 +66,6 @@ class ScreenManager:
         self.status["date"]            = ""
         self.status["track"]           = ""
         self.status["title"]           = ""
-        self.status["file"]            = ""
         self.status["timeElapsed"]     = "00:00"
         self.status["timeTotal"]       = "00:00"
         self.status["timeElapsedPercentage"] = 0
@@ -213,10 +212,7 @@ class ScreenManager:
 
             # Title
             try:
-                if self.pc["song"]["title"]:
-                    self.status["title"] = self.pc["song"]["title"].decode('utf-8')
-                else:
-                    self.status["title"] = self.pc["song"]["file"].decode('utf-8')
+                self.status["title"] = self.pc["song"]["title"].decode('utf-8')
             except:
                 self.status["title"] = ""
 

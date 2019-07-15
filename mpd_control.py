@@ -91,7 +91,11 @@ class MPDControl (PlayerBase):
                         song["artist"] = ""
 
                     if "album" not in song:
-                        song["album"] = ""
+                        # Get name in playlist file (for radio playlists)
+                        if "name" in song:
+                            song["album"] = song["name"]
+                        else:
+                            song["album"] = ""
 
                     if "date" not in song:
                         song["date"] = ""
@@ -101,6 +105,8 @@ class MPDControl (PlayerBase):
 
                     if "title" not in song:
                         song["title"] = ""
+                    elif not "name" in song:
+                        self.status["title"] = self.pc["song"]["file"].decode('utf-8')
 
                     if "time" not in song:
                         song["time"] = ""
@@ -282,14 +288,18 @@ class MPDControl (PlayerBase):
                     # Parse content
                     for item in playlist:
                         listitem = ""
-                        if "title" in item:
+                        # Name specified in playlist (eg. Radio)
+                        if "name" in item:
+                            listitem = item["name"]
+                        # Else find title
+                        elif "title" in item:
                             listitem = str(item["title"])
                             if "artist" in item:
                                 listitem = str(item["artist"]) + " - " + listitem
                             if "id" in item:
                                 pos = str(int(item["pos"])+1).rjust(4, ' ')
                                 listitem = pos + ". " + listitem
-                        # No title, get filename
+                        # No name or title, get filename
                         elif "file" in item:
                             listitem = item["file"].split("/")[-1]
                         self.data["list"]["content"].append(listitem)
@@ -498,29 +508,38 @@ class MPDControl (PlayerBase):
     def fetch_coverart(self, song):
         self.data["cover"] = False
         self.data["coverartfile"]=""
+        coverartfile=""
+        coverartfiles = []
 
         # Search for local coverart
+        # By name in playlist from radio art location
+        if "name" in song and self.config.radio_coverart_path:
+            # Get all ["name"].* files from radio art folder
+            folder = self.config.radio_coverart_path
+            coverartfiles.extend(glob.glob(os.path.normpath(folder + "/" + song["name"]) + '.*'))
+
+        # By file location (folder.jpg etc)
         if "file" in song and self.config.library_path:
-
-            folder = os.path.dirname(self.config.library_path + "/" + song["file"])
-            coverartfile = ""
-
             # Get all folder.* files from album folder
-            coverartfiles = glob.glob(folder + '/folder.*')
+            folder = os.path.dirname(self.config.library_path + "/" + song["file"])
+            coverartfiles.extend(glob.glob(folder + '/folder.*'))
 
-            if coverartfiles:
-                self.logger.debug("Found coverart files: %s" % coverartfiles)
-                # If multiple found, select one of them
-                for file in coverartfiles:
-                    if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-                        if not coverartfile:
+        self.logger.debug(coverartfiles)
+
+        # File locations exist, perform the fetch
+        if coverartfiles:
+            self.logger.debug("Found coverart files: %s" % coverartfiles)
+            # If multiple found, select one of them
+            for file in coverartfiles:
+                if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                    if not coverartfile:
+                        coverartfile = file
+                        self.logger.debug("Set coverart: %s" % coverartfile)
+                    else:
+                        # Found multiple files. Assume that the largest one has the best quality
+                        if os.path.getsize(coverartfile) < os.path.getsize(file):
                             coverartfile = file
-                            self.logger.debug("Set coverart: %s" % coverartfile)
-                        else:
-                            # Found multiple files. Assume that the largest one has the best quality
-                            if os.path.getsize(coverartfile) < os.path.getsize(file):
-                                coverartfile = file
-                                self.logger.debug("Better coverart: %s" % coverartfile)
+                            self.logger.debug("Better coverart: %s" % coverartfile)
                 if coverartfile:
                     # Image found, load it
                     self.logger.debug("Using MPD coverart: %s" % coverartfile)
@@ -553,6 +572,11 @@ class MPDControl (PlayerBase):
                 except Exception as e:
                     self.logger.error(e)
                     pass
+
+        # No coverart found, update to blank
+        if not self.data["cover"]:
+            self.data["coverartfile"] = ""
+            self.data["update"]["coverart"] = True
 
     def connect_lfm(self):
         self.logger.info("Setting Pylast")
