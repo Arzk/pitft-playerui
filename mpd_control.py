@@ -104,9 +104,11 @@ class MPDControl (PlayerBase):
                         song["track"] = ""
 
                     if "title" not in song:
-                        song["title"] = ""
-                    elif not "name" in song:
-                        self.status["title"] = self.pc["song"]["file"].decode('utf-8')
+                        # Use filename as title, except if name specified in playlist
+                        if not "name" in song:
+                            song["title"] = song["file"].decode('utf-8')
+                        else:
+                            song["title"] = ""
 
                     if "time" not in song:
                         song["time"] = ""
